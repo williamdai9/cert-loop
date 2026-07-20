@@ -476,11 +476,22 @@ function Mistakes({ lang, pack, wrong, setTab, clearWrong }: { lang: Lang; pack:
 
 function CourseChapterReader({ lang, chapter, course, completed, onClose, onOpenChapter, onComplete, onPractice }: { lang: Lang; chapter: CourseChapter; course: CourseChapter[]; completed: boolean; onClose: () => void; onOpenChapter: (n: number) => void; onComplete: () => void; onPractice: () => void }) {
   const [revealed, setRevealed] = useState<number[]>([]);
+  const [checkpointAnswers, setCheckpointAnswers] = useState<Record<number, number>>({});
   const tx = (value: CourseText) => value[lang];
   const other = (value: CourseText) => value[lang === "en" ? "zh" : "en"];
   const sectionCount = chapter.sections.length;
   const previous = chapter.n > 1 ? chapter.n - 1 : null;
   const next = chapter.n < course.length ? chapter.n + 1 : null;
+  const checkpointScore = chapter.sections.reduce((score, _section, index) => score + (checkpointAnswers[index] === index % 3 ? 1 : 0), 0);
+
+  function checkpointOptions(sectionIndex: number) {
+    const correct = chapter.sections[sectionIndex].decision.en;
+    const distractors = [1, 2].map(offset => chapter.sections[(sectionIndex + offset) % chapter.sections.length].decision.en);
+    const correctIndex = sectionIndex % 3;
+    const options = [...distractors];
+    options.splice(correctIndex, 0, correct);
+    return { options, correctIndex };
+  }
 
   return <div className="course-overlay" role="dialog" aria-modal="true" aria-label={chapter.title.en} data-testid="course-chapter-reader">
     <div className="course-reader">
@@ -533,6 +544,8 @@ function CourseChapterReader({ lang, chapter, course, completed, onClose, onOpen
 
             <section className="mastery-block"><div><span className="eyebrow">EXAM-READY CHECKLIST</span><h2>{lang === "en" ? "Can you do all of these without notes?" : "你能否不看笔记完成以下任务？"}</h2></div><ul>{chapter.examChecklist.map((item, index) => <li key={index}><span><Check size={15} /></span><div><b>{item.en}</b><small>{item.zh}</small></div></li>)}</ul></section>
 
+            <section className="checkpoint-lab"><div className="checkpoint-heading"><div><span className="eyebrow">CHAPTER CHECKPOINTS</span><h2>{lang === "en" ? "Apply every deep-dive decision" : "应用每个深度单元的决策"}</h2><p>{lang === "en" ? "These exam-style checks make every section testable. Choose the decision that best fits the named problem." : "这些考试式检查覆盖每个小节。选择最符合指定问题的教练决策。"}</p></div><strong>{Object.keys(checkpointAnswers).length === sectionCount ? `${checkpointScore}/${sectionCount}` : `${Object.keys(checkpointAnswers).length}/${sectionCount}`}</strong></div><div className="checkpoint-list">{chapter.sections.map((section, index) => { const { options, correctIndex } = checkpointOptions(index); const selected = checkpointAnswers[index]; const answered = selected !== undefined; return <article key={section.id}><span className="checkpoint-number">CHECK {String(index + 1).padStart(2,"0")}</span><h3>{lang === "en" ? `Which decision best applies to ${section.title.en}?` : `哪项决策最适用于「${section.title.zh}」？`}</h3><small>{section.title[lang === "en" ? "zh" : "en"]}</small><div>{options.map((option, optionIndex) => <button key={optionIndex} disabled={answered} className={cn(answered && optionIndex === correctIndex && "correct", answered && selected === optionIndex && optionIndex !== correctIndex && "wrong")} onClick={() => setCheckpointAnswers(values => ({ ...values, [index]: optionIndex }))}><span>{String.fromCharCode(65 + optionIndex)}</span><b>{option}</b>{answered && optionIndex === correctIndex && <Check size={17} />}{answered && selected === optionIndex && optionIndex !== correctIndex && <X size={17} />}</button>)}</div>{answered && <aside className={selected === correctIndex ? "good" : "bad"}><strong>{selected === correctIndex ? (lang === "en" ? "Correct" : "正确") : (lang === "en" ? `Best answer: ${String.fromCharCode(65 + correctIndex)}` : `最佳答案：${String.fromCharCode(65 + correctIndex)}`)}</strong><p>{section.examCue.en}</p><small>{section.examCue.zh}</small></aside>}</article>})}</div></section>
+
             <section className="recall-lab"><span className="eyebrow">ACTIVE RECALL LAB</span><h2>{lang === "en" ? "Answer aloud before revealing" : "先口述，再查看答案"}</h2><p>{lang === "en" ? "Retrieval is the study event. Close your notes, produce the answer, then compare and correct." : "主动提取本身就是学习。合上笔记，先说出答案，再对照纠正。"}</p><div>{chapter.recall.map((item, index) => { const isOpen = revealed.includes(index); return <article key={index}><span>Q{index + 1}</span><h3>{tx(item.prompt)}</h3><small>{other(item.prompt)}</small>{isOpen ? <div className="recall-answer"><strong>MODEL ANSWER</strong><p>{item.answer.en}</p><small>{item.answer.zh}</small></div> : <button className="ghost" onClick={() => setRevealed(values => [...values, index])}>{lang === "en" ? "Reveal after answering" : "回答后查看"} <ChevronRight size={15} /></button>}</article>})}</div></section>
 
             <section className="course-source-note"><BookMarked size={19} /><div><strong>{lang === "en" ? "How this lesson was built" : "本课程如何编写"}</strong><p>{lang === "en" ? "Original instruction aligned to the English fifth-edition chapter and the official CSCS Detailed Content Outline. It teaches and synthesizes the tested concepts without reproducing publisher text or figures. English is the source of truth; Chinese is learning support." : "原创教学内容依据英文第五版章节与官方 CSCS 考试大纲综合编写，不复制出版社原文或插图。英文为唯一事实基准，中文仅作学习辅助。"}</p></div></section>
@@ -540,7 +553,7 @@ function CourseChapterReader({ lang, chapter, course, completed, onClose, onOpen
 
           <footer className="course-footer">
             <button className="ghost" disabled={!previous} onClick={() => previous && onOpenChapter(previous)}><ArrowLeft size={16} /> {lang === "en" ? "Previous chapter" : "上一章"}</button>
-            <div><button className="ghost" onClick={onPractice}>{lang === "en" ? "Test this domain" : "测试本领域"}</button><button className="primary" disabled={completed || revealed.length < chapter.recall.length} onClick={onComplete}>{completed ? (lang === "en" ? "Chapter complete" : "章节已完成") : (lang === "en" ? "Complete chapter" : "完成本章")} <Check size={16} /></button></div>
+            <div><button className="ghost" onClick={onPractice}>{lang === "en" ? "Test this domain" : "测试本领域"}</button><button className="primary" disabled={completed || revealed.length < chapter.recall.length || Object.keys(checkpointAnswers).length < sectionCount} onClick={onComplete}>{completed ? (lang === "en" ? "Chapter complete" : "章节已完成") : (lang === "en" ? "Complete chapter" : "完成本章")} <Check size={16} /></button></div>
             <button className="ghost" disabled={!next} onClick={() => next && onOpenChapter(next)}>{lang === "en" ? "Next chapter" : "下一章"} <ChevronRight size={16} /></button>
           </footer>
         </article>
