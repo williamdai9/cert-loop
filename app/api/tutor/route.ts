@@ -28,7 +28,14 @@ function retrievalFallback(
   research: Awaited<ReturnType<typeof recentResearch>>,
   requestedWeb: boolean,
 ) {
-  const evidence = grounded.excerpts.split(/\n\n(?=\[Course Ch\.)/).slice(0, 3).join("\n\n");
+  const evidenceBlocks = grounded.excerpts.split(/\n\n(?=\[Course Ch\.)/);
+  const seenChapters = new Set<string>();
+  const evidence = evidenceBlocks.filter(block => {
+    const chapter = block.match(/^\[Course Ch\. (\d+)/)?.[1] || block;
+    if (seenChapters.has(chapter)) return false;
+    seenChapters.add(chapter);
+    return true;
+  }).slice(0, 3).join("\n\n");
   const practice = grounded.questions.split("\n\n").filter(Boolean).slice(0, 1).join("\n\n");
   const researchNote = requestedWeb
     ? research.length
