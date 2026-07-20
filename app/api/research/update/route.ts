@@ -6,10 +6,10 @@ function responseText(payload: { output_text?: string; output?: Array<{ content?
   return payload.output_text || (payload.output || []).flatMap(item => item.content || []).find(item => item.type === "output_text")?.text || "";
 }
 
-async function curateWithGateway() {
+async function curateWithGateway(request: Request) {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const gatewayKey = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
+  const gatewayKey = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || request.headers.get("x-vercel-oidc-token");
   if (!base || !serviceKey || !gatewayKey) return { curated: 0, reason: "Server curation credentials unavailable" };
   const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" };
   const sourceResponse = await fetch(`${base}/rest/v1/research_items?select=id,external_id,title,abstract,source_url&curation_status=eq.source_only&abstract=not.is.null&order=published_at.desc&limit=10`, { headers, cache: "no-store" });
@@ -39,11 +39,11 @@ async function curateWithGateway() {
   return { curated };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!base) return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   const response = await fetch(`${base}/functions/v1/research-update`, { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store" });
   const payload = await response.json().catch(() => ({ error: "Research service returned an invalid response." }));
-  const curation = response.ok ? await curateWithGateway() : { curated: 0, reason: "Source sync failed" };
+  const curation = response.ok ? await curateWithGateway(request) : { curated: 0, reason: "Source sync failed" };
   return NextResponse.json({ ...payload, curation }, { status: response.status });
 }

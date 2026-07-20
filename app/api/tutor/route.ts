@@ -35,7 +35,7 @@ async function recentResearch(question: string) {
 
 export async function POST(request: Request) {
   const directOpenAI = process.env.OPENAI_API_KEY;
-  const gatewayToken = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
+  const gatewayToken = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || request.headers.get("x-vercel-oidc-token");
   const apiKey = directOpenAI || gatewayToken;
   if (!apiKey) return NextResponse.json({ error: "AI credentials are unavailable locally. Production uses Vercel's short-lived OIDC token automatically; for local use, add AI_GATEWAY_API_KEY or OPENAI_API_KEY." }, { status: 503 });
 
