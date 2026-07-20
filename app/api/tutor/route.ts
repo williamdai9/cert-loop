@@ -22,6 +22,24 @@ function webSources(payload: { output?: ResponseOutput[] }) {
   return Array.from(new Map(found.map(item => [item.url, { title: item.title || new URL(item.url!).hostname, url: item.url, kind: "web" as const }])).values()).slice(0, 8);
 }
 
+function retrievalFallback(
+  lang: "en" | "zh" | undefined,
+  grounded: ReturnType<typeof buildTutorContext>,
+  research: Awaited<ReturnType<typeof recentResearch>>,
+  requestedWeb: boolean,
+) {
+  const evidence = grounded.excerpts.split(/\n\n(?=\[Course Ch\.)/).slice(0, 3).join("\n\n");
+  const practice = grounded.questions.split("\n\n").filter(Boolean).slice(0, 1).join("\n\n");
+  const researchNote = requestedWeb
+    ? research.length
+      ? `\n\nDAILY RESEARCH WATCH\n${research.slice(0, 3).map(item => `• ${item.title}: ${item.summary_en || "Primary-source metadata is available in the Research Pulse."}`).join("\n")}`
+      : "\n\nLive web synthesis is unavailable in retrieval mode; no matching reviewed item was found in the daily feed."
+    : "";
+
+  if (lang === "zh") return `课程检索模式（生成式 AI 暂未启用）\n\n我已经检索全部 26 章，并优先返回与问题最相关的英文考试依据。以下英文术语与表述是答题基准：\n\n${evidence}${practice ? `\n\nRELATED CHECKPOINT\n${practice}` : ""}${researchNote}\n\n建议：先用自己的话解释“机制 → 教练决策 → 常见考试陷阱”，再让我用同一主题继续出题。启用 Vercel AI Gateway 或 OPENAI_API_KEY 后，这里会自动升级为生成式讲解和实时 web research。`;
+  return `COURSE RETRIEVAL MODE (generative AI is not enabled yet)\n\nI searched all 26 chapters and prioritized the closest English exam evidence:\n\n${evidence}${practice ? `\n\nRELATED CHECKPOINT\n${practice}` : ""}${researchNote}\n\nNext step: explain the mechanism → coaching decision → likely exam trap in your own words. Once Vercel AI Gateway or OPENAI_API_KEY is enabled, this same tutor automatically adds synthesized teaching, follow-up questions, and live web research.`;
+}
+
 async function recentResearch(question: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -37,7 +55,6 @@ export async function POST(request: Request) {
   const directOpenAI = process.env.OPENAI_API_KEY;
   const gatewayToken = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || request.headers.get("x-vercel-oidc-token");
   const apiKey = directOpenAI || gatewayToken;
-  if (!apiKey) return NextResponse.json({ error: "AI credentials are unavailable locally. Production uses Vercel's short-lived OIDC token automatically; for local use, add AI_GATEWAY_API_KEY or OPENAI_API_KEY." }, { status: 503 });
 
   let body: Incoming;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid request." }, { status: 400 }); }
@@ -50,6 +67,18 @@ export async function POST(request: Request) {
   const languageRule = body.lang === "zh" ? "Answer in clear Chinese, but keep all tested English terms and formulas in English beside the translation." : "Answer in English first. Add a short Chinese support note only when it materially prevents confusion.";
   const history = (body.history || []).slice(-8).map(item => `${item.role.toUpperCase()}: ${item.text}`).join("\n");
   const useWeb = Boolean(body.research);
+  const baseSources: Array<{ title: string; url?: string; kind: "course" | "research" | "web" }> = [
+    ...grounded.internalSources.slice(0, 5),
+    ...research.map(item => ({ title: item.title, url: item.source_url, kind: "research" as const })),
+  ];
+  const uniqueBaseSources = Array.from(new Map(baseSources.map(item => [item.url || item.title, item])).values()).slice(0, 12);
+
+  if (!apiKey) return NextResponse.json({
+    answer: retrievalFallback(body.lang, grounded, research, useWeb),
+    sources: uniqueBaseSources,
+    researched: false,
+    retrievalOnly: true,
+  });
 
   const instructions = `You are Cert Loop's CSCS tutor. You teach a learner from zero to exam readiness and can reason across the entire course, never only the open chapter.
 
@@ -94,7 +123,13 @@ ${researchText}`;
   const endpoint = directOpenAI ? "https://api.openai.com/v1/responses" : "https://ai-gateway.vercel.sh/v1/responses";
   const response = await fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   const result = await response.json();
-  if (!response.ok) return NextResponse.json({ error: result?.error?.message || "The tutor could not answer right now." }, { status: response.status });
+  if (!response.ok) return NextResponse.json({
+    answer: retrievalFallback(body.lang, grounded, research, useWeb),
+    sources: uniqueBaseSources,
+    researched: false,
+    retrievalOnly: true,
+    providerNotice: result?.error?.message || "The generative tutor is temporarily unavailable.",
+  });
   const answer = outputText(result);
   const sources: Array<{ title: string; url?: string; kind: "course" | "research" | "web" }> = [
     ...grounded.internalSources.slice(0, 5),
