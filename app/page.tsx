@@ -8,7 +8,7 @@ import {
   Settings2, Sparkles, Target, Trophy, UserRound, X, Zap
 } from "lucide-react";
 import { certificationRegistry, type CertificationPack, type Question } from "@/lib/certifications";
-import { getLessonContent, type BilingualText } from "@/lib/lesson-data";
+import { getLessonContent, type BilingualText, type LessonContent } from "@/lib/lesson-data";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 
 type Tab = "dashboard" | "plan" | "test" | "mistakes" | "library";
@@ -97,6 +97,7 @@ export default function Home() {
   const [authOpen, setAuthOpen] = useState(false);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [syncStatus, setSyncStatus] = useState<"local" | "loading" | "synced" | "error">("local");
+  const [publishedLessons, setPublishedLessons] = useState<Record<string, LessonContent>>({});
   const cloudEnabled = isSupabaseConfigured();
 
   useEffect(() => {
@@ -137,6 +138,23 @@ export default function Home() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowser();
+    if (!supabase) return;
+    let cancelled = false;
+    supabase.from("lessons")
+      .select("task_id,content")
+      .eq("certification_id", activeCertId)
+      .eq("language", "en")
+      .eq("status", "published")
+      .then(({ data, error }) => {
+        if (cancelled || error || !data) return;
+        const next = Object.fromEntries(data.map(row => [row.task_id, row.content as LessonContent]));
+        setPublishedLessons(next);
+      });
+    return () => { cancelled = true; };
+  }, [activeCertId]);
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
@@ -243,7 +261,7 @@ export default function Home() {
       <nav className="mobile-nav" aria-label={lang === "en" ? "Mobile navigation" : "移动导航"}>
         {nav.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><item.icon size={19} /><span>{item[lang]}</span></button>)}
       </nav>
-      {activeLesson && <LessonReader lang={lang} lesson={activeLesson} completed={state.completed.includes(activeLesson.id)} onClose={() => setActiveLesson(null)} onComplete={() => { if (!state.completed.includes(activeLesson.id)) { toggleTask(activeLesson.id); logStudy(0); } }} onPractice={() => { setActiveLesson(null); setTab("test"); }} />}
+      {activeLesson && <LessonReader lang={lang} lesson={activeLesson} content={publishedLessons[activeLesson.id] || getLessonContent(activeLesson.id)} completed={state.completed.includes(activeLesson.id)} onClose={() => setActiveLesson(null)} onComplete={() => { if (!state.completed.includes(activeLesson.id)) { toggleTask(activeLesson.id); logStudy(0); } }} onPractice={() => { setActiveLesson(null); setTab("test"); }} />}
       {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} onClose={() => setAuthOpen(false)} />}
     </main>
   );
@@ -306,8 +324,7 @@ function Plan({ lang, pack, state, setState, openLesson }: { lang: Lang; pack: C
   </div>;
 }
 
-function LessonReader({ lang, lesson, completed, onClose, onComplete, onPractice }: { lang: Lang; lesson: ActiveLesson; completed: boolean; onClose: () => void; onComplete: () => void; onPractice: () => void }) {
-  const content = getLessonContent(lesson.id);
+function LessonReader({ lang, lesson, content, completed, onClose, onComplete, onPractice }: { lang: Lang; lesson: ActiveLesson; content: LessonContent; completed: boolean; onClose: () => void; onComplete: () => void; onPractice: () => void }) {
   const [revealed, setRevealed] = useState(false);
   const tx = (value: BilingualText) => value[lang];
   return <div className="lesson-overlay" role="dialog" aria-modal="true" aria-label={lesson.label} data-testid="lesson-reader">

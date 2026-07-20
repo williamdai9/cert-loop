@@ -51,13 +51,19 @@ with local progress when those values are absent.
 
 The schema is versioned in `supabase/migrations`. It includes reusable tables
 for certifications, sources, lessons, questions, per-user progress, and a
-content-review queue. Row Level Security keeps each learner's progress private.
+content-review queue. Published lessons are read from Supabase at runtime, with
+the versioned code content retained as an offline fallback. Row Level Security
+keeps each learner's progress private.
 
 ```bash
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
+
+`npm run db:content` generates the published lesson seed SQL from the canonical
+English-first lesson source. Content changes should be reviewed before the
+resulting migration is pushed.
 
 For passwordless email login, set the Supabase Auth Site URL to the production
 domain and allow both the production domain and `http://localhost:3000` as
