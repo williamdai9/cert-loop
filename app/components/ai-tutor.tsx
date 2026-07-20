@@ -5,7 +5,7 @@ import { BookOpen, ExternalLink, Globe2, LoaderCircle, MessageCircle, Send, Spar
 
 type Lang = "en" | "zh";
 type TutorContext = { chapterNumber?: number; chapterTitle?: string; taskId?: string; taskTitle?: string };
-type TutorSource = { title: string; url?: string; kind: "course" | "official" | "research" | "web" };
+type TutorSource = { title: string; url?: string; kind: "course" | "official" | "research" | "community" | "web" };
 type ChatMessage = { role: "user" | "assistant"; text: string; sources?: TutorSource[] };
 
 export function AITutor({ lang, context, mastery }: { lang: Lang; context?: TutorContext; mastery: Record<string, { correct: number; total: number }> }) {
