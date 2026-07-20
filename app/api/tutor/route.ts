@@ -96,6 +96,10 @@ ${researchText}`;
   const result = await response.json();
   if (!response.ok) return NextResponse.json({ error: result?.error?.message || "The tutor could not answer right now." }, { status: response.status });
   const answer = outputText(result);
-  const sources = [...grounded.internalSources.slice(0, 5), ...research.map(item => ({ title: item.title, url: item.source_url, kind: "research" as const })), ...webSources(result)];
+  const sources: Array<{ title: string; url?: string; kind: "course" | "research" | "web" }> = [
+    ...grounded.internalSources.slice(0, 5),
+    ...research.map(item => ({ title: item.title, url: item.source_url, kind: "research" as const })),
+    ...webSources(result),
+  ];
   return NextResponse.json({ answer, sources: Array.from(new Map(sources.map(item => [item.url || item.title, item])).values()).slice(0, 12), researched: useWeb });
 }
