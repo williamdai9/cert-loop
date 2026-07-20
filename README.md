@@ -20,7 +20,7 @@ Live site: https://cert-loop-study.vercel.app
 - passwordless Supabase authentication and private cloud progress sync
 - 30-item adaptive diagnostic with priority and fast-track recommendations
 - whole-site AI Tutor grounded in the course, question bank, learner mastery, and research feed
-- daily Europe PMC evidence scan with AI-drafted content/questions held for review
+- daily multi-source watch across NSCA official articles, Europe PMC research, and selected community leads; AI-drafted content/questions are held for review
 - local, certificate-scoped progress fallback for signed-out learners
 - responsive desktop and mobile interface
 
@@ -74,7 +74,10 @@ English-first lesson source. Content changes should be reviewed before the
 resulting migration is pushed.
 
 `research-update` is a deployed Supabase Edge Function. Vercel Cron invokes it
-daily at 08:17 UTC. Source metadata is safe to show as a labeled research watch;
+daily at 08:17 UTC. It monitors NSCA's official RSS feed, Europe PMC, and the
+open Physical Fitness Stack Exchange community feed. Community items remain explicitly
+unverified and cannot generate publishable questions without corroboration.
+Source metadata is safe to show as a labeled research watch;
 AI summaries and candidate questions are written to the review workflow and do
 not silently override fifth-edition or official exam truth.
 

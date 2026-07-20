@@ -39,7 +39,7 @@ function retrievalFallback(
   const practice = grounded.questions.split("\n\n").filter(Boolean).slice(0, 1).join("\n\n");
   const researchNote = requestedWeb
     ? research.length
-      ? `\n\nDAILY RESEARCH WATCH\n${research.slice(0, 3).map(item => `• ${item.title}: ${item.summary_en || "Primary-source metadata is available in the Research Pulse."}`).join("\n")}`
+      ? `\n\nDAILY SOURCE WATCH\n${research.slice(0, 3).map(item => `• [${item.provider}] ${item.title}: ${item.summary_en || "Source metadata is available in the Research Pulse."}`).join("\n")}`
       : "\n\nLive web synthesis is unavailable in retrieval mode; no matching reviewed item was found in the daily feed."
     : "";
 
@@ -51,11 +51,15 @@ async function recentResearch(question: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return [];
-  const response = await fetch(`${url}/rest/v1/research_items?select=title,summary_en,summary_zh,source_url,published_at,chapter_numbers&order=published_at.desc&limit=12`, { headers: { apikey: key, Authorization: `Bearer ${key}` }, next: { revalidate: 900 } }).catch(() => null);
+  const response = await fetch(`${url}/rest/v1/research_items?select=provider,title,summary_en,summary_zh,source_url,published_at,chapter_numbers&order=published_at.desc&limit=30`, { headers: { apikey: key, Authorization: `Bearer ${key}` }, next: { revalidate: 900 } }).catch(() => null);
   if (!response?.ok) return [];
-  const items = await response.json() as Array<{ title: string; summary_en?: string; summary_zh?: string; source_url: string; published_at?: string; chapter_numbers?: number[] }>;
+  const items = await response.json() as Array<{ provider: string; title: string; summary_en?: string; summary_zh?: string; source_url: string; published_at?: string; chapter_numbers?: number[] }>;
   const terms = question.toLowerCase().split(/\W+/).filter(term => term.length > 3);
-  return items.map(item => ({ ...item, score: terms.reduce((score, term) => score + (`${item.title} ${item.summary_en || ""}`.toLowerCase().includes(term) ? 1 : 0), 0) })).sort((a, b) => b.score - a.score).slice(0, 5);
+  return items.map(item => {
+    const trustBoost = item.provider === "NSCA official" ? 3 : item.provider.includes("community lead") ? 0 : 2;
+    const lexical = terms.reduce((score, term) => score + (`${item.title} ${item.summary_en || ""}`.toLowerCase().includes(term) ? 2 : 0), 0);
+    return { ...item, score: lexical + trustBoost };
+  }).sort((a, b) => b.score - a.score).slice(0, 5);
 }
 
 export async function POST(request: Request) {
@@ -70,13 +74,16 @@ export async function POST(request: Request) {
 
   const grounded = buildTutorContext(question, body.context, body.mastery);
   const research = await recentResearch(question);
-  const researchText = research.length ? research.map(item => `[Research watch · ${item.published_at || "recent"}] ${item.title}\n${item.summary_en || "Metadata only; inspect the linked primary source."}\nURL: ${item.source_url}`).join("\n\n") : "No matching reviewed research item in the daily feed.";
+  const researchText = research.length ? research.map(item => {
+    const label = item.provider === "NSCA official" ? "Official NSCA watch" : item.provider.includes("community lead") ? "Unverified community lead" : "Research watch";
+    return `[${label} · ${item.published_at || "recent"}] ${item.title}\n${item.summary_en || "Metadata only; inspect the linked source."}\nURL: ${item.source_url}`;
+  }).join("\n\n") : "No matching reviewed item in the daily feed.";
   const languageRule = body.lang === "zh" ? "Answer in clear Chinese, but keep all tested English terms and formulas in English beside the translation." : "Answer in English first. Add a short Chinese support note only when it materially prevents confusion.";
   const history = (body.history || []).slice(-8).map(item => `${item.role.toUpperCase()}: ${item.text}`).join("\n");
   const useWeb = Boolean(body.research);
-  const baseSources: Array<{ title: string; url?: string; kind: "course" | "research" | "web" }> = [
+  const baseSources: Array<{ title: string; url?: string; kind: "course" | "official" | "research" | "community" | "web" }> = [
     ...grounded.internalSources.slice(0, 5),
-    ...research.map(item => ({ title: item.title, url: item.source_url, kind: "research" as const })),
+    ...research.map(item => ({ title: item.title, url: item.source_url, kind: item.provider === "NSCA official" ? "official" as const : item.provider.includes("community lead") ? "community" as const : "research" as const })),
   ];
   const uniqueBaseSources = Array.from(new Map(baseSources.map(item => [item.url || item.title, item])).values()).slice(0, 12);
 
@@ -138,7 +145,7 @@ ${researchText}`;
     providerNotice: result?.error?.message || "The generative tutor is temporarily unavailable.",
   });
   const answer = outputText(result);
-  const sources: Array<{ title: string; url?: string; kind: "course" | "research" | "web" }> = [
+  const sources: Array<{ title: string; url?: string; kind: "course" | "official" | "research" | "community" | "web" }> = [
     ...grounded.internalSources.slice(0, 5),
     ...research.map(item => ({ title: item.title, url: item.source_url, kind: "research" as const })),
     ...webSources(result),
