@@ -36,8 +36,8 @@ test("server-renders the Cert Loop learning app", async () => {
   assert.match(html, /English 5th ed\. textbook/);
 });
 
-test("ships complete lessons and private progress sync", async () => {
-  const [page, lessons, supabase, migration] = await Promise.all([
+test("ships plan-linked complete lessons, adaptive testing, research, and private progress sync", async () => {
+  const [page, lessons, supabase, migration, tutor, visuals, researchMigration] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/lesson-data.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/supabase-browser.ts", import.meta.url), "utf8"),
@@ -48,6 +48,9 @@ test("ships complete lessons and private progress sync", async () => {
       ),
       "utf8",
     ),
+    readFile(new URL("../app/api/tutor/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/chapter-visual-lab.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../supabase/migrations/20260720203000_daily_research_pipeline.sql", import.meta.url), "utf8"),
   ]);
 
   const lessonIds = lessons.match(/"w(?:[1-9]|1[0-2])-[0-3]":\s*L\(/g) ?? [];
@@ -55,10 +58,20 @@ test("ships complete lessons and private progress sync", async () => {
   assert.match(page, /function LessonReader/);
   assert.match(page, /Reveal after answering aloud/);
   assert.match(page, /from\("lessons"\)/);
-  assert.match(page, /publishedLessons\[activeLesson\.id\]/);
+  assert.match(page, /activePlanChapter/);
+  assert.match(page, /task=\{activeLesson\}/);
+  assert.match(page, /Adaptive diagnostic/);
+  assert.match(page, /ChapterVisualLab/);
+  assert.match(page, /AITutor/);
   assert.match(page, /signInWithOtp/);
   assert.match(page, /from\("user_progress"\)/);
   assert.match(supabase, /persistSession:\s*true/);
   assert.match(migration, /enable row level security/);
   assert.match(migration, /auth\.uid\(\) = user_id/);
+  assert.match(tutor, /buildTutorContext/);
+  assert.match(tutor, /web_search/);
+  assert.match(visuals, /Joint torque calculator/);
+  assert.match(visuals, /Energy-system continuum/);
+  assert.match(researchMigration, /research_items/);
+  assert.match(researchMigration, /content_review_queue|research_sync_runs/);
 });

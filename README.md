@@ -9,14 +9,18 @@ Live site: https://cert-loop-study.vercel.app
 ## What is included
 
 - adaptive 8, 12, or 16 week study plans
-- 48 interactive lesson tasks spanning all 26 fifth-edition chapters
-- English-first summaries, core points, applied examples, and active recall
+- every Plan item opens its linked complete chapter course, not a separate summary
+- 26 original interactive concept maps plus chapter-specific calculators and simulations
+- English-first deep dives, coaching decisions, exam cues, checkpoints, and active recall
 - official CSCS domain weights and exam structure
 - practice and exam test modes
 - wrong-answer review loop
 - 42 original bilingual practice questions across all seven domains
 - 26-chapter textbook map and bilingual flashcards
 - passwordless Supabase authentication and private cloud progress sync
+- 30-item adaptive diagnostic with priority and fast-track recommendations
+- whole-site AI Tutor grounded in the course, question bank, learner mastery, and research feed
+- daily Europe PMC evidence scan with AI-drafted content/questions held for review
 - local, certificate-scoped progress fallback for signed-out learners
 - responsive desktop and mobile interface
 
@@ -47,6 +51,10 @@ Copy `.env.example` to `.env.local` and add the project's public Supabase
 credentials to enable authentication and cloud sync. The app remains usable
 with local progress when those values are absent.
 
+The AI Tutor uses Vercel AI Gateway with the deployment's short-lived
+`VERCEL_OIDC_TOKEN` in production. For local use, set `AI_GATEWAY_API_KEY` or
+`OPENAI_API_KEY`. Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser.
+
 ## Supabase
 
 The schema is versioned in `supabase/migrations`. It includes reusable tables
@@ -64,6 +72,11 @@ supabase db push
 `npm run db:content` generates the published lesson seed SQL from the canonical
 English-first lesson source. Content changes should be reviewed before the
 resulting migration is pushed.
+
+`research-update` is a deployed Supabase Edge Function. Vercel Cron invokes it
+daily at 08:17 UTC. Source metadata is safe to show as a labeled research watch;
+AI summaries and candidate questions are written to the review workflow and do
+not silently override fifth-edition or official exam truth.
 
 For passwordless email login, set the Supabase Auth Site URL to the production
 domain and allow both the production domain and `http://localhost:3000` as

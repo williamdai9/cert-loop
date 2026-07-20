@@ -8,9 +8,12 @@ import {
   Settings2, Sparkles, Target, Trophy, UserRound, X, Zap
 } from "lucide-react";
 import { certificationRegistry, type CertificationPack, type Question } from "@/lib/certifications";
-import { getLessonContent, type BilingualText, type LessonContent } from "@/lib/lesson-data";
+import type { BilingualText, LessonContent } from "@/lib/lesson-data";
 import { cscsCourse, type CourseChapter, type CourseText } from "@/lib/course";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
+import { ChapterVisualLab } from "@/app/components/chapter-visual-lab";
+import { AITutor } from "@/app/components/ai-tutor";
+import { ResearchPulse } from "@/app/components/research-pulse";
 
 type Tab = "dashboard" | "plan" | "test" | "mistakes" | "library";
 type Lang = "zh" | "en";
@@ -21,7 +24,10 @@ type ActiveLesson = {
   weekSubtitle: string;
   chapters: string;
   domain: string;
+  chapterNumbers: number[];
+  focusChapter: number;
 };
+type DiagnosticResult = { completedAt: string; score: number; total: number; domains: Record<string, { correct: number; total: number }> };
 type SavedState = {
   completed: string[];
   wrong: string[];
@@ -33,6 +39,7 @@ type SavedState = {
   examDate: string;
   lastStudy: string;
   domainStats: Record<string, { correct: number; total: number }>;
+  diagnostic?: DiagnosticResult;
 };
 
 const initial: SavedState = {
@@ -56,15 +63,22 @@ const copy = {
 const cn = (...values: Array<string | false | undefined>) => values.filter(Boolean).join(" ");
 const domainEnglish: Record<string, string> = { "运动科学":"Exercise Science", "运动心理学":"Sport Psychology", "营养":"Nutrition", "计划设计":"Program Design", "运动技术":"Exercise Technique", "计划实施":"Program Implementation", "组织与管理":"Organization & Administration", "运动科学 / 心理学":"Exercise Science / Sport Psychology", "实施 / 组织管理":"Implementation / Administration", "综合":"Integrated Review" };
 
-type DisplayWeek = { key: string; title: string; subtitle: string; chapters: string; domain: string; tasks: Array<{ id: string; label: string }> };
+type DisplayWeek = { key: string; title: string; subtitle: string; chapters: string; chapterNumbers: number[]; domain: string; tasks: Array<{ id: string; label: string }> };
+
+function chapterNumbersFromLabel(label: string) {
+  if (/全书|high.frequency|whole book/i.test(label)) return Array.from({ length: 26 }, (_, index) => index + 1);
+  const values = (label.match(/\d+/g) || []).map(Number);
+  if (values.length === 2 && /[–—-]/.test(label)) return Array.from({ length: values[1] - values[0] + 1 }, (_, index) => values[0] + index);
+  return values.length ? values : Array.from({ length: 26 }, (_, index) => index + 1);
+}
 
 function adaptivePlan(pack: CertificationPack, length: 8 | 12 | 16, lang: Lang): DisplayWeek[] {
-  const standard = pack.plan.map(w => ({ key: w.id, title: lang === "en" && w.en ? w.en.title : w.title, subtitle: lang === "en" && w.en ? w.en.subtitle : w.subtitle, chapters: lang === "en" ? w.chapters.replace("第 ", "Ch. ").replace(/章/g, "") : w.chapters, domain: lang === "en" ? (domainEnglish[w.domain] || w.domain) : w.domain, tasks: (lang === "en" && w.en ? w.en.tasks : w.tasks).map((label, i) => ({ id: `${w.id}-${i}`, label })) }));
+  const standard = pack.plan.map(w => ({ key: w.id, title: lang === "en" && w.en ? w.en.title : w.title, subtitle: lang === "en" && w.en ? w.en.subtitle : w.subtitle, chapters: lang === "en" ? w.chapters.replace("第 ", "Ch. ").replace(/章/g, "") : w.chapters, chapterNumbers: chapterNumbersFromLabel(w.chapters), domain: lang === "en" ? (domainEnglish[w.domain] || w.domain) : w.domain, tasks: (lang === "en" && w.en ? w.en.tasks : w.tasks).map((label, i) => ({ id: `${w.id}-${i}`, label })) }));
   if (length === 12) return standard;
   if (length === 8) {
     return [[0,1],[2,3],[4,5],[6,7],[8],[9],[10],[11]].map((indices, i) => {
       const blocks = indices.map(x => standard[x]);
-      return { key: `sprint-${i}`, title: blocks.map(b => b.title).join(" + "), subtitle: indices.length > 1 ? (lang === "en" ? "Combined sprint week: add two short study blocks" : "冲刺合并周：建议增加两次短学习时段") : blocks[0].subtitle, chapters: blocks.map(b => b.chapters).join(" / "), domain: blocks.map(b => b.domain).join(" / "), tasks: blocks.flatMap(b => b.tasks) };
+      return { key: `sprint-${i}`, title: blocks.map(b => b.title).join(" + "), subtitle: indices.length > 1 ? (lang === "en" ? "Combined sprint week: add two short study blocks" : "冲刺合并周：建议增加两次短学习时段") : blocks[0].subtitle, chapters: blocks.map(b => b.chapters).join(" / "), chapterNumbers: Array.from(new Set(blocks.flatMap(b => b.chapterNumbers))), domain: blocks.map(b => b.domain).join(" / "), tasks: blocks.flatMap(b => b.tasks) };
     });
   }
   const expanded: DisplayWeek[] = [];
@@ -72,7 +86,7 @@ function adaptivePlan(pack: CertificationPack, length: 8 | 12 | 16, lang: Lang):
     expanded.push(week);
     if ((i + 1) % 3 === 0) {
       const q = (i + 1) / 3;
-      expanded.push({ key: `review-${q}`, title: lang === "en" ? `Spaced review ${q}` : `间隔复习 ${q}`, subtitle: lang === "en" ? "Use active recall to consolidate the last phase" : "用主动回忆巩固上一阶段，避免知识衰减", chapters: lang === "en" ? `Weeks ${Math.max(1, i - 1)}–${i + 1}` : `第 ${Math.max(1, i - 1)}–${i + 1} 周内容`, domain: lang === "en" ? "Review and integration" : "复习与整合", tasks: (lang === "en" ? ["Write the phase framework from memory","Redo every miss from this phase","Complete one weighted mixed set","Add three weak points to flashcards"] : ["闭卷写出本阶段知识框架", "重做本阶段全部错题", "完成一套按权重混合题", "把三个薄弱点加入闪卡"]).map((label, ti) => ({ id: `review-${q}-${ti}`, label })) });
+      expanded.push({ key: `review-${q}`, title: lang === "en" ? `Spaced review ${q}` : `间隔复习 ${q}`, subtitle: lang === "en" ? "Use active recall to consolidate the last phase" : "用主动回忆巩固上一阶段，避免知识衰减", chapters: lang === "en" ? `Weeks ${Math.max(1, i - 1)}–${i + 1}` : `第 ${Math.max(1, i - 1)}–${i + 1} 周内容`, chapterNumbers: standard.slice(Math.max(0, i - 2), i + 1).flatMap(item => item.chapterNumbers), domain: lang === "en" ? "Review and integration" : "复习与整合", tasks: (lang === "en" ? ["Write the phase framework from memory","Redo every miss from this phase","Complete one weighted mixed set","Add three weak points to flashcards"] : ["闭卷写出本阶段知识框架", "重做本阶段全部错题", "完成一套按权重混合题", "把三个薄弱点加入闪卡"]).map((label, ti) => ({ id: `review-${q}-${ti}`, label })) });
     }
   });
   return expanded;
@@ -99,7 +113,6 @@ export default function Home() {
   const [authOpen, setAuthOpen] = useState(false);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [syncStatus, setSyncStatus] = useState<"local" | "loading" | "synced" | "error">("local");
-  const [publishedLessons, setPublishedLessons] = useState<Record<string, LessonContent>>({});
   const [courseChapters, setCourseChapters] = useState<CourseChapter[]>(cscsCourse);
   const cloudEnabled = isSupabaseConfigured();
 
@@ -153,9 +166,7 @@ export default function Home() {
       .eq("status", "published")
       .then(({ data, error }) => {
         if (cancelled || error || !data) return;
-        const lessons = data.filter(row => !row.task_id.startsWith("course-chapter-"));
         const chapters = data.filter(row => row.task_id.startsWith("course-chapter-")).map(row => row.content as CourseChapter).sort((a, b) => a.n - b.n);
-        setPublishedLessons(Object.fromEntries(lessons.map(row => [row.task_id, row.content as LessonContent])));
         if (chapters.length === 26) setCourseChapters(chapters);
       });
     return () => { cancelled = true; };
@@ -227,6 +238,13 @@ export default function Home() {
     logStudy(0);
   }
 
+  function saveDiagnostic(result: DiagnosticResult) {
+    setState(current => ({ ...current, diagnostic: result }));
+  }
+
+  const activePlanChapter = activeLesson ? courseChapters.find(chapter => chapter.n === activeLesson.focusChapter) || courseChapters[0] : null;
+  const tutorContext = activeLesson ? { chapterNumber: activeLesson.focusChapter, chapterTitle: activePlanChapter?.title.en, taskId: activeLesson.id, taskTitle: activeLesson.label } : activeChapter ? { chapterNumber: activeChapter.n, chapterTitle: activeChapter.title.en } : undefined;
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -257,8 +275,8 @@ export default function Home() {
         </header>
 
         {tab === "dashboard" && <Dashboard lang={lang} pack={pack} state={state} studyDays={studyDays} completion={completion} setState={setState} setTab={setTab} openLesson={setActiveLesson} />}
-        {tab === "plan" && <Plan lang={lang} pack={pack} state={state} setState={setState} openLesson={setActiveLesson} />}
-        {tab === "test" && <TestCenter lang={lang} pack={pack} wrong={state.wrong} recordAnswer={recordAnswer} />}
+        {tab === "plan" && <Plan lang={lang} pack={pack} state={state} setState={setState} setTab={setTab} chapters={courseChapters} openLesson={setActiveLesson} />}
+        {tab === "test" && <TestCenter lang={lang} pack={pack} wrong={state.wrong} recordAnswer={recordAnswer} onDiagnosticComplete={saveDiagnostic} />}
         {tab === "mistakes" && <Mistakes lang={lang} pack={pack} wrong={state.wrong} setTab={setTab} clearWrong={(id) => setState(s => ({ ...s, wrong: s.wrong.filter(x => x !== id) }))} />}
         {tab === "library" && <Library lang={lang} pack={pack} chapters={courseChapters} completed={state.completed} onOpen={setActiveChapter} />}
       </section>
@@ -266,16 +284,17 @@ export default function Home() {
       <nav className="mobile-nav" aria-label={lang === "en" ? "Mobile navigation" : "移动导航"}>
         {nav.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><item.icon size={19} /><span>{item[lang]}</span></button>)}
       </nav>
-      {activeLesson && <LessonReader lang={lang} lesson={activeLesson} content={publishedLessons[activeLesson.id] || getLessonContent(activeLesson.id)} completed={state.completed.includes(activeLesson.id)} onClose={() => setActiveLesson(null)} onComplete={() => { if (!state.completed.includes(activeLesson.id)) { toggleTask(activeLesson.id); logStudy(0); } }} onPractice={() => { setActiveLesson(null); setTab("test"); }} />}
+      {activeLesson && activePlanChapter && <CourseChapterReader key={`${activeLesson.id}-${activeLesson.focusChapter}`} lang={lang} chapter={activePlanChapter} course={courseChapters} task={activeLesson} chapterScope={activeLesson.chapterNumbers} completed={state.completed.includes(activeLesson.id)} onClose={() => setActiveLesson(null)} onOpenChapter={(n) => setActiveLesson(current => current ? { ...current, focusChapter: n } : null)} onComplete={() => { if (!state.completed.includes(activeLesson.id)) { toggleTask(activeLesson.id); logStudy(0); } }} onPractice={() => { setActiveLesson(null); setTab("test"); }} />}
       {activeChapter && <CourseChapterReader key={activeChapter.n} lang={lang} chapter={activeChapter} course={courseChapters} completed={state.completed.includes(`course-chapter-${activeChapter.n}`)} onClose={() => setActiveChapter(null)} onOpenChapter={(n) => { const next = courseChapters.find(chapter => chapter.n === n); if (next) setActiveChapter(next); }} onComplete={() => { const id = `course-chapter-${activeChapter.n}`; if (!state.completed.includes(id)) { toggleTask(id); logStudy(0); } }} onPractice={() => { setActiveChapter(null); setTab("test"); }} />}
       {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} onClose={() => setAuthOpen(false)} />}
+      <AITutor lang={lang} context={tutorContext} mastery={state.domainStats} />
     </main>
   );
 }
 
 function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab, openLesson }: { lang: Lang; pack: CertificationPack; state: SavedState; studyDays: number; completion: number; setState: React.Dispatch<React.SetStateAction<SavedState>>; setTab: (t: Tab) => void; openLesson: (lesson: ActiveLesson) => void }) {
   const t = copy[lang];
-  const nextTasks = adaptivePlan(pack, state.planLength, lang).flatMap((week) => week.tasks.map(task => ({ id: task.id, task: task.label, week: week.title, weekSubtitle: week.subtitle, chapters: week.chapters, domain: week.domain }))).filter(t => !state.completed.includes(t.id)).slice(0, 3);
+  const nextTasks = adaptivePlan(pack, state.planLength, lang).flatMap((week) => week.tasks.map(task => ({ id: task.id, task: task.label, week: week.title, weekSubtitle: week.subtitle, chapters: week.chapters, chapterNumbers: week.chapterNumbers, domain: week.domain }))).filter(t => !state.completed.includes(t.id)).slice(0, 3);
   return <div className="page-content dashboard-grid">
     <section className="hero-panel">
       <div className="hero-copy">
@@ -296,7 +315,7 @@ function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab,
 
     <section className="card today-card">
       <div className="section-heading"><div><span className="eyebrow">NEXT UP</span><h3>{t.next}</h3></div><span className="duration"><Clock3 size={15} /> {t.about} {Math.max(45, Math.round(state.weeklyHours * 60 / 6))} {t.minutes}</span></div>
-      <div className="task-list">{nextTasks.length ? nextTasks.map((task, i) => <button key={task.id} className="task-row" onClick={() => openLesson({ id: task.id, label: task.task, weekTitle: task.week, weekSubtitle: task.weekSubtitle, chapters: task.chapters, domain: task.domain })}><span className="task-check">{i + 1}</span><span><b>{task.task}</b><small>{task.week} · {lang === "en" ? "Open lesson" : "打开课程"}</small></span><ChevronRight size={18} /></button>) : <div className="empty-mini"><Medal size={28} /><b>{lang === "en" ? "This cycle is complete" : "本轮任务已完成"}</b><span>{lang === "en" ? "Open the plan to begin another review cycle." : "去计划页开启下一轮复习。"}</span></div>}</div>
+      <div className="task-list">{nextTasks.length ? nextTasks.map((task, i) => <button key={task.id} className="task-row" onClick={() => openLesson({ id: task.id, label: task.task, weekTitle: task.week, weekSubtitle: task.weekSubtitle, chapters: task.chapters, chapterNumbers: task.chapterNumbers, focusChapter: task.chapterNumbers[0] || 1, domain: task.domain })}><span className="task-check">{i + 1}</span><span><b>{task.task}</b><small>{task.week} · {lang === "en" ? "Open complete lesson" : "打开完整课程"}</small></span><ChevronRight size={18} /></button>) : <div className="empty-mini"><Medal size={28} /><b>{lang === "en" ? "This cycle is complete" : "本轮任务已完成"}</b><span>{lang === "en" ? "Open the plan to begin another review cycle." : "去计划页开启下一轮复习。"}</span></div>}</div>
     </section>
 
     <section className="card setup-card">
@@ -313,24 +332,41 @@ function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab,
   </div>;
 }
 
-function Plan({ lang, pack, state, setState, openLesson }: { lang: Lang; pack: CertificationPack; state: SavedState; setState: React.Dispatch<React.SetStateAction<SavedState>>; openLesson: (lesson: ActiveLesson) => void }) {
+function chapterDomainId(chapter: number) {
+  if (chapter <= 8) return "exercise-science";
+  if (chapter === 9) return "sport-psychology";
+  if (chapter <= 12) return "nutrition";
+  if (chapter <= 14 || chapter === 24) return "implementation";
+  if (chapter <= 17) return "exercise-technique";
+  if (chapter <= 23) return "program-design";
+  return "organization";
+}
+
+function Plan({ lang, pack, state, setState, setTab, chapters, openLesson }: { lang: Lang; pack: CertificationPack; state: SavedState; setState: React.Dispatch<React.SetStateAction<SavedState>>; setTab: (tab: Tab) => void; chapters: CourseChapter[]; openLesson: (lesson: ActiveLesson) => void }) {
   const t = copy[lang];
   const displayPlan = adaptivePlan(pack, state.planLength, lang);
+  const recommendations = chapters.map(chapter => {
+    const domain = chapterDomainId(chapter.n); const stat = state.domainStats[domain] || { correct: 0, total: 0 }; const rate = stat.total ? stat.correct / stat.total : 0;
+    const status = stat.total < 3 ? "diagnose" : rate >= .85 ? "fast" : rate < .65 ? "priority" : "standard";
+    return { chapter, stat, rate, status };
+  });
+  const focus = [...recommendations].sort((a, b) => (a.status === "priority" ? -1 : a.status === "fast" ? 1 : 0) - (b.status === "priority" ? -1 : b.status === "fast" ? 1 : 0)).slice(0, 8);
   return <div className="page-content">
     <section className="page-intro"><div><span className="eyebrow">{t.adaptive}</span><h2>{state.planLength}-{t.weekPlan}</h2><p>{t.planDesc}</p></div><div className="segmented">{([8,12,16] as const).map(n => <button key={n} className={state.planLength === n ? "active" : ""} onClick={() => setState(s => ({ ...s, planLength: n }))}>{n} {lang === "en" ? "wk" : "周"}</button>)}</div></section>
+    <section className="adaptive-coach"><div className="adaptive-coach-copy"><span className="eyebrow">AI-ASSISTED MASTERY ROUTING</span><h3>{state.diagnostic ? (lang === "en" ? `Diagnostic: ${state.diagnostic.score}/${state.diagnostic.total}` : `诊断结果：${state.diagnostic.score}/${state.diagnostic.total}`) : (lang === "en" ? "Start with evidence, not confidence" : "先用证据定位，而不是凭感觉")}</h3><p>{lang === "en" ? "The engine combines diagnostic and practice history. Strong domains are fast-tracked to a chapter checkpoint; weak domains stay in the full learning path. No tested domain is permanently skipped." : "系统结合诊断与练习记录。强项可直接挑战章节测试；弱项保留完整学习路径。任何考试领域都不会被永久跳过。"}</p><button className="primary" onClick={() => setTab("test")}>{state.diagnostic ? (lang === "en" ? "Retake adaptive diagnostic" : "重新诊断") : (lang === "en" ? "Take 30-question diagnostic" : "完成 30 题诊断")} <ChevronRight size={16} /></button></div><div className="mastery-routes">{focus.map(item => <button key={item.chapter.n} onClick={() => openLesson({ id: `adaptive-ch-${item.chapter.n}`, label: item.status === "fast" ? (lang === "en" ? "Fast-track chapter checkpoint" : "快速挑战章节测试") : (lang === "en" ? "Adaptive chapter review" : "自适应章节复习"), weekTitle: lang === "en" ? "Adaptive route" : "自适应路线", weekSubtitle: item.status === "fast" ? (lang === "en" ? "Prove mastery before reducing study time" : "先证明掌握，再减少学习时间") : (lang === "en" ? "Build missing foundations and retest" : "补齐基础并重新测试"), chapters: `Ch. ${item.chapter.n}`, chapterNumbers: [item.chapter.n], focusChapter: item.chapter.n, domain: item.chapter.domain[lang] })}><span className={item.status}>{item.status === "fast" ? "FAST-TRACK" : item.status === "priority" ? "PRIORITY" : item.status === "standard" ? "STANDARD" : "DIAGNOSE"}</span><b>Ch. {item.chapter.n} · {item.chapter.title[lang]}</b><small>{item.stat.total ? `${Math.round(item.rate * 100)}% · ${item.stat.total} items` : (lang === "en" ? "No evidence yet" : "尚无证据")}</small></button>)}</div></section>
     <div className="phase-strip"><span><i /> {t.build}</span><span><i /> {t.apply}</span><span><i /> {t.mock}</span></div>
     <div className="weeks-grid">{displayPlan.map((week, wi) => {
       const done = week.tasks.filter(t => state.completed.includes(t.id)).length;
       return <article className={cn("week-card", done === week.tasks.length && "complete")} key={week.key}>
         <div className="week-number"><span>{String(wi + 1).padStart(2, "0")}</span><small>WEEK</small></div>
-        <div className="week-body"><span className="domain-label">{week.domain} · {week.chapters}</span><h3>{week.title}</h3><p>{week.subtitle}</p><div className="week-tasks">{week.tasks.map(task => { const checked = state.completed.includes(task.id); return <button className={checked ? "checked" : ""} onClick={() => openLesson({ id: task.id, label: task.label, weekTitle: week.title, weekSubtitle: week.subtitle, chapters: week.chapters, domain: week.domain })} key={task.id}><span>{checked && <Check size={13} />}</span><b>{task.label}</b><small>{checked ? (lang === "en" ? "Review lesson" : "复习课程") : (lang === "en" ? "Open lesson" : "打开课程")}</small><ChevronRight size={14} /></button>; })}</div></div>
+        <div className="week-body"><span className="domain-label">{week.domain} · {week.chapters}</span><h3>{week.title}</h3><p>{week.subtitle}</p><div className="week-tasks">{week.tasks.map(task => { const checked = state.completed.includes(task.id); return <button className={checked ? "checked" : ""} onClick={() => openLesson({ id: task.id, label: task.label, weekTitle: week.title, weekSubtitle: week.subtitle, chapters: week.chapters, chapterNumbers: week.chapterNumbers, focusChapter: week.chapterNumbers[0] || 1, domain: week.domain })} key={task.id}><span>{checked && <Check size={13} />}</span><b>{task.label}</b><small>{checked ? (lang === "en" ? "Review complete lesson" : "复习完整课程") : (lang === "en" ? "Open complete lesson" : "打开完整课程")}</small><ChevronRight size={14} /></button>; })}</div></div>
         <div className="week-progress"><b>{done}/{week.tasks.length}</b><span>{t.complete}</span></div>
       </article>;
     })}</div>
   </div>;
 }
 
-function LessonReader({ lang, lesson, content, completed, onClose, onComplete, onPractice }: { lang: Lang; lesson: ActiveLesson; content: LessonContent; completed: boolean; onClose: () => void; onComplete: () => void; onPractice: () => void }) {
+export function LessonReader({ lang, lesson, content, completed, onClose, onComplete, onPractice }: { lang: Lang; lesson: ActiveLesson; content: LessonContent; completed: boolean; onClose: () => void; onComplete: () => void; onPractice: () => void }) {
   const [revealed, setRevealed] = useState(false);
   const tx = (value: BilingualText) => value[lang];
   return <div className="lesson-overlay" role="dialog" aria-modal="true" aria-label={lesson.label} data-testid="lesson-reader">
@@ -402,15 +438,15 @@ function AuthPanel({ lang, user, configured, syncStatus, onClose }: { lang: Lang
   </div>;
 }
 
-function TestCenter({ lang, pack, wrong, recordAnswer }: { lang: Lang; pack: CertificationPack; wrong: string[]; recordAnswer: (q: Question, correct: boolean) => void }) {
+function TestCenter({ lang, pack, wrong, recordAnswer, onDiagnosticComplete }: { lang: Lang; pack: CertificationPack; wrong: string[]; recordAnswer: (q: Question, correct: boolean) => void; onDiagnosticComplete: (result: DiagnosticResult) => void }) {
   const t = copy[lang];
   const [session, setSession] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answers, setAnswers] = useState<number[]>([]);
   const [mode, setMode] = useState<"practice" | "exam">("practice");
-  const [preset, setPreset] = useState("weighted");
-  const [count, setCount] = useState(10);
+  const [preset, setPreset] = useState("diagnostic");
+  const [count, setCount] = useState(30);
   const [finished, setFinished] = useState(false);
 
   const current = session[index];
@@ -421,7 +457,12 @@ function TestCenter({ lang, pack, wrong, recordAnswer }: { lang: Lang; pack: Cer
     if (preset === "science") pool = pack.questions.filter(q => q.section === "科学基础");
     if (preset === "practical") pool = pack.questions.filter(q => q.section === "实践应用");
     if (preset === "wrong") pool = pack.questions.filter(q => wrong.includes(q.id));
-    const chosen = shuffled(pool).slice(0, Math.min(count, pool.length));
+    let chosen = shuffled(pool).slice(0, Math.min(count, pool.length));
+    if (preset === "diagnostic") {
+      const allocation: Record<string, number> = { "exercise-science": 6, "sport-psychology": 4, nutrition: 3, "program-design": 7, "exercise-technique": 4, implementation: 3, organization: 3 };
+      chosen = Object.entries(allocation).flatMap(([domain, amount]) => shuffled(pack.questions.filter(question => question.domain === domain)).slice(0, amount));
+      setMode("exam");
+    }
     setSession(chosen); setIndex(0); setSelected(null); setAnswers([]); setFinished(false);
   }
 
@@ -435,6 +476,11 @@ function TestCenter({ lang, pack, wrong, recordAnswer }: { lang: Lang; pack: Cer
   function next() {
     if (index === session.length - 1) {
       if (mode === "exam") session.forEach((q, i) => recordAnswer(q, answers[i] === q.answer));
+      if (preset === "diagnostic") {
+        const domains: Record<string, { correct: number; total: number }> = {};
+        session.forEach((question, questionIndex) => { const current = domains[question.domain] || { correct: 0, total: 0 }; domains[question.domain] = { correct: current.correct + (answers[questionIndex] === question.answer ? 1 : 0), total: current.total + 1 }; });
+        onDiagnosticComplete({ completedAt: new Date().toISOString(), score, total: session.length, domains });
+      }
       setFinished(true);
     } else { setIndex(i => i + 1); setSelected(answers[index + 1] ?? null); }
   }
@@ -445,9 +491,9 @@ function TestCenter({ lang, pack, wrong, recordAnswer }: { lang: Lang; pack: Cer
       <div className="mode-tabs"><button className={mode === "practice" ? "active" : ""} onClick={() => setMode("practice")}>{t.practice}</button><button className={mode === "exam" ? "active" : ""} onClick={() => setMode("exam")}>{t.exam}</button></div>
       <h3>{t.chooseSet}</h3>
       <div className="preset-grid">
-        {[{id:"weighted",label:t.weighted,sub:t.mixed},{id:"science",label:t.science,sub:`95 ${t.items} / 90 min`},{id:"practical",label:t.practical,sub:`125 ${t.items} / 150 min`},{id:"wrong",label:t.wrongLoop,sub:`${t.currentCount} ${wrong.length} ${t.items}`}].map(p => <button key={p.id} disabled={p.id === "wrong" && !wrong.length} className={preset === p.id ? "active" : ""} onClick={() => setPreset(p.id)}><b>{p.label}</b><span>{p.sub}</span></button>)}
+        {[{id:"diagnostic",label:lang === "en" ? "Adaptive diagnostic" : "自适应诊断",sub:lang === "en" ? "30 items · builds your route" : "30 题 · 生成个人路线"},{id:"weighted",label:t.weighted,sub:t.mixed},{id:"science",label:t.science,sub:`95 ${t.items} / 90 min`},{id:"practical",label:t.practical,sub:`125 ${t.items} / 150 min`},{id:"wrong",label:t.wrongLoop,sub:`${t.currentCount} ${wrong.length} ${t.items}`}].map(p => <button key={p.id} disabled={p.id === "wrong" && !wrong.length} className={preset === p.id ? "active" : ""} onClick={() => { setPreset(p.id); if (p.id === "diagnostic") { setCount(30); setMode("exam"); } }}><b>{p.label}</b><span>{p.sub}</span></button>)}
       </div>
-      <label className="range-label"><span>{t.roundSize} <b>{count}</b></span><input type="range" min="5" max="30" step="5" value={count} onChange={e => setCount(Number(e.target.value))} /></label>
+      <label className="range-label"><span>{t.roundSize} <b>{count}</b></span><input type="range" min="5" max="30" step="5" value={count} disabled={preset === "diagnostic"} onChange={e => setCount(Number(e.target.value))} /></label>
       <button className="primary wide" onClick={start}>{finished ? t.again : t.start} <ChevronRight size={17} /></button>
     </section>
     <section className="exam-facts">{pack.exam.sections.map(s => <article key={s.name}><strong>{s.total}</strong><span>{lang === "en" ? (s.name === "科学基础" ? "Scientific Foundations" : "Practical / Applied") : s.name} {t.total}<br />{s.scored} {t.scored} · {s.minutes} min</span></article>)}<article><strong>{pack.exam.optionsPerQuestion}</strong><span>{t.perQuestion}<br />{t.best}</span></article></section>
@@ -474,14 +520,16 @@ function Mistakes({ lang, pack, wrong, setTab, clearWrong }: { lang: Lang; pack:
   </div>;
 }
 
-function CourseChapterReader({ lang, chapter, course, completed, onClose, onOpenChapter, onComplete, onPractice }: { lang: Lang; chapter: CourseChapter; course: CourseChapter[]; completed: boolean; onClose: () => void; onOpenChapter: (n: number) => void; onComplete: () => void; onPractice: () => void }) {
+function CourseChapterReader({ lang, chapter, course, task, chapterScope, completed, onClose, onOpenChapter, onComplete, onPractice }: { lang: Lang; chapter: CourseChapter; course: CourseChapter[]; task?: ActiveLesson; chapterScope?: number[]; completed: boolean; onClose: () => void; onOpenChapter: (n: number) => void; onComplete: () => void; onPractice: () => void }) {
   const [revealed, setRevealed] = useState<number[]>([]);
   const [checkpointAnswers, setCheckpointAnswers] = useState<Record<number, number>>({});
   const tx = (value: CourseText) => value[lang];
   const other = (value: CourseText) => value[lang === "en" ? "zh" : "en"];
   const sectionCount = chapter.sections.length;
-  const previous = chapter.n > 1 ? chapter.n - 1 : null;
-  const next = chapter.n < course.length ? chapter.n + 1 : null;
+  const visibleCourse = task && chapterScope?.length ? course.filter(item => chapterScope.includes(item.n)) : course;
+  const visibleIndex = visibleCourse.findIndex(item => item.n === chapter.n);
+  const previous = visibleIndex > 0 ? visibleCourse[visibleIndex - 1].n : null;
+  const next = visibleIndex >= 0 && visibleIndex < visibleCourse.length - 1 ? visibleCourse[visibleIndex + 1].n : null;
   const checkpointScore = chapter.sections.reduce((score, _section, index) => score + (checkpointAnswers[index] === index % 3 ? 1 : 0), 0);
 
   function checkpointOptions(sectionIndex: number) {
@@ -496,21 +544,22 @@ function CourseChapterReader({ lang, chapter, course, completed, onClose, onOpen
   return <div className="course-overlay" role="dialog" aria-modal="true" aria-label={chapter.title.en} data-testid="course-chapter-reader">
     <div className="course-reader">
       <header className="course-topbar">
-        <button className="text-button" onClick={onClose}><ArrowLeft size={17} /> {lang === "en" ? "Back to course" : "返回课程"}</button>
+        <button className="text-button" onClick={onClose}><ArrowLeft size={17} /> {task ? (lang === "en" ? "Back to plan" : "返回计划") : (lang === "en" ? "Back to course" : "返回课程")}</button>
         <div><BookMarked size={15} /><span>{chapter.source}</span></div>
         <button className="icon-button" onClick={onClose} aria-label={lang === "en" ? "Close chapter" : "关闭章节"}><X size={18} /></button>
       </header>
 
       <div className="course-layout">
         <aside className="course-outline">
-          <span className="eyebrow">COMPLETE COURSE</span>
-          <strong>CSCS · 5th Edition</strong>
-          <div className="course-progress"><i style={{ width: `${chapter.n / course.length * 100}%` }} /></div>
-          <small>{chapter.n} / {course.length} {lang === "en" ? "chapters" : "章"}</small>
-          <nav aria-label={lang === "en" ? "Course chapters" : "课程章节"}>{course.map(item => <button key={item.n} className={item.n === chapter.n ? "active" : ""} onClick={() => onOpenChapter(item.n)}><span>{String(item.n).padStart(2,"0")}</span><b>{tx(item.title)}</b></button>)}</nav>
+          <span className="eyebrow">{task ? "TASK COURSE PATH" : "COMPLETE COURSE"}</span>
+          <strong>{task ? task.label : "CSCS · 5th Edition"}</strong>
+          <div className="course-progress"><i style={{ width: `${Math.max(1, visibleIndex + 1) / visibleCourse.length * 100}%` }} /></div>
+          <small>{visibleIndex + 1} / {visibleCourse.length} {lang === "en" ? "linked chapters" : "个关联章节"}</small>
+          <nav aria-label={lang === "en" ? "Course chapters" : "课程章节"}>{visibleCourse.map(item => <button key={item.n} className={item.n === chapter.n ? "active" : ""} onClick={() => onOpenChapter(item.n)}><span>{String(item.n).padStart(2,"0")}</span><b>{tx(item.title)}</b></button>)}</nav>
         </aside>
 
         <article className="course-article">
+          {task && <section className="task-course-banner"><div><span className="eyebrow">PLAN ITEM · FULL LEARNING EXPERIENCE</span><h2>{task.label}</h2><p>{task.weekTitle} — {task.weekSubtitle}</p></div><aside><span>{task.domain}</span><b>{task.chapters}</b><small>{lang === "en" ? "Learn every linked chapter, use the visual lab, complete checkpoints, then mark this plan item done." : "学习全部关联章节，完成互动实验和测试后，再将计划项标为完成。"}</small></aside></section>}
           <section className="course-hero">
             <span className="domain-label">{tx(chapter.domain)}</span>
             <p className="chapter-kicker">CHAPTER {String(chapter.n).padStart(2,"0")} · COMPLETE LESSON</p>
@@ -525,6 +574,8 @@ function CourseChapterReader({ lang, chapter, course, completed, onClose, onOpen
               <h2>{lang === "en" ? "What you will be able to do" : "完成本章后你能做到"}</h2>
               <ol>{chapter.objectives.map((objective, index) => <li key={index}><span>{index + 1}</span><div><b>{objective.en}</b><small>{objective.zh}</small></div></li>)}</ol>
             </section>
+
+            <ChapterVisualLab chapter={chapter} lang={lang} />
 
             <nav className="section-jump" aria-label={lang === "en" ? "Chapter sections" : "章节小节"}>{chapter.sections.map((section, index) => <a key={section.id} href={`#chapter-${chapter.n}-${section.id}`}><span>{String(index + 1).padStart(2,"0")}</span>{tx(section.title)}</a>)}</nav>
 
@@ -553,7 +604,7 @@ function CourseChapterReader({ lang, chapter, course, completed, onClose, onOpen
 
           <footer className="course-footer">
             <button className="ghost" disabled={!previous} onClick={() => previous && onOpenChapter(previous)}><ArrowLeft size={16} /> {lang === "en" ? "Previous chapter" : "上一章"}</button>
-            <div><button className="ghost" onClick={onPractice}>{lang === "en" ? "Test this domain" : "测试本领域"}</button><button className="primary" disabled={completed || revealed.length < chapter.recall.length || Object.keys(checkpointAnswers).length < sectionCount} onClick={onComplete}>{completed ? (lang === "en" ? "Chapter complete" : "章节已完成") : (lang === "en" ? "Complete chapter" : "完成本章")} <Check size={16} /></button></div>
+            <div><button className="ghost" onClick={onPractice}>{lang === "en" ? "Test this domain" : "测试本领域"}</button><button className="primary" disabled={completed || revealed.length < chapter.recall.length || Object.keys(checkpointAnswers).length < sectionCount} onClick={onComplete}>{completed ? (task ? (lang === "en" ? "Plan item complete" : "计划项已完成") : (lang === "en" ? "Chapter complete" : "章节已完成")) : (task ? (lang === "en" ? "Complete plan item" : "完成计划项") : (lang === "en" ? "Complete chapter" : "完成本章"))} <Check size={16} /></button></div>
             <button className="ghost" disabled={!next} onClick={() => next && onOpenChapter(next)}>{lang === "en" ? "Next chapter" : "下一章"} <ChevronRight size={16} /></button>
           </footer>
         </article>
@@ -569,6 +620,7 @@ function Library({ lang, pack, chapters, completed, onOpen }: { lang: Lang; pack
   const filtered = chapters.filter(c => `${c.n}${c.title.en}${c.title.zh}${c.domain.en}${c.domain.zh}`.toLowerCase().includes(query.toLowerCase()));
   return <div className="page-content"><section className="page-intro"><div><span className="eyebrow">FIFTH EDITION MAP · ENGLISH SOURCE OF TRUTH</span><h2>{t.libraryTitle}</h2><p>{t.libraryDesc}</p></div><input className="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t.search} /></section>
     <section className="official-panel"><div className="section-heading"><div><span className="eyebrow">OFFICIAL NSCA CHECK · VERIFIED {pack.verifiedOn}</span><h3>{lang === "en" ? "Current exam facts" : "当前官方考试信息"}</h3></div><div className="official-links">{pack.officialSources.map(s => <a key={s.url} href={s.url} target="_blank" rel="noreferrer">{s.label} ↗</a>)}</div></div><div className="official-facts">{pack.officialFacts.map(f => <div key={f.value}><strong>{f.value}</strong><span>{lang === "en" ? f.labelEn : f.labelZh}</span></div>)}</div><p>{lang === "en" ? "Eligibility changes are scheduled for U.S. candidates beginning January 1, 2030. Always recheck the official page before registering." : "美国考生资格要求计划自 2030 年 1 月 1 日起调整。报名前请再次核对官网。"}</p></section>
+    <ResearchPulse lang={lang} />
     <section className="library-section"><div className="section-heading"><div><span className="eyebrow">ACTIVE RECALL</span><h3>{t.cards}</h3></div><span className="duration">{t.flip}</span></div><div className="flash-grid">{pack.quickCards.map((card, i) => <button key={card.front} className={cn("flash-card", flipped.includes(i) && "flipped")} onClick={() => setFlipped(f => f.includes(i) ? f.filter(x => x !== i) : [...f, i])}><span>{card.tag}</span><strong>{flipped.includes(i) ? (lang === "en" && card.en ? card.en.back : card.back) : (lang === "en" && card.en ? card.en.front : card.front)}</strong><small>{flipped.includes(i) ? t.back : t.seeAnswer}</small></button>)}</div></section>
     <section className="library-section"><div className="section-heading"><div><span className="eyebrow">FULL COURSE · NOT SUMMARIES</span><h3>{lang === "en" ? "26 complete chapter lessons" : "26 节完整章节课程"}</h3></div><span className="duration">26 {t.chapters}</span></div><div className="chapter-table course-chapter-table">{filtered.map(c => { const done = completed.includes(`course-chapter-${c.n}`); return <button key={c.n} onClick={() => onOpen(c)}><span>{String(c.n).padStart(2,"0")}</span><p><b>{txCourse(c.title, lang)}</b><small>{c.title[lang === "en" ? "zh" : "en"]} · {c.sections.length} deep dives · {c.minutes} min</small></p><em>{txCourse(c.domain, lang)}</em><i>{done ? <Check size={15} /> : <ChevronRight size={16} />}</i></button>})}</div></section>
     <p className="disclaimer">{lang === "en" ? "This is an original, standalone exam-prep course aligned to the English fifth-edition textbook and official DCO. English controls if a translation differs. Publisher text and figures are not reproduced; always verify current eligibility and policy with NSCA." : "这是依据英文第五版教材和官方大纲编写的原创独立备考课程。若翻译有差异，以英文为准；不复制出版社原文或插图。资格与政策请始终向 NSCA 核实。"}</p>
