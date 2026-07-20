@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { certificationRegistry, type CertificationPack, type Question } from "@/lib/certifications";
 import { getLessonContent, type BilingualText, type LessonContent } from "@/lib/lesson-data";
+import { cscsCourse, type CourseChapter, type CourseText } from "@/lib/course";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 
 type Tab = "dashboard" | "plan" | "test" | "mistakes" | "library";
@@ -94,10 +95,12 @@ export default function Home() {
   const [state, setState] = useState<SavedState>(initial);
   const [ready, setReady] = useState(false);
   const [activeLesson, setActiveLesson] = useState<ActiveLesson | null>(null);
+  const [activeChapter, setActiveChapter] = useState<CourseChapter | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [syncStatus, setSyncStatus] = useState<"local" | "loading" | "synced" | "error">("local");
   const [publishedLessons, setPublishedLessons] = useState<Record<string, LessonContent>>({});
+  const [courseChapters, setCourseChapters] = useState<CourseChapter[]>(cscsCourse);
   const cloudEnabled = isSupabaseConfigured();
 
   useEffect(() => {
@@ -150,8 +153,10 @@ export default function Home() {
       .eq("status", "published")
       .then(({ data, error }) => {
         if (cancelled || error || !data) return;
-        const next = Object.fromEntries(data.map(row => [row.task_id, row.content as LessonContent]));
-        setPublishedLessons(next);
+        const lessons = data.filter(row => !row.task_id.startsWith("course-chapter-"));
+        const chapters = data.filter(row => row.task_id.startsWith("course-chapter-")).map(row => row.content as CourseChapter).sort((a, b) => a.n - b.n);
+        setPublishedLessons(Object.fromEntries(lessons.map(row => [row.task_id, row.content as LessonContent])));
+        if (chapters.length === 26) setCourseChapters(chapters);
       });
     return () => { cancelled = true; };
   }, [activeCertId]);
@@ -255,13 +260,14 @@ export default function Home() {
         {tab === "plan" && <Plan lang={lang} pack={pack} state={state} setState={setState} openLesson={setActiveLesson} />}
         {tab === "test" && <TestCenter lang={lang} pack={pack} wrong={state.wrong} recordAnswer={recordAnswer} />}
         {tab === "mistakes" && <Mistakes lang={lang} pack={pack} wrong={state.wrong} setTab={setTab} clearWrong={(id) => setState(s => ({ ...s, wrong: s.wrong.filter(x => x !== id) }))} />}
-        {tab === "library" && <Library lang={lang} pack={pack} />}
+        {tab === "library" && <Library lang={lang} pack={pack} chapters={courseChapters} completed={state.completed} onOpen={setActiveChapter} />}
       </section>
 
       <nav className="mobile-nav" aria-label={lang === "en" ? "Mobile navigation" : "移动导航"}>
         {nav.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><item.icon size={19} /><span>{item[lang]}</span></button>)}
       </nav>
       {activeLesson && <LessonReader lang={lang} lesson={activeLesson} content={publishedLessons[activeLesson.id] || getLessonContent(activeLesson.id)} completed={state.completed.includes(activeLesson.id)} onClose={() => setActiveLesson(null)} onComplete={() => { if (!state.completed.includes(activeLesson.id)) { toggleTask(activeLesson.id); logStudy(0); } }} onPractice={() => { setActiveLesson(null); setTab("test"); }} />}
+      {activeChapter && <CourseChapterReader key={activeChapter.n} lang={lang} chapter={activeChapter} course={courseChapters} completed={state.completed.includes(`course-chapter-${activeChapter.n}`)} onClose={() => setActiveChapter(null)} onOpenChapter={(n) => { const next = courseChapters.find(chapter => chapter.n === n); if (next) setActiveChapter(next); }} onComplete={() => { const id = `course-chapter-${activeChapter.n}`; if (!state.completed.includes(id)) { toggleTask(id); logStudy(0); } }} onPractice={() => { setActiveChapter(null); setTab("test"); }} />}
       {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} onClose={() => setAuthOpen(false)} />}
     </main>
   );
@@ -468,15 +474,92 @@ function Mistakes({ lang, pack, wrong, setTab, clearWrong }: { lang: Lang; pack:
   </div>;
 }
 
-function Library({ lang, pack }: { lang: Lang; pack: CertificationPack }) {
+function CourseChapterReader({ lang, chapter, course, completed, onClose, onOpenChapter, onComplete, onPractice }: { lang: Lang; chapter: CourseChapter; course: CourseChapter[]; completed: boolean; onClose: () => void; onOpenChapter: (n: number) => void; onComplete: () => void; onPractice: () => void }) {
+  const [revealed, setRevealed] = useState<number[]>([]);
+  const tx = (value: CourseText) => value[lang];
+  const other = (value: CourseText) => value[lang === "en" ? "zh" : "en"];
+  const sectionCount = chapter.sections.length;
+  const previous = chapter.n > 1 ? chapter.n - 1 : null;
+  const next = chapter.n < course.length ? chapter.n + 1 : null;
+
+  return <div className="course-overlay" role="dialog" aria-modal="true" aria-label={chapter.title.en} data-testid="course-chapter-reader">
+    <div className="course-reader">
+      <header className="course-topbar">
+        <button className="text-button" onClick={onClose}><ArrowLeft size={17} /> {lang === "en" ? "Back to course" : "返回课程"}</button>
+        <div><BookMarked size={15} /><span>{chapter.source}</span></div>
+        <button className="icon-button" onClick={onClose} aria-label={lang === "en" ? "Close chapter" : "关闭章节"}><X size={18} /></button>
+      </header>
+
+      <div className="course-layout">
+        <aside className="course-outline">
+          <span className="eyebrow">COMPLETE COURSE</span>
+          <strong>CSCS · 5th Edition</strong>
+          <div className="course-progress"><i style={{ width: `${chapter.n / course.length * 100}%` }} /></div>
+          <small>{chapter.n} / {course.length} {lang === "en" ? "chapters" : "章"}</small>
+          <nav aria-label={lang === "en" ? "Course chapters" : "课程章节"}>{course.map(item => <button key={item.n} className={item.n === chapter.n ? "active" : ""} onClick={() => onOpenChapter(item.n)}><span>{String(item.n).padStart(2,"0")}</span><b>{tx(item.title)}</b></button>)}</nav>
+        </aside>
+
+        <article className="course-article">
+          <section className="course-hero">
+            <span className="domain-label">{tx(chapter.domain)}</span>
+            <p className="chapter-kicker">CHAPTER {String(chapter.n).padStart(2,"0")} · COMPLETE LESSON</p>
+            <h1>{tx(chapter.title)}</h1>
+            <p className="translation-line">{other(chapter.title)}</p>
+            <div className="lesson-meta"><span><Clock3 size={14} /> {chapter.minutes} min</span><span><BookOpen size={14} /> {sectionCount} {lang === "en" ? "deep-dive units" : "个深度单元"}</span><span><Brain size={14} /> {chapter.recall.length} {lang === "en" ? "recall checks" : "个主动回忆"}</span>{completed && <span className="lesson-complete"><Check size={14} /> {lang === "en" ? "Completed" : "已完成"}</span>}</div>
+          </section>
+
+          <div className="course-content">
+            <section className="course-objectives">
+              <span className="eyebrow">LEARNING OBJECTIVES</span>
+              <h2>{lang === "en" ? "What you will be able to do" : "完成本章后你能做到"}</h2>
+              <ol>{chapter.objectives.map((objective, index) => <li key={index}><span>{index + 1}</span><div><b>{objective.en}</b><small>{objective.zh}</small></div></li>)}</ol>
+            </section>
+
+            <nav className="section-jump" aria-label={lang === "en" ? "Chapter sections" : "章节小节"}>{chapter.sections.map((section, index) => <a key={section.id} href={`#chapter-${chapter.n}-${section.id}`}><span>{String(index + 1).padStart(2,"0")}</span>{tx(section.title)}</a>)}</nav>
+
+            {chapter.sections.map((section, index) => <section className="deep-dive" id={`chapter-${chapter.n}-${section.id}`} key={section.id}>
+              <div className="deep-dive-heading"><span>{String(index + 1).padStart(2,"0")}</span><div><span className="eyebrow">DEEP DIVE</span><h2>{tx(section.title)}</h2><small>{other(section.title)}</small></div></div>
+              <div className="lecture-copy">{section.explanation.map((paragraph, pi) => <p key={pi}>{paragraph}</p>)}</div>
+              <div className="knowledge-board"><span className="eyebrow">KNOWLEDGE YOU MUST OWN</span><ul>{section.details.map((detail, di) => <li key={di}><Check size={15} /><span>{detail}</span></li>)}</ul></div>
+              <div className="decision-grid">
+                <aside className="coach-decision"><span className="eyebrow">COACHING DECISION</span><strong>{section.decision.en}</strong><p>{section.decision.zh}</p></aside>
+                <aside className="exam-cue"><span className="eyebrow">EXAM CUE</span><strong>{section.examCue.en}</strong><p>{section.examCue.zh}</p></aside>
+              </div>
+            </section>)}
+
+            {!!chapter.formulas.length && <section className="reference-block"><span className="eyebrow">FORMULAS & WORKED USE</span><h2>{lang === "en" ? "Calculate it, then interpret it" : "先计算，再解释"}</h2><div className="formula-grid">{chapter.formulas.map(formula => <article key={formula.name}><span>{formula.name}</span><code>{formula.expression}</code><p>{formula.use.en}</p><small>{formula.use.zh}</small>{formula.example && <em>Example · {formula.example}</em>}</article>)}</div></section>}
+
+            <section className="reference-block"><span className="eyebrow">KEY TERMINOLOGY</span><h2>{lang === "en" ? "Language the exam expects" : "考试要求掌握的术语"}</h2><div className="term-grid">{chapter.terms.map(item => <article key={item.term}><strong>{item.term}</strong><p>{item.meaning.en}</p><small>{item.meaning.zh}</small></article>)}</div></section>
+
+            <section className="mastery-block"><div><span className="eyebrow">EXAM-READY CHECKLIST</span><h2>{lang === "en" ? "Can you do all of these without notes?" : "你能否不看笔记完成以下任务？"}</h2></div><ul>{chapter.examChecklist.map((item, index) => <li key={index}><span><Check size={15} /></span><div><b>{item.en}</b><small>{item.zh}</small></div></li>)}</ul></section>
+
+            <section className="recall-lab"><span className="eyebrow">ACTIVE RECALL LAB</span><h2>{lang === "en" ? "Answer aloud before revealing" : "先口述，再查看答案"}</h2><p>{lang === "en" ? "Retrieval is the study event. Close your notes, produce the answer, then compare and correct." : "主动提取本身就是学习。合上笔记，先说出答案，再对照纠正。"}</p><div>{chapter.recall.map((item, index) => { const isOpen = revealed.includes(index); return <article key={index}><span>Q{index + 1}</span><h3>{tx(item.prompt)}</h3><small>{other(item.prompt)}</small>{isOpen ? <div className="recall-answer"><strong>MODEL ANSWER</strong><p>{item.answer.en}</p><small>{item.answer.zh}</small></div> : <button className="ghost" onClick={() => setRevealed(values => [...values, index])}>{lang === "en" ? "Reveal after answering" : "回答后查看"} <ChevronRight size={15} /></button>}</article>})}</div></section>
+
+            <section className="course-source-note"><BookMarked size={19} /><div><strong>{lang === "en" ? "How this lesson was built" : "本课程如何编写"}</strong><p>{lang === "en" ? "Original instruction aligned to the English fifth-edition chapter and the official CSCS Detailed Content Outline. It teaches and synthesizes the tested concepts without reproducing publisher text or figures. English is the source of truth; Chinese is learning support." : "原创教学内容依据英文第五版章节与官方 CSCS 考试大纲综合编写，不复制出版社原文或插图。英文为唯一事实基准，中文仅作学习辅助。"}</p></div></section>
+          </div>
+
+          <footer className="course-footer">
+            <button className="ghost" disabled={!previous} onClick={() => previous && onOpenChapter(previous)}><ArrowLeft size={16} /> {lang === "en" ? "Previous chapter" : "上一章"}</button>
+            <div><button className="ghost" onClick={onPractice}>{lang === "en" ? "Test this domain" : "测试本领域"}</button><button className="primary" disabled={completed || revealed.length < chapter.recall.length} onClick={onComplete}>{completed ? (lang === "en" ? "Chapter complete" : "章节已完成") : (lang === "en" ? "Complete chapter" : "完成本章")} <Check size={16} /></button></div>
+            <button className="ghost" disabled={!next} onClick={() => next && onOpenChapter(next)}>{lang === "en" ? "Next chapter" : "下一章"} <ChevronRight size={16} /></button>
+          </footer>
+        </article>
+      </div>
+    </div>
+  </div>;
+}
+
+function Library({ lang, pack, chapters, completed, onOpen }: { lang: Lang; pack: CertificationPack; chapters: CourseChapter[]; completed: string[]; onOpen: (chapter: CourseChapter) => void }) {
   const t = copy[lang];
   const [query, setQuery] = useState("");
   const [flipped, setFlipped] = useState<number[]>([]);
-  const filtered = pack.chapters.filter(c => `${c.n}${c.title}${c.en}${c.domain}`.toLowerCase().includes(query.toLowerCase()));
+  const filtered = chapters.filter(c => `${c.n}${c.title.en}${c.title.zh}${c.domain.en}${c.domain.zh}`.toLowerCase().includes(query.toLowerCase()));
   return <div className="page-content"><section className="page-intro"><div><span className="eyebrow">FIFTH EDITION MAP · ENGLISH SOURCE OF TRUTH</span><h2>{t.libraryTitle}</h2><p>{t.libraryDesc}</p></div><input className="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t.search} /></section>
     <section className="official-panel"><div className="section-heading"><div><span className="eyebrow">OFFICIAL NSCA CHECK · VERIFIED {pack.verifiedOn}</span><h3>{lang === "en" ? "Current exam facts" : "当前官方考试信息"}</h3></div><div className="official-links">{pack.officialSources.map(s => <a key={s.url} href={s.url} target="_blank" rel="noreferrer">{s.label} ↗</a>)}</div></div><div className="official-facts">{pack.officialFacts.map(f => <div key={f.value}><strong>{f.value}</strong><span>{lang === "en" ? f.labelEn : f.labelZh}</span></div>)}</div><p>{lang === "en" ? "Eligibility changes are scheduled for U.S. candidates beginning January 1, 2030. Always recheck the official page before registering." : "美国考生资格要求计划自 2030 年 1 月 1 日起调整。报名前请再次核对官网。"}</p></section>
     <section className="library-section"><div className="section-heading"><div><span className="eyebrow">ACTIVE RECALL</span><h3>{t.cards}</h3></div><span className="duration">{t.flip}</span></div><div className="flash-grid">{pack.quickCards.map((card, i) => <button key={card.front} className={cn("flash-card", flipped.includes(i) && "flipped")} onClick={() => setFlipped(f => f.includes(i) ? f.filter(x => x !== i) : [...f, i])}><span>{card.tag}</span><strong>{flipped.includes(i) ? (lang === "en" && card.en ? card.en.back : card.back) : (lang === "en" && card.en ? card.en.front : card.front)}</strong><small>{flipped.includes(i) ? t.back : t.seeAnswer}</small></button>)}</div></section>
-    <section className="library-section"><div className="section-heading"><div><span className="eyebrow">CHAPTER INDEX</span><h3>{t.chapterMap}</h3></div><span className="duration">26 {t.chapters}</span></div><div className="chapter-table">{filtered.map(c => <div key={c.n}><span>{String(c.n).padStart(2,"0")}</span><p><b>{lang === "en" ? c.en : c.title}</b><small>{lang === "en" ? c.title : c.en}</small></p><em>{lang === "en" ? (pack.domains.find(d => d.label === c.domain)?.en || c.domain) : c.domain}</em></div>)}</div></section>
-    <p className="disclaimer">{lang === "en" ? "Original study summaries based on the English fifth-edition textbook and official DCO. English source material controls if a translation differs. This site does not replace NSCA materials or policy." : "内容以英文第五版教材和英文官方大纲为唯一基准，中文仅为辅助翻译；若有歧义，以英文原文为准。本网站不替代 NSCA 官方教材、课程或考试政策。"}</p>
+    <section className="library-section"><div className="section-heading"><div><span className="eyebrow">FULL COURSE · NOT SUMMARIES</span><h3>{lang === "en" ? "26 complete chapter lessons" : "26 节完整章节课程"}</h3></div><span className="duration">26 {t.chapters}</span></div><div className="chapter-table course-chapter-table">{filtered.map(c => { const done = completed.includes(`course-chapter-${c.n}`); return <button key={c.n} onClick={() => onOpen(c)}><span>{String(c.n).padStart(2,"0")}</span><p><b>{txCourse(c.title, lang)}</b><small>{c.title[lang === "en" ? "zh" : "en"]} · {c.sections.length} deep dives · {c.minutes} min</small></p><em>{txCourse(c.domain, lang)}</em><i>{done ? <Check size={15} /> : <ChevronRight size={16} />}</i></button>})}</div></section>
+    <p className="disclaimer">{lang === "en" ? "This is an original, standalone exam-prep course aligned to the English fifth-edition textbook and official DCO. English controls if a translation differs. Publisher text and figures are not reproduced; always verify current eligibility and policy with NSCA." : "这是依据英文第五版教材和官方大纲编写的原创独立备考课程。若翻译有差异，以英文为准；不复制出版社原文或插图。资格与政策请始终向 NSCA 核实。"}</p>
   </div>;
 }
+
+function txCourse(value: CourseText, lang: Lang) { return value[lang]; }
