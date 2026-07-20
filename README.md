@@ -1,98 +1,64 @@
-# vinext-starter
+# Cert Loop
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+Reusable, bilingual certification study platform. CSCS is the first content
+pack, with English as the canonical language and Chinese as an optional study
+aid.
 
-## Prerequisites
+Live site: https://cert-loop-study.vercel.app
 
-- Node.js `>=22.13.0`
+## What is included
 
-## Quick Start
+- adaptive 8, 12, or 16 week study plans
+- official CSCS domain weights and exam structure
+- practice and exam test modes
+- wrong-answer review loop
+- 42 original bilingual practice questions across all seven domains
+- 26-chapter textbook map and bilingual flashcards
+- local, certificate-scoped progress persistence
+- responsive desktop and mobile interface
+
+## Content policy
+
+The English fifth-edition textbook and official English NSCA materials are the
+source of truth. Chinese text is supplementary and must not override the
+English meaning. Practice questions are original and are not recalled or copied
+exam items.
+
+Official references:
+
+- https://www.nsca.com/certification/cscs
+- https://www.nsca.com/cscs-exam-description/
+
+## Local development
+
+Requires Node.js 22 or newer.
 
 ```bash
 npm install
 npm run dev
+```
+
+Open http://localhost:3000.
+
+## Verification
+
+```bash
 npm run build
+npx next build
 ```
 
-This starter does not use `wrangler.jsonc`.
+The first command validates the bundled Sites/vinext target. The second validates
+the production Next.js target used by Vercel.
 
-## Included Shape
+## Add another certification
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+Create a new content pack following the types in `lib/certifications.ts`, then
+register it in `certificationRegistry`. Keep question banks, domain weights,
+study-plan inputs, storage keys, and source metadata inside that certification's
+pack so progress and content remain isolated.
 
-## Workspace Auth Headers
+## Deployment
 
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
-```
-
-## Optional Dispatch-Owned ChatGPT Sign-In
-
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
-
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+The repository includes `vercel.json` for Vercel and `.openai/hosting.json` for
+the bundled Sites target. Vercel production deploys are connected to the GitHub
+repository.
