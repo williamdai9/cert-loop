@@ -54,6 +54,8 @@ test("ships complete lessons and private progress sync", async () => {
   assert.equal(lessonIds.length, 48);
   assert.match(page, /function LessonReader/);
   assert.match(page, /Reveal after answering aloud/);
+  assert.match(page, /from\("lessons"\)/);
+  assert.match(page, /publishedLessons\[activeLesson\.id\]/);
   assert.match(page, /signInWithOtp/);
   assert.match(page, /from\("user_progress"\)/);
   assert.match(supabase, /persistSession:\s*true/);
