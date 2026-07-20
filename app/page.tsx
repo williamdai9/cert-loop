@@ -2,14 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  BookOpen, CalendarDays, Check, ChevronRight, CircleHelp, Clock3,
-  Dumbbell, Flame, LayoutDashboard, Medal, RotateCcw, Settings2,
-  Sparkles, Target, Trophy, X, Zap
+  ArrowLeft, BookMarked, BookOpen, Brain, CalendarDays, Check,
+  ChevronRight, CircleHelp, Cloud, CloudOff, Clock3, Dumbbell,
+  Flame, LayoutDashboard, LogIn, LogOut, Medal, RotateCcw,
+  Settings2, Sparkles, Target, Trophy, UserRound, X, Zap
 } from "lucide-react";
 import { certificationRegistry, type CertificationPack, type Question } from "@/lib/certifications";
+import { getLessonContent, type BilingualText } from "@/lib/lesson-data";
+import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 
 type Tab = "dashboard" | "plan" | "test" | "mistakes" | "library";
 type Lang = "zh" | "en";
+type ActiveLesson = {
+  id: string;
+  label: string;
+  weekTitle: string;
+  weekSubtitle: string;
+  chapters: string;
+  domain: string;
+};
 type SavedState = {
   completed: string[];
   wrong: string[];
@@ -82,32 +93,84 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [state, setState] = useState<SavedState>(initial);
   const [ready, setReady] = useState(false);
+  const [activeLesson, setActiveLesson] = useState<ActiveLesson | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [syncStatus, setSyncStatus] = useState<"local" | "loading" | "synced" | "error">("local");
+  const cloudEnabled = isSupabaseConfigured();
 
   useEffect(() => {
     const savedLang = localStorage.getItem("cert-loop-language-v2") as Lang | null;
-    if (savedLang === "en" || savedLang === "zh") setLang(savedLang);
+    if (savedLang === "en" || savedLang === "zh") queueMicrotask(() => setLang(savedLang));
   }, []);
 
   useEffect(() => { localStorage.setItem("cert-loop-language-v2", lang); }, [lang]);
 
   useEffect(() => {
-    setReady(false);
-    const stored = localStorage.getItem(`cert-loop-state-${activeCertId}`);
-    const fallbackDate = new Date();
-    fallbackDate.setDate(fallbackDate.getDate() + 84);
-    if (stored) {
-      try { setState({ ...initial, ...JSON.parse(stored) }); }
-      catch { setState({ ...initial, examDate: formatDate(fallbackDate) }); }
-    } else setState({ ...initial, examDate: formatDate(fallbackDate) });
-    setReady(true);
+    queueMicrotask(() => {
+      setReady(false);
+      const stored = localStorage.getItem(`cert-loop-state-${activeCertId}`);
+      const fallbackDate = new Date();
+      fallbackDate.setDate(fallbackDate.getDate() + 84);
+      if (stored) {
+        try { setState({ ...initial, ...JSON.parse(stored) }); }
+        catch { setState({ ...initial, examDate: formatDate(fallbackDate) }); }
+      } else setState({ ...initial, examDate: formatDate(fallbackDate) });
+      setReady(true);
+    });
   }, [activeCertId]);
 
   useEffect(() => {
     if (ready) localStorage.setItem(`cert-loop-state-${activeCertId}`, JSON.stringify(state));
   }, [state, ready, activeCertId]);
 
+  useEffect(() => {
+    const supabase = getSupabaseBrowser();
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      const sessionUser = data.session?.user;
+      setUser(sessionUser ? { id: sessionUser.id, email: sessionUser.email || "Learner" } : null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const sessionUser = session?.user;
+      setUser(sessionUser ? { id: sessionUser.id, email: sessionUser.email || "Learner" } : null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowser();
+    if (!supabase || !user) return;
+    let cancelled = false;
+    queueMicrotask(() => setSyncStatus("loading"));
+    supabase.from("user_progress").select("state").eq("user_id", user.id).eq("certification_id", activeCertId).maybeSingle().then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) { setSyncStatus("error"); return; }
+      if (data?.state) setState({ ...initial, ...(data.state as SavedState) });
+      setSyncStatus("synced");
+    });
+    return () => { cancelled = true; };
+  }, [user, activeCertId]);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowser();
+    if (!supabase || !user || !ready || syncStatus === "loading") return;
+    const timer = window.setTimeout(async () => {
+      const { error } = await supabase.from("user_progress").upsert({
+        user_id: user.id,
+        certification_id: activeCertId,
+        state,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id,certification_id" });
+      setSyncStatus(error ? "error" : "synced");
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [state, user, activeCertId, ready, syncStatus]);
+
   const studyDays = useMemo(() => {
     if (!state.examDate) return 84;
+    // Exam countdown is intentionally evaluated when the saved exam date changes.
+    // eslint-disable-next-line react-hooks/purity
     return Math.max(0, Math.ceil((new Date(`${state.examDate}T12:00:00`).getTime() - Date.now()) / 86400000));
   }, [state.examDate]);
   const activePlan = adaptivePlan(pack, state.planLength, lang);
@@ -158,7 +221,7 @@ export default function Home() {
           <div className="mini-progress"><i style={{ width: `${Math.min(100, completion)}%` }} /></div>
           <p>{t.progress} {completion}%</p>
         </div>
-        <p className="source-note">{pack.sourceNote}<br />{t.local}</p>
+        <p className="source-note">{pack.sourceNote}<br />{user ? (lang === "en" ? "Progress syncs to your account" : "进度已同步到账号") : t.local}</p>
       </aside>
 
       <section className="main-area">
@@ -167,11 +230,11 @@ export default function Home() {
             <span className="eyebrow">{pack.name.toUpperCase()}</span>
             <h1>{nav.find(n => n.id === tab)?.[lang]}</h1>
           </div>
-          <div className="top-actions"><div className="lang-toggle"><button className={lang === "zh" ? "active" : ""} onClick={() => setLang("zh")}>中</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div><div className="top-stats"><span><Flame size={16} /> {state.streak} {t.days}</span><span><Zap size={16} /> {state.xp} XP</span></div></div>
+          <div className="top-actions"><button className="account-button" onClick={() => setAuthOpen(true)}>{user ? <Cloud size={15} /> : cloudEnabled ? <LogIn size={15} /> : <CloudOff size={15} />}<span>{user ? user.email : lang === "en" ? "Sign in" : "登录"}</span></button><div className="lang-toggle"><button className={lang === "zh" ? "active" : ""} onClick={() => setLang("zh")}>中</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div><div className="top-stats"><span><Flame size={16} /> {state.streak} {t.days}</span><span><Zap size={16} /> {state.xp} XP</span></div></div>
         </header>
 
-        {tab === "dashboard" && <Dashboard lang={lang} pack={pack} state={state} studyDays={studyDays} completion={completion} setState={setState} setTab={setTab} toggleTask={toggleTask} />}
-        {tab === "plan" && <Plan lang={lang} pack={pack} state={state} setState={setState} toggleTask={toggleTask} />}
+        {tab === "dashboard" && <Dashboard lang={lang} pack={pack} state={state} studyDays={studyDays} completion={completion} setState={setState} setTab={setTab} openLesson={setActiveLesson} />}
+        {tab === "plan" && <Plan lang={lang} pack={pack} state={state} setState={setState} openLesson={setActiveLesson} />}
         {tab === "test" && <TestCenter lang={lang} pack={pack} wrong={state.wrong} recordAnswer={recordAnswer} />}
         {tab === "mistakes" && <Mistakes lang={lang} pack={pack} wrong={state.wrong} setTab={setTab} clearWrong={(id) => setState(s => ({ ...s, wrong: s.wrong.filter(x => x !== id) }))} />}
         {tab === "library" && <Library lang={lang} pack={pack} />}
@@ -180,13 +243,15 @@ export default function Home() {
       <nav className="mobile-nav" aria-label={lang === "en" ? "Mobile navigation" : "移动导航"}>
         {nav.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><item.icon size={19} /><span>{item[lang]}</span></button>)}
       </nav>
+      {activeLesson && <LessonReader lang={lang} lesson={activeLesson} completed={state.completed.includes(activeLesson.id)} onClose={() => setActiveLesson(null)} onComplete={() => { if (!state.completed.includes(activeLesson.id)) { toggleTask(activeLesson.id); logStudy(0); } }} onPractice={() => { setActiveLesson(null); setTab("test"); }} />}
+      {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} onClose={() => setAuthOpen(false)} />}
     </main>
   );
 }
 
-function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab, toggleTask }: { lang: Lang; pack: CertificationPack; state: SavedState; studyDays: number; completion: number; setState: React.Dispatch<React.SetStateAction<SavedState>>; setTab: (t: Tab) => void; toggleTask: (id: string) => void }) {
+function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab, openLesson }: { lang: Lang; pack: CertificationPack; state: SavedState; studyDays: number; completion: number; setState: React.Dispatch<React.SetStateAction<SavedState>>; setTab: (t: Tab) => void; openLesson: (lesson: ActiveLesson) => void }) {
   const t = copy[lang];
-  const nextTasks = adaptivePlan(pack, state.planLength, lang).flatMap((week) => week.tasks.map(task => ({ id: task.id, task: task.label, week: week.title }))).filter(t => !state.completed.includes(t.id)).slice(0, 3);
+  const nextTasks = adaptivePlan(pack, state.planLength, lang).flatMap((week) => week.tasks.map(task => ({ id: task.id, task: task.label, week: week.title, weekSubtitle: week.subtitle, chapters: week.chapters, domain: week.domain }))).filter(t => !state.completed.includes(t.id)).slice(0, 3);
   return <div className="page-content dashboard-grid">
     <section className="hero-panel">
       <div className="hero-copy">
@@ -207,7 +272,7 @@ function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab,
 
     <section className="card today-card">
       <div className="section-heading"><div><span className="eyebrow">NEXT UP</span><h3>{t.next}</h3></div><span className="duration"><Clock3 size={15} /> {t.about} {Math.max(45, Math.round(state.weeklyHours * 60 / 6))} {t.minutes}</span></div>
-      <div className="task-list">{nextTasks.length ? nextTasks.map((task, i) => <button key={task.id} className="task-row" onClick={() => toggleTask(task.id)}><span className="task-check">{i + 1}</span><span><b>{task.task}</b><small>{task.week}</small></span><ChevronRight size={18} /></button>) : <div className="empty-mini"><Medal size={28} /><b>{lang === "en" ? "This cycle is complete" : "本轮任务已完成"}</b><span>{lang === "en" ? "Open the plan to begin another review cycle." : "去计划页开启下一轮复习。"}</span></div>}</div>
+      <div className="task-list">{nextTasks.length ? nextTasks.map((task, i) => <button key={task.id} className="task-row" onClick={() => openLesson({ id: task.id, label: task.task, weekTitle: task.week, weekSubtitle: task.weekSubtitle, chapters: task.chapters, domain: task.domain })}><span className="task-check">{i + 1}</span><span><b>{task.task}</b><small>{task.week} · {lang === "en" ? "Open lesson" : "打开课程"}</small></span><ChevronRight size={18} /></button>) : <div className="empty-mini"><Medal size={28} /><b>{lang === "en" ? "This cycle is complete" : "本轮任务已完成"}</b><span>{lang === "en" ? "Open the plan to begin another review cycle." : "去计划页开启下一轮复习。"}</span></div>}</div>
     </section>
 
     <section className="card setup-card">
@@ -224,7 +289,7 @@ function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab,
   </div>;
 }
 
-function Plan({ lang, pack, state, setState, toggleTask }: { lang: Lang; pack: CertificationPack; state: SavedState; setState: React.Dispatch<React.SetStateAction<SavedState>>; toggleTask: (id: string) => void }) {
+function Plan({ lang, pack, state, setState, openLesson }: { lang: Lang; pack: CertificationPack; state: SavedState; setState: React.Dispatch<React.SetStateAction<SavedState>>; openLesson: (lesson: ActiveLesson) => void }) {
   const t = copy[lang];
   const displayPlan = adaptivePlan(pack, state.planLength, lang);
   return <div className="page-content">
@@ -234,10 +299,83 @@ function Plan({ lang, pack, state, setState, toggleTask }: { lang: Lang; pack: C
       const done = week.tasks.filter(t => state.completed.includes(t.id)).length;
       return <article className={cn("week-card", done === week.tasks.length && "complete")} key={week.key}>
         <div className="week-number"><span>{String(wi + 1).padStart(2, "0")}</span><small>WEEK</small></div>
-        <div className="week-body"><span className="domain-label">{week.domain} · {week.chapters}</span><h3>{week.title}</h3><p>{week.subtitle}</p><div className="week-tasks">{week.tasks.map(task => { const checked = state.completed.includes(task.id); return <button className={checked ? "checked" : ""} onClick={() => toggleTask(task.id)} key={task.id}><span>{checked && <Check size={13} />}</span>{task.label}</button>; })}</div></div>
+        <div className="week-body"><span className="domain-label">{week.domain} · {week.chapters}</span><h3>{week.title}</h3><p>{week.subtitle}</p><div className="week-tasks">{week.tasks.map(task => { const checked = state.completed.includes(task.id); return <button className={checked ? "checked" : ""} onClick={() => openLesson({ id: task.id, label: task.label, weekTitle: week.title, weekSubtitle: week.subtitle, chapters: week.chapters, domain: week.domain })} key={task.id}><span>{checked && <Check size={13} />}</span><b>{task.label}</b><small>{checked ? (lang === "en" ? "Review lesson" : "复习课程") : (lang === "en" ? "Open lesson" : "打开课程")}</small><ChevronRight size={14} /></button>; })}</div></div>
         <div className="week-progress"><b>{done}/{week.tasks.length}</b><span>{t.complete}</span></div>
       </article>;
     })}</div>
+  </div>;
+}
+
+function LessonReader({ lang, lesson, completed, onClose, onComplete, onPractice }: { lang: Lang; lesson: ActiveLesson; completed: boolean; onClose: () => void; onComplete: () => void; onPractice: () => void }) {
+  const content = getLessonContent(lesson.id);
+  const [revealed, setRevealed] = useState(false);
+  const tx = (value: BilingualText) => value[lang];
+  return <div className="lesson-overlay" role="dialog" aria-modal="true" aria-label={lesson.label} data-testid="lesson-reader">
+    <div className="lesson-reader">
+      <header className="lesson-reader-top">
+        <button className="text-button" onClick={onClose}><ArrowLeft size={17} /> {lang === "en" ? "Back to plan" : "返回计划"}</button>
+        <div className="lesson-status"><BookMarked size={15} /><span>{content.source}</span></div>
+        <button className="icon-button" onClick={onClose} aria-label={lang === "en" ? "Close lesson" : "关闭课程"}><X size={18} /></button>
+      </header>
+      <div className="lesson-hero">
+        <span className="domain-label">{lesson.domain} · {lesson.chapters}</span>
+        <h2>{lesson.label}</h2>
+        <p>{lesson.weekTitle} — {lesson.weekSubtitle}</p>
+        <div className="lesson-meta"><span><Clock3 size={14} /> {content.minutes} min</span><span><Brain size={14} /> {lang === "en" ? "Learn → Apply → Recall" : "学习 → 应用 → 回忆"}</span>{completed && <span className="lesson-complete"><Check size={14} /> {lang === "en" ? "Completed" : "已完成"}</span>}</div>
+      </div>
+      <div className="lesson-body">
+        <section className="lesson-section lesson-overview"><span className="lesson-step">01</span><div><span className="eyebrow">{lang === "en" ? "UNDERSTAND" : "理解"}</span><h3>{lang === "en" ? "Build the mental model" : "建立知识模型"}</h3><p>{tx(content.summary)}</p></div></section>
+        <section className="lesson-section"><span className="lesson-step">02</span><div><span className="eyebrow">{lang === "en" ? "CORE KNOWLEDGE" : "核心知识"}</span><h3>{lang === "en" ? "What you need to know" : "必须掌握的内容"}</h3><ul className="knowledge-points">{content.points.map((point, index) => <li key={index}><span>{index + 1}</span><p>{tx(point)}</p></li>)}</ul></div></section>
+        <section className="lesson-section application-block"><span className="lesson-step">03</span><div><span className="eyebrow">{lang === "en" ? "APPLY" : "应用"}</span><h3>{lang === "en" ? "Turn the rule into a decision" : "把规则转化为决策"}</h3><p>{tx(content.application)}</p></div></section>
+        <section className="lesson-section recall-block"><span className="lesson-step">04</span><div><span className="eyebrow">{lang === "en" ? "ACTIVE RECALL" : "主动回忆"}</span><h3>{tx(content.recall)}</h3>{revealed ? <div className="model-answer"><strong>{lang === "en" ? "Model answer" : "参考答案"}</strong><p>{tx(content.answer)}</p></div> : <button className="ghost recall-button" onClick={() => setRevealed(true)}>{lang === "en" ? "Reveal after answering aloud" : "口述后查看答案"} <ChevronRight size={15} /></button>}</div></section>
+      </div>
+      <footer className="lesson-footer"><div><strong>{lang === "en" ? "Source note" : "来源说明"}</strong><span>{lang === "en" ? "Original study summary aligned to the English fifth-edition textbook. Use the textbook for full context." : "原创学习总结，以英文第五版教材为基准；完整语境请查阅原教材。"}</span></div><div><button className="ghost" onClick={onPractice}>{lang === "en" ? "Practice this domain" : "练习该领域"}</button><button className="primary" disabled={!revealed || completed} onClick={onComplete}>{completed ? (lang === "en" ? "Lesson completed" : "课程已完成") : (lang === "en" ? "Complete lesson" : "完成课程")} <Check size={16} /></button></div></footer>
+    </div>
+  </div>;
+}
+
+function AuthPanel({ lang, user, configured, syncStatus, onClose }: { lang: Lang; user: { id: string; email: string } | null; configured: boolean; syncStatus: "local" | "loading" | "synced" | "error"; onClose: () => void }) {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function sendLink(event: React.FormEvent) {
+    event.preventDefault();
+    const supabase = getSupabaseBrowser();
+    if (!supabase || !email.trim()) return;
+    setBusy(true); setMessage("");
+    const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: window.location.origin } });
+    setMessage(error ? error.message : (lang === "en" ? "Check your email for the secure sign-in link." : "请查收邮箱中的安全登录链接。"));
+    setBusy(false);
+  }
+
+  async function signOut() {
+    const supabase = getSupabaseBrowser();
+    if (!supabase) return;
+    setBusy(true);
+    await supabase.auth.signOut();
+    setBusy(false); onClose();
+  }
+
+  return <div className="auth-overlay" role="dialog" aria-modal="true" aria-label={lang === "en" ? "Learner account" : "学习账号"}>
+    <section className="auth-panel">
+      <button className="icon-button auth-close" onClick={onClose} aria-label={lang === "en" ? "Close" : "关闭"}><X size={18} /></button>
+      <span className="account-orbit"><UserRound size={27} /></span>
+      <span className="eyebrow">CERT LOOP ACCOUNT</span>
+      <h2>{user ? (lang === "en" ? "Your progress is portable" : "你的进度可跨设备同步") : (lang === "en" ? "Keep every lesson and miss" : "保存每节课程与每道错题")}</h2>
+      {user ? <>
+        <p>{lang === "en" ? `Signed in as ${user.email}. Study-plan completion, XP, attempts, and the review queue sync to Supabase.` : `已登录 ${user.email}。计划完成度、XP、作答和错题队列会同步到 Supabase。`}</p>
+        <div className={cn("sync-indicator", syncStatus)}>{syncStatus === "synced" ? <Cloud size={16} /> : syncStatus === "error" ? <CloudOff size={16} /> : <RotateCcw size={16} />}<span>{syncStatus === "synced" ? (lang === "en" ? "Cloud progress synced" : "云端进度已同步") : syncStatus === "error" ? (lang === "en" ? "Sync needs attention" : "同步需要处理") : (lang === "en" ? "Syncing progress…" : "正在同步进度…")}</span></div>
+        <button className="ghost wide" disabled={busy} onClick={signOut}><LogOut size={16} /> {lang === "en" ? "Sign out" : "退出登录"}</button>
+      </> : configured ? <>
+        <p>{lang === "en" ? "Use a passwordless email link. Your private study progress is protected by Supabase Row Level Security." : "使用免密码邮箱链接登录。个人学习进度由 Supabase 行级安全策略保护。"}</p>
+        <form onSubmit={sendLink}><label>{lang === "en" ? "Email address" : "邮箱地址"}<input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" /></label><button className="primary wide" disabled={busy}>{busy ? (lang === "en" ? "Sending…" : "发送中…") : (lang === "en" ? "Email me a sign-in link" : "发送登录链接")}</button></form>
+        {message && <p className="auth-message">{message}</p>}
+      </> : <>
+        <p>{lang === "en" ? "The account experience is built, but this deployment still needs a dedicated Supabase project before email sign-in can be enabled. Device-local progress continues to work meanwhile." : "账号功能已经实现，但此部署仍需要绑定专用 Supabase 项目才能启用邮箱登录。在此之前，本机进度会继续正常保存。"}</p>
+        <div className="sync-indicator local"><CloudOff size={16} /><span>{lang === "en" ? "Using device-local progress" : "当前使用本机进度"}</span></div>
+      </>}
+    </section>
   </div>;
 }
 

@@ -9,12 +9,15 @@ Live site: https://cert-loop-study.vercel.app
 ## What is included
 
 - adaptive 8, 12, or 16 week study plans
+- 48 interactive lesson tasks spanning all 26 fifth-edition chapters
+- English-first summaries, core points, applied examples, and active recall
 - official CSCS domain weights and exam structure
 - practice and exam test modes
 - wrong-answer review loop
 - 42 original bilingual practice questions across all seven domains
 - 26-chapter textbook map and bilingual flashcards
-- local, certificate-scoped progress persistence
+- passwordless Supabase authentication and private cloud progress sync
+- local, certificate-scoped progress fallback for signed-out learners
 - responsive desktop and mobile interface
 
 ## Content policy
@@ -39,6 +42,26 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+Copy `.env.example` to `.env.local` and add the project's public Supabase
+credentials to enable authentication and cloud sync. The app remains usable
+with local progress when those values are absent.
+
+## Supabase
+
+The schema is versioned in `supabase/migrations`. It includes reusable tables
+for certifications, sources, lessons, questions, per-user progress, and a
+content-review queue. Row Level Security keeps each learner's progress private.
+
+```bash
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push
+```
+
+For passwordless email login, set the Supabase Auth Site URL to the production
+domain and allow both the production domain and `http://localhost:3000` as
+redirect URLs.
 
 ## Verification
 
