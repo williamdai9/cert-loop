@@ -1,0 +1,673 @@
+import { T, type CourseChapter } from "./types";
+
+export const chapters0106: CourseChapter[] = [
+  {
+    n: 1,
+    title: T("Structure and Function of Body Systems", "身体系统的结构与功能"),
+    domain: T("Exercise Science", "运动科学"),
+    minutes: 150,
+    source: "Essentials, 5th ed., Ch. 1 · DCO Exercise Science A, B, D, G, H",
+    objectives: [
+      T("Explain how muscle, bone, neural, cardiovascular, and respiratory systems combine to produce performance.", "解释肌肉、骨骼、神经、心血管和呼吸系统如何共同产生运动表现。"),
+      T("Trace excitation-contraction coupling and distinguish fiber types, receptors, and muscle actions.", "完整描述兴奋-收缩耦联，并区分肌纤维、感受器和肌肉动作。"),
+      T("Predict acute cardiorespiratory responses to aerobic and anaerobic exercise.", "预测有氧与无氧运动的急性心肺反应。"),
+    ],
+    sections: [
+      {
+        id: "musculoskeletal",
+        title: T("Muscle, bone, and connective-tissue organization", "肌肉、骨骼与结缔组织层级"),
+        explanation: [
+          "Skeletal muscle is organized from whole muscle to fascicle, muscle fiber, myofibril, sarcomere, and myofilament. Epimysium surrounds the muscle, perimysium surrounds fascicles, and endomysium surrounds individual fibers. These connective layers merge into tendons that transmit muscle force to bone.",
+          "Bone is living tissue. Cortical bone provides a dense outer shell; trabecular bone forms an internal lattice. Osteoblasts build bone, osteoclasts resorb it, and osteocytes sense mechanical strain. Training adaptation depends on loading magnitude, rate, direction, and repetition as well as recovery and nutrition.",
+        ],
+        details: [
+          "A sarcomere extends from Z-line to Z-line. The A band corresponds to the length of thick filaments; the I band contains thin filaments not overlapping thick filaments; the H zone is the central thick-only region.",
+          "Tendons connect muscle to bone and transmit force. Ligaments connect bone to bone and contribute to joint stability. Both adapt more slowly than muscle because of lower metabolic activity and blood supply.",
+          "The periosteum covers the external bone surface and is important for growth, repair, and tendon or ligament attachment. The epiphyseal plate is relevant when programming for growing athletes.",
+          "Wolff's law describes bone remodeling in response to mechanical stress; connective tissues respond best to progressive, specific loading rather than abrupt workload spikes.",
+        ],
+        decision: T("When strength rises faster than tendon tolerance, progress load and volume conservatively; tissue capacity is limited by the slowest-adapting structure, not only by muscle force.", "当力量增长快于肌腱耐受时，应保守推进负荷和容量；组织能力受适应最慢的结构限制，而不只看肌肉力量。"),
+        examCue: T("Know the structural hierarchy and what changes during contraction. Filaments slide; they do not shorten.", "掌握结构层级与收缩时的变化：肌丝滑动，但本身不缩短。"),
+      },
+      {
+        id: "contraction",
+        title: T("Excitation-contraction coupling and muscle actions", "兴奋-收缩耦联与肌肉动作"),
+        explanation: [
+          "A motor-neuron action potential releases acetylcholine at the neuromuscular junction. Depolarization spreads along the sarcolemma and through T-tubules, triggering calcium release from the sarcoplasmic reticulum. Calcium binds troponin, moves tropomyosin away from actin's binding sites, and permits ATP-dependent cross-bridge cycling.",
+          "During the power stroke, myosin pulls actin toward the sarcomere center. A new ATP molecule detaches myosin; ATP hydrolysis re-cocks the head. Relaxation requires calcium reuptake into the sarcoplasmic reticulum, which is also an active, energy-requiring process.",
+        ],
+        details: [
+          "Concentric action: muscle produces force while shortening. Eccentric action: muscle produces force while lengthening. Isometric action: force is produced with no visible joint movement.",
+          "Eccentric actions can usually tolerate greater external load with lower energy cost, but unfamiliar eccentric volume produces more muscle damage and delayed soreness.",
+          "Length-tension describes the effect of sarcomere overlap on force. Force is reduced when the sarcomere is excessively shortened or lengthened.",
+          "The stretch-shortening cycle combines a rapid eccentric action, a brief amortization transition, and a concentric action. A long transition dissipates stored elastic energy and reduces potentiation.",
+        ],
+        decision: T("Select tempo and muscle action for the adaptation: controlled eccentrics for tissue loading, isometrics for angle-specific force, and high-intent concentrics for power.", "按目标选择节奏和肌肉动作：受控离心用于组织负荷，等长用于特定角度力量，高意图向心用于功率。"),
+        examCue: T("If the load moves down under control, the prime movers may be acting eccentrically even though gravity determines the movement direction.", "负荷受控下降时，主动肌可能进行离心动作；不要用运动方向代替肌肉动作判断。"),
+      },
+      {
+        id: "neuromuscular",
+        title: T("Motor units, fiber types, and proprioceptors", "运动单位、肌纤维与本体感受器"),
+        explanation: [
+          "A motor unit is one alpha motor neuron and every muscle fiber it innervates. Force rises through recruitment of additional motor units and increased firing rate. Recruitment generally follows the size principle: low-threshold, fatigue-resistant units are recruited before larger, high-force units as force demand increases.",
+          "Type I fibers contract slowly, resist fatigue, and have high mitochondrial and capillary density. Type II fibers shorten faster and produce greater force and power; IIa fibers have meaningful oxidative capacity, while the fastest phenotype is more glycolytic and fatigue-prone. Training shifts fiber properties along a continuum rather than creating an entirely different fiber inventory.",
+        ],
+        details: [
+          "Rate coding is the change in motor-neuron firing frequency. Temporal summation occurs when stimuli arrive before complete relaxation, increasing force; tetanus is a sustained high-force state.",
+          "Muscle spindles lie in parallel with muscle fibers and sense muscle length and rate of stretch. Rapid stretch increases the stretch reflex and alpha motor-neuron activity.",
+          "Golgi tendon organs lie in series near the musculotendinous junction and respond to tension. Their feedback helps regulate force and protect tissue; training can change tolerance to high tension.",
+          "Reciprocal inhibition reduces antagonist activation when the agonist is activated. Autogenic inhibition refers to reduced activation of the same muscle after high tension and is used in some PNF explanations.",
+        ],
+        decision: T("High-load or high-velocity intent recruits high-threshold motor units. For power training, preserve intent and repetition quality rather than accumulating slow fatigue repetitions.", "高负荷或高速度意图会募集高阈值运动单位。功率训练应保护意图和重复质量，而不是堆积疲劳慢动作。"),
+        examCue: T("Muscle spindle = length and velocity of stretch; Golgi tendon organ = tension. Do not reverse them.", "肌梭感受长度与拉伸速度；高尔基腱器官感受张力，切勿混淆。"),
+      },
+      {
+        id: "cardiovascular",
+        title: T("Cardiovascular transport and acute responses", "心血管运输与急性反应"),
+        explanation: [
+          "The right heart receives deoxygenated systemic blood and pumps it through the pulmonary circulation. The left heart receives oxygenated blood and pumps it through the systemic circulation. Arteries carry blood away from the heart, veins return it, and capillaries provide the exchange surface.",
+          "During dynamic aerobic exercise, heart rate, stroke volume, cardiac output, and systolic blood pressure rise. Diastolic pressure usually changes little because vasodilation lowers peripheral resistance in active tissue. During heavy resistance exercise, intramuscular compression and the Valsalva maneuver can produce very large, brief blood-pressure responses.",
+        ],
+        details: [
+          "Cardiac output equals heart rate multiplied by stroke volume. Stroke volume depends on preload, contractility, and afterload.",
+          "The Frank-Starling mechanism links greater ventricular filling to stronger contraction within physiological limits.",
+          "Blood flow is redistributed toward active muscle and skin during exercise. Plasma volume can temporarily fall because of filtration, sweating, and fluid shifts.",
+          "Arteriovenous oxygen difference reflects how much oxygen tissues extract from blood. Both central delivery and peripheral extraction determine maximal oxygen consumption.",
+        ],
+        decision: T("Use breathing instruction and appropriate screening with high-load lifting. Breath holding can improve trunk stiffness but is not appropriate for every athlete or medical context.", "高负荷训练中应根据个体教授呼吸并进行筛查。屏息可提高躯干刚度，但并非适合所有运动员或医疗情境。"),
+        examCue: T("Dynamic aerobic work: systolic pressure rises, diastolic pressure is relatively stable. Heavy resistance work can spike both pressures.", "动态有氧：收缩压上升、舒张压相对稳定；大重量抗阻可使两者短时显著升高。"),
+      },
+      {
+        id: "respiratory",
+        title: T("Respiratory exchange and integrated oxygen use", "呼吸交换与氧利用整合"),
+        explanation: [
+          "Ventilation moves air; diffusion moves gases across the alveolar-capillary membrane; perfusion moves blood through pulmonary capillaries. Oxygen binds primarily to hemoglobin, while carbon dioxide is transported dissolved, bound to proteins, and mainly as bicarbonate.",
+          "Minute ventilation equals tidal volume times breathing frequency. At low-to-moderate intensities, both rise; at high intensity, breathing frequency contributes increasingly. Ventilatory thresholds reflect nonlinear increases associated with metabolic acidosis and carbon-dioxide production.",
+        ],
+        details: [
+          "External respiration is gas exchange between alveoli and blood; internal respiration is exchange between blood and tissues.",
+          "Oxygen delivery depends on ventilation, diffusion, hemoglobin concentration and saturation, cardiac output, and local blood flow.",
+          "The Fick relationship expresses oxygen consumption as cardiac output multiplied by arterial-venous oxygen difference.",
+          "Short maximal efforts do not stop using oxygen; all energy systems contribute, but the relative contribution changes with intensity, duration, and recovery.",
+        ],
+        decision: T("When performance falls, distinguish ventilatory limitation from local muscular fatigue, low oxygen-carrying capacity, poor economy, or inadequate recovery.", "表现下降时，应区分通气限制、局部肌肉疲劳、携氧能力不足、经济性差或恢复不足。"),
+        examCue: T("Ventilation is not the same as oxygen consumption. VO2 requires delivery and extraction, not simply faster breathing.", "通气量不等于摄氧量；VO2 需要氧输送和组织提取，而不只是呼吸更快。"),
+      },
+    ],
+    terms: [
+      { term: "Sarcomere", meaning: T("The functional contractile unit from Z-line to Z-line.", "从 Z 线到 Z 线的肌肉功能性收缩单位。") },
+      { term: "Motor unit", meaning: T("One alpha motor neuron and all fibers it innervates.", "一个 α 运动神经元及其支配的全部肌纤维。") },
+      { term: "Rate coding", meaning: T("Regulation of force through motor-neuron firing frequency.", "通过运动神经元放电频率调节力量。") },
+      { term: "Stroke volume", meaning: T("Blood ejected by the left ventricle per beat.", "左心室每次搏动射出的血量。") },
+      { term: "Cardiac output", meaning: T("Blood pumped per minute: heart rate × stroke volume.", "每分钟泵血量：心率 × 每搏输出量。") },
+      { term: "Minute ventilation", meaning: T("Air ventilated per minute: tidal volume × breathing frequency.", "每分钟通气量：潮气量 × 呼吸频率。") },
+    ],
+    formulas: [
+      { name: "Cardiac output", expression: "Q = HR × SV", use: T("Connect heart rate and stroke volume to systemic blood flow.", "把心率和每搏输出量与全身血流联系起来。"), example: "HR 150 bpm × SV 120 mL = 18,000 mL/min = 18 L/min" },
+      { name: "Fick equation", expression: "VO₂ = Q × (a-vO₂ difference)", use: T("Explain central oxygen delivery and peripheral extraction.", "解释中枢氧输送与外周氧提取。") },
+      { name: "Mean arterial pressure", expression: "MAP ≈ DBP + ⅓(SBP − DBP)", use: T("Estimate average arterial driving pressure at normal resting rates.", "在正常静息心率下估算平均动脉驱动压。") },
+      { name: "Minute ventilation", expression: "V̇E = tidal volume × breathing frequency", use: T("Separate breath depth from breathing rate.", "区分呼吸深度与频率。") },
+    ],
+    examChecklist: [
+      T("Trace the route of blood through every chamber, valve, and circulation.", "口述血液经过心腔、瓣膜和循环的完整路径。"),
+      T("Compare type I and type II fibers by force, speed, fatigue, mitochondria, and typical recruitment.", "按力量、速度、疲劳、线粒体和募集比较 I 型与 II 型纤维。"),
+      T("Predict what happens to HR, SV, Q, SBP, DBP, ventilation, and a-vO₂ difference as exercise intensity rises.", "预测运动强度上升时 HR、SV、Q、SBP、DBP、通气和动静脉氧差的变化。"),
+    ],
+    recall: [
+      { prompt: T("Trace excitation-contraction coupling without notes.", "不看资料口述兴奋-收缩耦联。"), answer: T("Motor-neuron action potential → acetylcholine → sarcolemma/T-tubule depolarization → calcium release → troponin binding → tropomyosin shift → ATP-driven cross-bridge cycling → calcium reuptake for relaxation.", "运动神经元动作电位 → 乙酰胆碱 → 肌膜/T 管去极化 → 释放钙 → 钙结合肌钙蛋白 → 原肌球蛋白移位 → ATP 驱动横桥循环 → 钙回收并舒张。") },
+      { prompt: T("Why can cardiac output rise even if stroke volume plateaus?", "为什么每搏输出量平台后心输出量仍可上升？"), answer: T("Because heart rate can continue rising, and Q equals HR × SV.", "因为心率仍可上升，而 Q = HR × SV。") },
+    ],
+  },
+  {
+    n: 2,
+    title: T("Biomechanics of Resistance Exercise", "抗阻运动的生物力学"),
+    domain: T("Exercise Science", "运动科学"),
+    minutes: 135,
+    source: "Essentials, 5th ed., Ch. 2 · DCO Exercise Science C",
+    objectives: [
+      T("Analyze movement using planes, axes, joint actions, forces, moments, and muscle roles.", "使用平面、轴、关节动作、力、力矩和肌肉角色分析动作。"),
+      T("Calculate work, power, impulse, torque, and mechanical advantage.", "计算功、功率、冲量、力矩和机械优势。"),
+      T("Use force-time and force-velocity relationships to guide exercise selection.", "用力-时间和力-速度关系指导动作选择。"),
+    ],
+    sections: [
+      {
+        id: "movement-language",
+        title: T("Planes, axes, and joint actions", "平面、轴与关节动作"),
+        explanation: [
+          "The sagittal plane divides left and right and contains flexion-extension movements around a mediolateral axis. The frontal plane divides front and back and contains abduction-adduction around an anteroposterior axis. The transverse plane divides upper and lower and contains rotation around a longitudinal axis.",
+          "Real sport movement is multiplanar. The exam may ask for the dominant plane or joint action, so analyze each joint separately and specify the phase. The same muscle can have different roles across phases or when joint position changes.",
+        ],
+        details: [
+          "Agonist: principal contributor to a joint action. Antagonist: opposes it. Synergist assists. Stabilizer limits unwanted movement. Neutralizer cancels an unwanted action of another muscle.",
+          "Open-chain movement leaves the distal segment free; closed-chain movement fixes or constrains it. This changes joint motion, force distribution, and muscle coordination.",
+          "Acceleration is the change in velocity over time. Kinematics describes motion; kinetics examines forces that cause or result from motion.",
+          "Center of mass location changes with body position and external load. Stability generally rises with a wider base, lower center of mass, and projection of the center of mass within the base.",
+        ],
+        decision: T("Name the joint, phase, plane, axis, and muscle action before choosing a technique correction.", "在选择技术纠正前，先明确关节、阶段、平面、轴和肌肉动作。"),
+        examCue: T("Do not label a whole exercise with one action. A squat descent includes eccentric control at several joints; ascent reverses the actions.", "不要用一个动作概括整个练习。深蹲下降包含多个关节的离心控制，上升阶段动作相反。"),
+      },
+      {
+        id: "force-torque",
+        title: T("Force, torque, levers, and mechanical advantage", "力、力矩、杠杆与机械优势"),
+        explanation: [
+          "Force changes motion according to mass and acceleration. Torque is the rotary effect of force and equals force multiplied by its perpendicular moment arm. Because the moment arm changes with joint angle, the same external load creates different joint torque through the range of motion.",
+          "First-class levers place the axis between force and resistance; second-class levers place resistance between axis and force; third-class levers place force between axis and resistance. Most human musculoskeletal levers are third class: mechanically disadvantaged for force but advantageous for speed and range of motion.",
+        ],
+        details: [
+          "Internal torque from muscle must oppose or exceed external torque to hold or move a load. A long external moment arm increases muscular demand.",
+          "Mechanical advantage is the force arm divided by resistance arm. A value above one favors force; below one favors speed and displacement.",
+          "A cam machine changes the resistance moment arm through the range to better match a target strength curve. Free-weight torque is governed by gravity and the horizontal distance to the joint axis.",
+          "Friction opposes relative motion. Ground-reaction force is the equal-and-opposite force the ground applies to the athlete.",
+        ],
+        decision: T("To regress a movement without changing load, shorten the external moment arm or move the load closer to the working joint and center of mass.", "不改变重量也可降低动作难度：缩短外部力臂，或让负荷更靠近工作关节和身体重心。"),
+        examCue: T("Moment arm must be perpendicular. Distance along a limb is not automatically the torque-producing moment arm.", "力臂必须是垂直距离；沿肢体的距离不一定就是产生力矩的力臂。"),
+      },
+      {
+        id: "work-power-impulse",
+        title: T("Work, power, momentum, and impulse", "功、功率、动量与冲量"),
+        explanation: [
+          "Mechanical work occurs when force produces displacement in its direction. Power is the rate of doing work and can also be expressed as force multiplied by velocity. Two athletes may perform the same work, but the athlete completing it faster produces greater average power.",
+          "Momentum equals mass times velocity. Impulse equals force multiplied by the time it acts and equals the change in momentum. Jumping, sprinting, landing, and changing direction are therefore force-time problems, not force-only problems.",
+        ],
+        details: [
+          "The force-time curve reveals peak force, time to peak, rate of force development, and impulse. Sport success may depend on force available within a short time window rather than maximal force measured without a time limit.",
+          "Average power differs from peak instantaneous power. Specify which metric a test reports.",
+          "Landing impulse can be distributed over more time by coordinated hip, knee, and ankle flexion, lowering peak force while producing the same total change in momentum.",
+          "Strength increases the ceiling for force; ballistic and explosive training improve how quickly usable force is expressed.",
+        ],
+        decision: T("Match the metric to the sport task: peak force for maximal-force demands, rate of force development for brief contacts, and impulse when force must be sustained over a defined time.", "让指标匹配专项：最大力量需求看峰值力，短接触看力量发展率，需要在时间内持续施力时看冲量。"),
+        examCue: T("Power is not synonymous with force. A heavy slow lift may have high force but less power than a lighter fast movement.", "功率不等于力量；大重量慢速动作力量高，但功率可能低于较轻的高速动作。"),
+      },
+      {
+        id: "muscle-mechanics",
+        title: T("Force-length, force-velocity, and strength curves", "力-长度、力-速度与力量曲线"),
+        explanation: [
+          "Active force depends on actin-myosin overlap; passive force rises as elastic tissues are stretched. Total force is the sum of active and passive components. Multi-joint movement also depends on moment arms, coordination, and the strength of muscles at each joint angle.",
+          "During concentric actions, force capacity falls as shortening velocity rises. During eccentric actions, force capacity rises above isometric levels as lengthening velocity increases and then plateaus. Power is normally maximized at an intermediate combination of force and velocity.",
+        ],
+        details: [
+          "An ascending strength curve becomes mechanically stronger through the concentric range; a descending curve becomes weaker; a bell-shaped curve is strongest in the middle.",
+          "Accommodating resistance with bands or chains can increase external resistance where the athlete is mechanically stronger.",
+          "The sticking region reflects an unfavorable combination of joint angles, moment arms, muscle lengths, and bar momentum rather than a single weak muscle in every athlete.",
+          "Isokinetic dynamometers control angular velocity; isotonic literally implies constant tension, which free-weight movement does not maintain perfectly.",
+        ],
+        decision: T("Use load, intent, range, and resistance profile together. Do not assume that one percentage of 1RM creates the same velocity or effort in every exercise and athlete.", "结合负荷、意图、幅度和阻力曲线；不要假定同一 1RM 百分比在不同动作和运动员中产生相同速度或用力。"),
+        examCue: T("Concentric: faster velocity means lower force capacity. Eccentric force capacity exceeds isometric and concentric force capacity.", "向心速度越快，力量能力越低；离心力量能力通常高于等长和向心。"),
+      },
+      {
+        id: "joint-risk",
+        title: T("Joint loading and technique decisions", "关节负荷与技术决策"),
+        explanation: [
+          "Joint stress cannot be inferred from one visible angle alone. External load, moment arm, movement speed, tissue tolerance, fatigue, anatomy, and technique all matter. The coach identifies modifiable risk while preserving the training goal.",
+          "Spinal loading includes compression, shear, and bending moments. Trunk stiffness, load position, and technique influence their distribution. Knee and shoulder questions similarly require identifying the direction of external force and the athlete's capacity, not relying on slogans.",
+        ],
+        details: [
+          "Moving a load away from the body generally increases the external moment arm and trunk demand.",
+          "A controlled Valsalva maneuver can increase intra-abdominal pressure and torso stiffness during heavy effort, but screening and context matter.",
+          "Technique standards should be scaled to the athlete's anatomy and task while maintaining joint control and safe equipment use.",
+          "Fatigue changes kinematics and force distribution; terminate or regress when the target quality or safety standard cannot be maintained.",
+        ],
+        decision: T("Correct the highest-risk or most performance-limiting fault first with one short external cue, then reobserve.", "先用一个简短外部提示纠正风险最高或最限制表现的问题，再重新观察。"),
+        examCue: T("Choose the answer that manages the actual force or moment described in the stem, not a universal 'perfect posture' rule.", "选择能处理题干实际力或力矩的答案，而不是套用所谓统一完美姿势。"),
+      },
+    ],
+    terms: [
+      { term: "Kinematics", meaning: T("Description of motion without focusing on its causes.", "描述运动本身，不重点讨论其原因。") },
+      { term: "Kinetics", meaning: T("Forces and torques associated with motion.", "与运动相关的力和力矩。") },
+      { term: "Moment arm", meaning: T("Perpendicular distance from the force line of action to the axis.", "力的作用线到旋转轴的垂直距离。") },
+      { term: "Impulse", meaning: T("Force applied over time; equals change in momentum.", "力在时间上的累积，等于动量变化。") },
+      { term: "Rate of force development", meaning: T("Change in force divided by change in time.", "力量变化量除以时间变化量。") },
+    ],
+    formulas: [
+      { name: "Force", expression: "F = m × a", use: T("Relate mass and acceleration to net force.", "把质量和加速度与合力联系起来。"), example: "100 kg system × 2 m/s² = 200 N net force" },
+      { name: "Torque", expression: "τ = F × perpendicular moment arm", use: T("Calculate rotary demand about a joint.", "计算关节周围的旋转需求。"), example: "200 N × 0.35 m = 70 N·m" },
+      { name: "Work", expression: "W = F × displacement", use: T("Calculate mechanical energy transferred through displacement.", "计算力通过位移传递的机械能。") },
+      { name: "Power", expression: "P = W ÷ time = F × velocity", use: T("Compare how rapidly work is performed.", "比较完成工作的速率。") },
+      { name: "Momentum and impulse", expression: "p = m × v; impulse = F × Δt = Δp", use: T("Analyze acceleration, deceleration, jumping, and landing.", "分析加速、减速、跳跃和落地。") },
+    ],
+    examChecklist: [
+      T("Analyze a squat, bench press, sprint, and landing by phase and joint.", "按阶段和关节分析深蹲、卧推、冲刺与落地。"),
+      T("Calculate torque, work, power, momentum, and impulse with units.", "带单位计算力矩、功、功率、动量和冲量。"),
+      T("Explain why the same load feels different across joint angles.", "解释为何相同负荷在不同关节角度感觉不同。"),
+    ],
+    recall: [
+      { prompt: T("Why does holding a dumbbell farther from the elbow increase difficulty?", "为什么把哑铃拿得离肘更远会更难？"), answer: T("It lengthens the perpendicular external moment arm, increasing external torque that the elbow flexors must oppose.", "这增加了外部垂直力臂，使屈肘肌必须抵抗更大的外部力矩。") },
+      { prompt: T("How can landing with more flexion reduce peak force?", "增加屈曲如何降低落地峰值力？"), answer: T("The same momentum change is spread over a longer time, so average and peak force can be lower.", "相同动量变化分布在更长时间内，平均力和峰值力可降低。") },
+    ],
+  },
+  {
+    n: 3,
+    title: T("Bioenergetics of Exercise and Training", "运动与训练的生物能量学"),
+    domain: T("Exercise Science", "运动科学"),
+    minutes: 120,
+    source: "Essentials, 5th ed., Ch. 3 · DCO Exercise Science E, I",
+    objectives: [
+      T("Explain how ATP is regenerated by phosphagen, glycolytic, and oxidative pathways.", "解释磷酸原、糖酵解和氧化途径如何再合成 ATP。"),
+      T("Predict dominant energy-system contributions from intensity, duration, and recovery.", "根据强度、时间和恢复预测供能贡献。"),
+      T("Connect substrate depletion, fatigue, and work-to-rest design.", "把底物消耗、疲劳和做功-休息设计联系起来。"),
+    ],
+    sections: [
+      {
+        id: "atp",
+        title: T("ATP, energy, and pathway interaction", "ATP、能量与途径协作"),
+        explanation: [
+          "ATP hydrolysis releases usable energy for contraction, ion pumping, and cellular work. Stored ATP is limited, so continuous resynthesis is essential. The phosphagen, glycolytic, and oxidative systems are always active; 'dominant system' means the largest relative contributor for the current task.",
+          "Energy-system selection follows the required rate of ATP production and total capacity. High power requires fast ATP delivery; long duration requires high total yield and sustainable substrate supply.",
+        ],
+        details: [
+          "Catabolic reactions break molecules and release energy; anabolic reactions build molecules and require energy.",
+          "Exergonic reactions release energy, while endergonic reactions require it. Coupling ATP hydrolysis to contraction makes cellular work possible.",
+          "Enzymes regulate pathway rates but do not change the total energy available from a reaction.",
+          "Metabolic specificity means training adaptations reflect the pathways, rates, muscle actions, and recovery pattern repeatedly stressed.",
+        ],
+        decision: T("Program the output first, then choose work duration and recovery that preserve the desired ATP demand.", "先确定目标输出，再选择能维持目标 ATP 需求的做功时间与恢复。"),
+        examCue: T("Never answer that one system turns off when another begins. Contribution shifts continuously.", "不要选择“一套系统开始、另一套关闭”的答案；贡献始终连续变化。"),
+      },
+      {
+        id: "phosphagen",
+        title: T("Phosphagen system and short maximal work", "磷酸原系统与短时最大做功"),
+        explanation: [
+          "The phosphagen system uses stored ATP and phosphocreatine. Creatine kinase transfers a phosphate from phosphocreatine to ADP, rapidly restoring ATP. The system has the highest rate but lowest capacity and dominates very brief maximal efforts.",
+          "Phosphocreatine restoration is largely oxidative, so repeated maximal efforts need substantial recovery. Incomplete rest reduces peak power even when motivation remains high.",
+        ],
+        details: [
+          "The adenylate kinase reaction can combine two ADP molecules to form ATP and AMP, but this is a smaller contribution.",
+          "Work intervals of only a few seconds can still accumulate glycolytic and oxidative contribution over repeated repetitions.",
+          "Longer between-set rest supports maximal strength, sprint, and power quality by improving phosphocreatine restoration and neural readiness.",
+          "Creatine supplementation can increase intramuscular creatine stores and repeated high-intensity capacity in responders; quality and scope-of-practice rules still apply.",
+        ],
+        decision: T("If the goal is maximal sprint or jump power, stop or extend rest when output falls beyond the planned threshold.", "若目标是最大冲刺或跳跃功率，当输出下降超过计划阈值时应停止或延长休息。"),
+        examCue: T("Short maximal work requires high work:rest ratios favoring rest; do not confuse a fatigue circuit with power training.", "短时最大做功需要偏向休息的高休息比例；不要把疲劳循环训练当成功率训练。"),
+      },
+      {
+        id: "glycolysis",
+        title: T("Glycolysis, lactate, and high-intensity fatigue", "糖酵解、乳酸与高强度疲劳"),
+        explanation: [
+          "Glycolysis converts glucose or glycogen to pyruvate in the cytosol. When ATP demand exceeds mitochondrial processing, pyruvate is converted to lactate while NAD+ is regenerated, allowing glycolysis to continue. Lactate is a usable fuel and transport molecule, not simply a waste product.",
+          "High-intensity fatigue is multifactorial. Hydrogen-ion accumulation, inorganic phosphate, disturbed calcium handling, substrate depletion, and neural factors can all impair output. Lactate concentration is associated with intense glycolysis but is not the sole cause of fatigue or next-day soreness.",
+        ],
+        details: [
+          "Net ATP yield is greater from muscle glycogen than blood glucose because glycogen enters glycolysis after an ATP-requiring step.",
+          "Fast glycolysis supplies ATP rapidly but has lower capacity than oxidative metabolism.",
+          "Lactate can be oxidized by muscle or heart and can be converted back to glucose in the liver.",
+          "Buffering and transport adaptations improve tolerance and repeated high-intensity performance without eliminating metabolite accumulation.",
+        ],
+        decision: T("Use moderate rest and controlled output decline when the goal is glycolytic capacity; preserve longer rest when the goal is peak speed.", "目标为糖酵解能力时可用中等休息并允许受控输出下降；目标为峰值速度时应保留更长休息。"),
+        examCue: T("Lactate does not cause delayed-onset muscle soreness. DOMS is more closely related to unfamiliar mechanical stress and tissue disruption.", "乳酸不会导致延迟性肌肉酸痛；DOMS 更与陌生机械应力和组织扰动相关。"),
+      },
+      {
+        id: "oxidative",
+        title: T("Oxidative metabolism and oxygen kinetics", "氧化代谢与氧动力学"),
+        explanation: [
+          "The oxidative system uses mitochondrial pathways to oxidize carbohydrate, fat, and sometimes amino acids. Acetyl-CoA enters the citric acid cycle, reducing carriers deliver electrons to the electron transport chain, and the proton gradient drives ATP synthase.",
+          "Oxidative metabolism has a slower maximum rate but far greater capacity. It supports prolonged exercise and restores homeostasis between high-intensity bouts, including phosphocreatine resynthesis and lactate oxidation.",
+        ],
+        details: [
+          "Carbohydrate supports a higher rate of ATP production per unit time; fat provides large energy reserves but requires more oxygen per ATP and slower processing.",
+          "At a given submaximal workload, trained athletes often show lower lactate, less ventilation, and reduced relative effort because of improved delivery, mitochondrial capacity, and economy.",
+          "EPOC reflects elevated postexercise oxygen use for restoration, thermoregulation, circulation, and other processes; it is not repayment of one single 'oxygen debt.'",
+          "The crossover toward greater carbohydrate use occurs as intensity rises, while long duration and lower glycogen availability increase relative fat use.",
+        ],
+        decision: T("Choose intensity using the athlete's threshold, pace, power, heart rate, or perceived exertion—not a generic label alone.", "应依据运动员阈值、配速、功率、心率或主观用力选择强度，而不只使用笼统标签。"),
+        examCue: T("Higher fat oxidation does not necessarily mean higher total energy expenditure or better performance.", "脂肪氧化比例更高不等于总能量消耗更高或表现更好。"),
+      },
+      {
+        id: "specificity",
+        title: T("Substrate recovery and metabolic specificity", "底物恢复与代谢专项性"),
+        explanation: [
+          "Phosphocreatine, muscle glycogen, blood glucose, and fluid availability recover on different timelines. Recovery depends on depletion magnitude, nutrition, training status, blood flow, and time. A session's quality therefore reflects both the current work interval and what preceded it.",
+          "Training design should reproduce the sport's pattern without blindly copying game duration. Identify high-intensity action length, recovery type, total repetitions, positional demands, and the quality that must remain intact.",
+        ],
+        details: [
+          "Work:rest ratio describes timing but not intensity. A 1:3 ratio can train different systems depending on speed, mode, and duration.",
+          "Active recovery can assist metabolite transport but may slow phosphocreatine restoration if its intensity is too high.",
+          "Glycogen restoration is accelerated by carbohydrate intake after demanding sessions, especially when the next session is soon.",
+          "Repeated-sprint ability depends on phosphocreatine recovery, aerobic capacity, buffering, neuromuscular qualities, and pacing.",
+        ],
+        decision: T("Track output across repetitions. The same written interval can become a different training stimulus when speed deteriorates.", "追踪每次输出；当速度明显下降时，同一纸面间歇已经变成不同训练刺激。"),
+        examCue: T("Duration alone does not identify the system. Intensity, mode, work:rest, and repetition number change the contribution.", "不能只凭持续时间判断供能系统；强度、方式、做功休息比和重复次数都会改变贡献。"),
+      },
+    ],
+    terms: [
+      { term: "Phosphocreatine", meaning: T("A high-energy phosphate donor for rapid ATP resynthesis.", "用于快速再合成 ATP 的高能磷酸供体。") },
+      { term: "Glycolysis", meaning: T("Cytosolic conversion of glucose or glycogen to pyruvate.", "在细胞质中把葡萄糖或糖原转化为丙酮酸。") },
+      { term: "Oxidative phosphorylation", meaning: T("Mitochondrial ATP production using electron transport and oxygen.", "利用电子传递和氧在线粒体中生成 ATP。") },
+      { term: "Lactate threshold", meaning: T("An exercise intensity associated with a sustained rise in blood lactate above baseline.", "血乳酸持续高于基线的运动强度区域。") },
+      { term: "EPOC", meaning: T("Elevated oxygen consumption during recovery after exercise.", "运动后恢复期升高的氧耗。") },
+    ],
+    formulas: [
+      { name: "Work-to-rest ratio", expression: "work duration : recovery duration", use: T("Describe interval timing while also specifying intensity and mode.", "描述间歇时间，同时必须注明强度与方式。"), example: "6 s sprint : 180 s recovery = 1:30" },
+      { name: "Metabolic power concept", expression: "ATP demand rate ∝ exercise intensity", use: T("Distinguish rapid ATP rate from total ATP capacity.", "区分快速 ATP 供给率与总容量。") },
+    ],
+    examChecklist: [
+      T("Rank the systems by rate and capacity, then apply them to repeated work.", "按供能速度和容量排序三大系统，并应用于重复做功。"),
+      T("Explain lactate production, transport, and oxidation without calling it waste.", "解释乳酸生成、转运和氧化，避免把它称为废物。"),
+      T("Design intervals for peak power, glycolytic capacity, and aerobic development.", "分别为峰值功率、糖酵解能力和有氧发展设计间歇。"),
+    ],
+    recall: [
+      { prompt: T("Why does a repeated-sprint session become more oxidative over time?", "为什么重复冲刺随时间会增加氧化供能？"), answer: T("Oxidative metabolism supports phosphocreatine restoration and contributes more as high-intensity stores are repeatedly depleted and recovery is incomplete.", "氧化代谢支持磷酸肌酸恢复；高强度储备反复消耗且恢复不完全时，其相对贡献上升。") },
+      { prompt: T("Why is lactate not the direct cause of DOMS?", "为什么乳酸不是 DOMS 的直接原因？"), answer: T("Lactate is cleared or reused relatively quickly, whereas DOMS peaks later and is linked to unfamiliar mechanical loading and inflammatory repair.", "乳酸较快被清除或再利用，而 DOMS 更晚达到峰值，与陌生机械负荷和炎症修复相关。") },
+    ],
+  },
+  {
+    n: 4,
+    title: T("Endocrine Responses to Resistance Exercise and Training", "抗阻运动与训练的内分泌反应"),
+    domain: T("Exercise Science", "运动科学"),
+    minutes: 105,
+    source: "Essentials, 5th ed., Ch. 4 · DCO Exercise Science F, H",
+    objectives: [
+      T("Explain hormone classes, receptors, signaling, and feedback.", "解释激素类别、受体、信号传导与反馈。"),
+      T("Predict acute hormonal responses from load, volume, rest, muscle mass, and training status.", "根据负荷、容量、休息、肌群和训练状态预测急性激素反应。"),
+      T("Interpret testosterone, growth hormone, IGF, cortisol, and catecholamines without overclaiming causation.", "正确解读睾酮、生长激素、IGF、皮质醇和儿茶酚胺，避免过度推断因果。"),
+    ],
+    sections: [
+      {
+        id: "signaling",
+        title: T("Hormone classes, receptors, and signaling", "激素类别、受体与信号传导"),
+        explanation: [
+          "Hormones are chemical messengers released into circulation. Peptide hormones and catecholamines generally bind cell-membrane receptors and use second-messenger cascades. Steroid hormones diffuse through cell membranes and bind intracellular receptors that influence gene transcription.",
+          "A hormone's effect depends on concentration, receptor number and sensitivity, binding proteins, clearance, interaction with other signals, and the target tissue's current state. More hormone in blood does not guarantee a larger tissue response.",
+        ],
+        details: [
+          "Negative feedback stabilizes endocrine systems by reducing upstream stimulation when the downstream signal rises.",
+          "Upregulation increases receptor number or sensitivity; downregulation reduces responsiveness after persistent exposure.",
+          "Endocrine signaling travels through blood; paracrine signaling acts locally on neighboring cells; autocrine signaling acts on the same cell.",
+          "Permissive, additive, synergistic, and antagonistic interactions describe how combined hormones alter the final response.",
+        ],
+        decision: T("Treat hormonal measures as one part of a network. Combine them with performance, workload, sleep, nutrition, and symptoms.", "把激素指标视为网络中的一部分，并与表现、负荷、睡眠、营养和症状结合。"),
+        examCue: T("Steroid hormones use intracellular receptors; peptide hormones generally use membrane receptors and second messengers.", "类固醇激素使用细胞内受体；肽类激素通常使用膜受体和第二信使。"),
+      },
+      {
+        id: "acute-response",
+        title: T("Acute resistance-exercise responses", "抗阻运动的急性激素反应"),
+        explanation: [
+          "Acute endocrine responses are shaped by exercise selection, recruited muscle mass, intensity, total volume, rest interval, effort, training status, sex, age, nutrition, and time of day. Large-muscle, high-volume sessions with short-to-moderate rest often produce larger transient metabolic and hormonal disturbances.",
+          "These acute elevations help coordinate fuel availability, cardiovascular support, and tissue signaling, but the size of a postexercise blood spike is not a direct score of future hypertrophy or program quality.",
+        ],
+        details: [
+          "Heavy resistance exercise can acutely increase testosterone, especially when substantial muscle mass and volume are involved.",
+          "Growth hormone responses are often greater with high volume, moderate loads, shorter rest, and metabolic stress.",
+          "Catecholamines rise with intensity and stress, increasing cardiac output and mobilizing substrates.",
+          "Cortisol supports energy availability and stress response; chronically interpreting it as simply 'bad' ignores timing and context.",
+        ],
+        decision: T("Select variables for the performance adaptation, not to chase a hormone spike. Use hormonal data only when collection and interpretation are standardized.", "按表现适应选择训练变量，而不是追求激素峰值；只有在采集与解释标准化时才使用激素数据。"),
+        examCue: T("High volume plus short rest tends to increase metabolic stress and GH response; maximal strength uses heavier load and longer rest.", "高容量加短休息倾向提高代谢压力和 GH 反应；最大力量训练使用更重负荷与更长休息。"),
+      },
+      {
+        id: "anabolic",
+        title: T("Testosterone, growth hormone, and IGF signaling", "睾酮、生长激素与 IGF 信号"),
+        explanation: [
+          "Testosterone is a steroid hormone that supports protein remodeling, neural function, and training adaptation through androgen receptors. Growth hormone is a peptide hormone with metabolic and tissue-remodeling roles. Insulin-like growth factors act through endocrine and local pathways and are influenced by binding proteins.",
+          "Muscle remodeling reflects mechanical tension, local signaling, amino-acid availability, satellite-cell activity, and repeated exposure. Systemic hormone concentration is one input rather than the sole driver.",
+        ],
+        details: [
+          "Resistance training can alter receptor content and tissue sensitivity even when resting hormone concentrations change little.",
+          "Insulin is permissive and anticatabolic when amino acids and energy are available; it is not necessary to create an extreme insulin spike after training.",
+          "IGF biology includes circulating and locally produced forms plus binding proteins that regulate availability.",
+          "Sex and age influence absolute concentrations, yet women and older adults still gain substantial strength and muscle from appropriate training.",
+        ],
+        decision: T("Evaluate adaptation through performance, body composition, training tolerance, and recovery trends rather than a single endocrine snapshot.", "通过表现、身体成分、训练耐受和恢复趋势评估适应，而不是依赖一次激素检测。"),
+        examCue: T("Do not infer that lower resting testosterone means an athlete cannot adapt, or that a larger acute spike guarantees hypertrophy.", "不要推断较低静息睾酮意味着无法适应，也不要认为更大急性峰值必然带来肥大。"),
+      },
+      {
+        id: "stress",
+        title: T("Cortisol, catecholamines, and training stress", "皮质醇、儿茶酚胺与训练压力"),
+        explanation: [
+          "Cortisol is released through the hypothalamic-pituitary-adrenal axis and helps maintain blood glucose, mobilize substrates, and regulate immune activity. Catecholamines support rapid sympathetic responses, increasing heart rate, contractility, blood flow redistribution, and fuel mobilization.",
+          "A useful stress response is acute and recoverable. Problems arise when training, competition, life stress, travel, sleep loss, or low energy availability chronically exceed recovery capacity.",
+        ],
+        details: [
+          "Epinephrine is primarily released from the adrenal medulla; norepinephrine is also released from sympathetic nerve endings.",
+          "Repeated training reduces the hormonal cost of a standardized submaximal workload as the athlete becomes more efficient.",
+          "Peripheral blood values vary with posture, food, circadian rhythm, hydration, collection timing, and assay method.",
+          "No single hormone reliably diagnoses overtraining syndrome; use a pattern of performance and multidomain symptoms.",
+        ],
+        decision: T("When performance falls with sleep, mood, soreness, or illness changes, reduce uncertainty with standardized monitoring before making large program changes.", "表现下降并伴随睡眠、情绪、酸痛或疾病变化时，应先用标准化监控降低不确定性，再做重大计划调整。"),
+        examCue: T("Cortisol is necessary, not purely harmful. Context, timing, and chronic balance determine interpretation.", "皮质醇是必需激素，并非纯粹有害；解释取决于情境、时间和长期平衡。"),
+      },
+    ],
+    terms: [
+      { term: "Receptor", meaning: T("A protein that binds a signal and initiates a cellular response.", "结合信号并启动细胞反应的蛋白质。") },
+      { term: "Second messenger", meaning: T("An intracellular signal activated after a membrane receptor is stimulated.", "膜受体受刺激后激活的细胞内信号。") },
+      { term: "Upregulation", meaning: T("Increase in receptor number or responsiveness.", "受体数量或反应性增加。") },
+      { term: "Catecholamines", meaning: T("Epinephrine and norepinephrine; rapid sympathetic mediators.", "肾上腺素与去甲肾上腺素，快速交感反应介质。") },
+      { term: "Cortisol", meaning: T("A glucocorticoid involved in substrate mobilization and stress regulation.", "参与底物动员和压力调节的糖皮质激素。") },
+    ],
+    formulas: [],
+    examChecklist: [
+      T("Classify steroid versus peptide hormone signaling.", "区分类固醇与肽类激素信号。"),
+      T("Predict how load, volume, rest, and muscle mass alter the acute response.", "预测负荷、容量、休息和肌群大小如何改变急性反应。"),
+      T("Explain why systemic hormone changes cannot independently prove adaptation.", "解释为何系统性激素变化不能单独证明适应。"),
+    ],
+    recall: [
+      { prompt: T("Why can two athletes show different responses to the same hormone concentration?", "为什么相同激素浓度可在两名运动员中产生不同反应？"), answer: T("Receptor number and sensitivity, binding proteins, clearance, target-tissue state, and interacting signals can differ.", "受体数量与敏感性、结合蛋白、清除速度、靶组织状态和其他信号均可不同。") },
+      { prompt: T("What session variables tend to increase acute growth-hormone response?", "哪些训练变量倾向提高急性生长激素反应？"), answer: T("Large muscle mass, higher total volume, moderate-to-heavy loading, relatively short rest, and substantial metabolic stress.", "大肌群、较高总容量、中高负荷、相对短休息和显著代谢压力。") },
+    ],
+  },
+  {
+    n: 5,
+    title: T("Adaptations to Anaerobic Training", "无氧训练的适应"),
+    domain: T("Exercise Science", "运动科学"),
+    minutes: 120,
+    source: "Essentials, 5th ed., Ch. 5 · DCO Exercise Science D, H, I",
+    objectives: [
+      T("Connect resistance, sprint, and plyometric training to neural, muscular, connective-tissue, and metabolic adaptation.", "把抗阻、冲刺和增强式训练与神经、肌肉、结缔组织和代谢适应联系起来。"),
+      T("Explain hypertrophy, strength gain, tendon and bone adaptation, concurrent training, and detraining.", "解释肥大、力量增长、肌腱与骨适应、并行训练和停训。"),
+    ],
+    sections: [
+      {
+        id: "neural-adaptation",
+        title: T("Neural adaptation and skill expression", "神经适应与技能表现"),
+        explanation: [
+          "Early strength gains are largely neural: improved recruitment of high-threshold motor units, firing rate, intermuscular coordination, technique, and reduced unnecessary antagonist coactivation. These changes are specific to the movement, contraction type, velocity, range, and intent practiced.",
+          "Maximal strength raises the force ceiling; explosive training improves rapid expression. Rate of force development is strongly task- and time-window-specific.",
+        ],
+        details: [
+          "Experienced athletes may show smaller rapid gains because basic recruitment and skill are already developed.",
+          "Bilateral deficit or facilitation describes differences between summed unilateral force and bilateral force; the direction varies by athlete and task.",
+          "Motor learning can increase measured 1RM without equivalent structural change, especially during early familiarization.",
+          "High intent matters even when the bar moves slowly under heavy load because attempted acceleration influences neural drive.",
+        ],
+        decision: T("Use repeated high-quality exposure to the target skill; changing exercises too frequently can reduce practice specificity.", "对目标技能进行重复高质量练习；过于频繁更换动作会降低练习专项性。"),
+        examCue: T("A rapid 1RM increase in the first weeks is more likely neural and technical than new fiber formation.", "前几周 1RM 快速上升更可能来自神经和技术，而非新肌纤维形成。"),
+      },
+      {
+        id: "hypertrophy",
+        title: T("Muscle hypertrophy and architecture", "肌肉肥大与结构"),
+        explanation: [
+          "Hypertrophy occurs when repeated training and nutrition produce a net accumulation of muscle protein and related cellular material. Mechanical tension is the primary training signal; sufficient volume, proximity to failure, range, and progression determine how much tissue is effectively stimulated.",
+          "Muscle architecture can adapt through changes in physiological cross-sectional area, pennation angle, fascicle length, and fiber phenotype. Hyperplasia is not considered a primary explanation for human training-induced muscle growth.",
+        ],
+        details: [
+          "Type II fibers generally have greater hypertrophy potential, though all recruited fibers can adapt.",
+          "Multiple loading zones can produce hypertrophy when sets are sufficiently challenging; heavier loads are more specific to maximal strength.",
+          "Satellite cells support remodeling and may donate nuclei to growing fibers.",
+          "Swelling immediately after training is not the same as chronic hypertrophy; standardized measurement is essential.",
+        ],
+        decision: T("Build weekly volume progressively, distribute hard sets so quality remains high, and ensure adequate protein and energy availability.", "逐步建立周训练量，分散高强度组以保持质量，并保证蛋白质与能量充足。"),
+        examCue: T("Strength and hypertrophy overlap but are not identical outcomes. Neural skill and loading specificity explain part of strength gain.", "力量与肥大重叠但并不相同；神经技能和负荷专项性解释部分力量增长。"),
+      },
+      {
+        id: "connective",
+        title: T("Bone, tendon, ligament, and cartilage adaptation", "骨、肌腱、韧带与软骨适应"),
+        explanation: [
+          "Mechanical loading stimulates bone remodeling and connective-tissue collagen synthesis. Adaptation is site-specific and responds to strain magnitude, rate, direction, and novelty. High-rate and multidirectional loading can be osteogenic when introduced safely.",
+          "Tendon adaptation includes changes in stiffness, material properties, and cross-sectional area, but its time course is slower than neural or muscle adaptation. Sudden workload increases can therefore exceed tissue capacity even when the athlete feels muscularly strong.",
+        ],
+        details: [
+          "Bone adaptation requires adequate energy, protein, calcium, vitamin D, and hormonal health in addition to mechanical strain.",
+          "Progressive heavy loading and appropriately dosed plyometrics can improve tendon mechanical properties.",
+          "Ligament and joint adaptation is slower and less visible; absence of soreness does not prove readiness for a large spike.",
+          "Immobilization and unloading rapidly reduce tissue capacity, so return-to-training must be progressive.",
+        ],
+        decision: T("Progress tissue load using magnitude, rate, volume, and frequency—not load alone—and monitor the next-day response.", "用负荷大小、加载速度、容量和频率共同推进组织负荷，而不只看重量，并监测次日反应。"),
+        examCue: T("Muscle may adapt faster than tendon and bone. The correct progression often protects the slower tissue.", "肌肉可比肌腱和骨适应更快；正确进阶通常要保护更慢的组织。"),
+      },
+      {
+        id: "metabolic",
+        title: T("Metabolic and cardiovascular adaptations", "代谢与心血管适应"),
+        explanation: [
+          "Anaerobic training increases capacity in the pathways and contractile tasks stressed. Adaptations can include greater phosphagen availability, glycolytic enzyme activity, buffering, glycogen storage, repeated-sprint ability, and tolerance of high force or velocity.",
+          "Resistance training can improve cardiac and vascular health, but its central endurance adaptations differ from those produced by sustained aerobic training. Acute blood-pressure spikes should not be confused with chronic resting responses.",
+        ],
+        details: [
+          "Sprint training recruits large motor units and can produce both anaerobic and aerobic adaptation depending on work and recovery.",
+          "Buffering improvements help manage acid-base disturbance during intense work.",
+          "Resting heart rate may change little with resistance training even when health and work capacity improve.",
+          "Specificity means a hypertrophy block, maximal-strength block, and repeated-sprint block should not be expected to produce identical adaptations.",
+        ],
+        decision: T("Write the intended adaptation beside every training variable; if a variable does not support the goal, change it.", "在每个训练变量旁写明目标适应；若变量不支持目标，就应调整。"),
+        examCue: T("Anaerobic training can still improve oxidative function; categories describe emphasis, not exclusive biology.", "无氧训练仍可改善氧化功能；分类表示强调方向，而非排他生理。"),
+      },
+      {
+        id: "concurrent-detraining",
+        title: T("Concurrent training, interference, and detraining", "并行训练、干扰与停训"),
+        explanation: [
+          "Concurrent training can improve strength and endurance together, but high endurance volume, fatigue, conflicting molecular signals, and poor sequencing may blunt strength or power development. Interference is most concerning when lower-body endurance volume is high and maximal strength or power is the priority.",
+          "Detraining reverses adaptations at different rates. Some neural and aerobic changes decline within weeks, while structural changes may persist longer. A small maintenance dose can preserve more adaptation than complete cessation.",
+        ],
+        details: [
+          "Separate demanding strength and endurance sessions when possible; prioritize the most important quality earlier or on a fresher day.",
+          "Cycling may create less eccentric muscle damage than running, but mode must still match sport and athlete.",
+          "In-season maintenance usually reduces volume while retaining some intensity and specificity.",
+          "Training age, nutrition, sleep, and total stress alter how much concurrent work an athlete tolerates.",
+        ],
+        decision: T("Protect the priority quality with sequencing, spacing, and volume control rather than automatically removing all endurance work.", "通过训练顺序、间隔和容量控制保护优先能力，而不是自动取消所有耐力训练。"),
+        examCue: T("Interference is conditional, not inevitable. Look for high volume, poor recovery, similar muscle groups, and competing priorities.", "干扰是有条件的，并非必然；关注高容量、恢复不足、相同肌群和竞争目标。"),
+      },
+    ],
+    terms: [
+      { term: "Hypertrophy", meaning: T("Increase in muscle-fiber size and associated tissue.", "肌纤维及相关组织尺寸增加。") },
+      { term: "Pennation angle", meaning: T("Angle between muscle fibers and the line of force transmission.", "肌纤维与力传递方向之间的角度。") },
+      { term: "Buffering capacity", meaning: T("Ability to resist disruptive changes in acid-base balance.", "抵抗酸碱平衡扰动的能力。") },
+      { term: "Concurrent training", meaning: T("Training strength/power and endurance qualities within the same program period.", "在同一计划阶段训练力量/功率和耐力能力。") },
+      { term: "Detraining", meaning: T("Partial or complete loss of adaptation after reduced or stopped training.", "训练减少或停止后适应部分或完全消退。") },
+    ],
+    formulas: [
+      { name: "Training volume load", expression: "sets × reps × external load", use: T("Compare one estimate of resistance-training work while recognizing its limits.", "比较抗阻训练工作量的一种估计，同时认识其局限。") },
+    ],
+    examChecklist: [
+      T("Separate early neural gains from later structural gains.", "区分早期神经增长与后期结构增长。"),
+      T("Compare adaptations from hypertrophy, strength, power, and sprint training.", "比较肥大、力量、功率和冲刺训练的适应。"),
+      T("Explain how to reduce concurrent-training interference.", "解释如何降低并行训练干扰。"),
+    ],
+    recall: [
+      { prompt: T("Why can strength increase without measurable hypertrophy?", "为什么力量可在没有可测肥大时上升？"), answer: T("Neural recruitment, firing rate, coordination, technique, and task-specific skill can increase force expression.", "运动单位募集、放电频率、协调、技术和专项技能可提高力量表达。") },
+      { prompt: T("What is the simplest in-season maintenance principle?", "最简单的赛季中维持原则是什么？"), answer: T("Retain some intensity and specificity while reducing total volume enough to recover from sport demands.", "保留一定强度与专项性，同时把总容量降到能从比赛需求中恢复。") },
+    ],
+  },
+  {
+    n: 6,
+    title: T("Adaptations to Aerobic Training", "有氧训练的适应"),
+    domain: T("Exercise Science", "运动科学"),
+    minutes: 110,
+    source: "Essentials, 5th ed., Ch. 6 · DCO Exercise Science G, H, I",
+    objectives: [
+      T("Explain central and peripheral endurance adaptations and their effect on VO2max, threshold, and economy.", "解释中枢与外周耐力适应及其对 VO2max、阈值和经济性的影响。"),
+      T("Predict acute and chronic responses across training status, environment, and detraining.", "根据训练状态、环境和停训预测急性与长期反应。"),
+    ],
+    sections: [
+      {
+        id: "central",
+        title: T("Central cardiovascular adaptations", "中枢心血管适应"),
+        explanation: [
+          "Endurance training expands plasma volume, increases ventricular filling, and improves stroke volume. Maximal cardiac output can rise because stroke volume is larger; at the same submaximal workload, heart rate is usually lower because the required output can be achieved with fewer beats.",
+          "Structural cardiac adaptation in trained endurance athletes is a physiological response to repeated volume loading. It must be interpreted separately from pathology and in the context of the athlete and medical evaluation.",
+        ],
+        details: [
+          "Plasma-volume expansion can occur early and improves preload, thermoregulation, and stroke volume.",
+          "Resting and submaximal heart rate often decrease; maximal heart rate usually changes little and is influenced mainly by age and individual variation.",
+          "Blood volume and red-cell mass influence oxygen carrying capacity, but hematocrit may fall after plasma expansion despite improved total oxygen transport.",
+          "Systolic pressure at a given workload may be lower after training, while maximal systolic pressure can still be high because greater workloads are achieved.",
+        ],
+        decision: T("Compare athletes at the same absolute workload and at the same relative intensity; the physiological interpretation differs.", "分别比较相同绝对负荷和相同相对强度下的运动员，生理解释不同。"),
+        examCue: T("Submaximal HR falls after training; maximal HR is generally unchanged. Stroke volume and maximal Q rise.", "训练后次最大心率下降；最大心率通常不变；每搏输出量和最大 Q 上升。"),
+      },
+      {
+        id: "peripheral",
+        title: T("Peripheral muscular adaptations", "外周肌肉适应"),
+        explanation: [
+          "Training increases mitochondrial content, oxidative enzymes, capillary density, and the ability to transport and oxidize lactate and fat. At a given workload, ATP can be supplied with less glycolytic disturbance and lower relative recruitment of fast-fatiguing fibers.",
+          "Greater arterial-venous oxygen difference at maximal exercise reflects improved tissue extraction. Local adaptations are highly specific to trained muscles and movement modes.",
+        ],
+        details: [
+          "More capillaries improve exchange surface and diffusion distance; more mitochondria increase oxidative processing capacity.",
+          "Muscle glycogen storage and sparing can improve, while fat oxidation at a given submaximal workload increases.",
+          "Lactate threshold shifts to a higher absolute workload through improved production-clearance balance and oxidative capacity.",
+          "Type II fibers can become more oxidative without becoming identical to type I fibers.",
+        ],
+        decision: T("Use sport-specific mode for local adaptation, then add cross-training when reduced impact or extra volume is more important than specificity.", "局部适应优先使用专项方式；当降低冲击或增加容量更重要时，再加入交叉训练。"),
+        examCue: T("A lower lactate value at the same speed after training usually indicates reduced relative metabolic stress, not reduced effort by definition.", "训练后相同速度下乳酸更低通常代表相对代谢压力下降，而非必然代表没有努力。"),
+      },
+      {
+        id: "performance",
+        title: T("VO2max, threshold, and economy", "VO2max、阈值与经济性"),
+        explanation: [
+          "Endurance performance is not determined by VO2max alone. Sustainable fraction of VO2max, movement economy, tactical pacing, substrate availability, and fatigue resistance distinguish athletes with similar maximal oxygen consumption.",
+          "VO2max follows the Fick equation, so it can improve through greater maximal cardiac output and/or oxygen extraction. Threshold measures the intensity at which metabolic disturbance rises; economy measures the oxygen cost at a given submaximal speed or power.",
+        ],
+        details: [
+          "A high VO2max provides a large aerobic ceiling, but competition performance depends on how much of that ceiling can be sustained.",
+          "Running economy is affected by technique, stiffness, body size, footwear, terrain, fatigue, and training history.",
+          "High-intensity intervals can strongly stimulate VO2max; tempo or threshold work develops sustainable high fractions; low-intensity volume supports mitochondrial, capillary, and recovery adaptations.",
+          "Pacing that is too aggressive early increases disturbance and can lower average performance despite a faster start.",
+        ],
+        decision: T("Diagnose the limiter before prescribing: ceiling, threshold, economy, durability, or fueling may require different sessions.", "处方前先诊断限制因素：有氧上限、阈值、经济性、耐久性或补给需要不同训练。"),
+        examCue: T("VO2max, threshold, and economy are related but distinct. Improvement in one does not guarantee equal change in the others.", "VO2max、阈值和经济性相关但不同；其中一项改善不保证其他项同幅变化。"),
+      },
+      {
+        id: "individual-environment",
+        title: T("Individual and environmental modifiers", "个体与环境修饰因素"),
+        explanation: [
+          "Initial fitness, genetics, training age, sex, age, nutrition, sleep, heat, altitude, and program adherence affect adaptation. Athletes with lower starting fitness often show larger relative early gains, while advanced athletes need more precise stimulus and recovery.",
+          "Heat acclimation expands plasma volume and improves sweating responses. Altitude reduces oxygen partial pressure and can stimulate erythropoiesis over time, but training quality may fall if intensity is not adjusted.",
+        ],
+        details: [
+          "Dehydration increases cardiovascular strain and can reduce performance in prolonged heat exposure.",
+          "At altitude, the same pace creates higher relative intensity; heart rate and ventilation rise acutely.",
+          "Female and male athletes show similar relative trainability when training and baseline are considered, though absolute values and iron risk can differ.",
+          "Low energy availability and iron deficiency can blunt endurance adaptation and require qualified referral.",
+        ],
+        decision: T("Adjust pace and recovery to environmental strain, and compare data to environment-specific baselines.", "根据环境压力调整配速和恢复，并与相同环境下的基线比较数据。"),
+        examCue: T("Heat acclimation and altitude acclimatization are different: heat emphasizes plasma and sweating; altitude emphasizes ventilation and, later, red-cell adaptation.", "热适应与高原适应不同：热环境强调血浆和出汗；高原强调通气及后期红细胞适应。"),
+      },
+      {
+        id: "detraining",
+        title: T("Detraining and maintenance", "停训与维持"),
+        explanation: [
+          "Aerobic adaptations begin to regress when training stimulus is removed. Plasma volume and stroke volume can fall relatively quickly, reducing VO2max; mitochondrial and capillary adaptations decline over longer periods. Complete bed rest causes faster loss than reduced training.",
+          "Frequency and duration can often be reduced while intensity is retained, preserving much of the adaptation for a limited period. The minimum effective maintenance dose depends on athlete level and interruption length.",
+        ],
+        details: [
+          "A short taper is not detraining when intensity is retained and fatigue falls; performance may improve as accumulated fatigue dissipates.",
+          "Injury cross-training can preserve central capacity if sufficient muscle mass and intensity are used.",
+          "Returning after interruption requires rebuilding both metabolic capacity and tissue tolerance.",
+          "Monitoring pace or power at a standardized heart rate can reveal changes in submaximal efficiency.",
+        ],
+        decision: T("During reduced training, keep some high-quality intensity if safe, reduce volume, and reintroduce impact separately from aerobic strain.", "减少训练期间，在安全时保留部分高质量强度、降低容量，并把冲击负荷与有氧压力分开重新引入。"),
+        examCue: T("Taper reduces fatigue while preserving fitness; detraining removes enough stimulus for fitness to decline.", "减量期降低疲劳并保留体能；停训则因刺激不足导致体能下降。"),
+      },
+    ],
+    terms: [
+      { term: "VO2max", meaning: T("Highest rate of oxygen consumption during severe whole-body exercise.", "高强度全身运动中的最高摄氧速率。") },
+      { term: "Economy", meaning: T("Energy or oxygen cost at a standardized submaximal output.", "标准化次最大输出下的能量或氧成本。") },
+      { term: "Lactate threshold", meaning: T("Intensity associated with a sustained nonlinear rise in blood lactate.", "血乳酸持续非线性升高相关的强度。") },
+      { term: "Cardiac drift", meaning: T("Progressive HR rise with SV decline during prolonged steady work, often influenced by heat and dehydration.", "长时间稳定运动中心率逐渐上升、每搏输出下降，常受热和脱水影响。") },
+      { term: "Taper", meaning: T("Planned reduction in training load to dissipate fatigue while retaining fitness.", "为消除疲劳并保留体能而计划性降低训练负荷。") },
+    ],
+    formulas: [
+      { name: "Fick equation", expression: "VO₂ = Q × (a-vO₂ difference)", use: T("Separate central delivery and peripheral extraction adaptations.", "区分中枢输送与外周提取适应。") },
+      { name: "Relative VO2", expression: "mL·kg⁻¹·min⁻¹", use: T("Scale oxygen consumption to body mass while recognizing size-related limitations.", "按体重标准化摄氧量，同时认识体型带来的局限。") },
+    ],
+    examChecklist: [
+      T("List central versus peripheral adaptations without mixing them.", "准确列出中枢与外周适应。"),
+      T("Differentiate VO2max, threshold, economy, and durability.", "区分 VO2max、阈值、经济性和耐久性。"),
+      T("Predict submaximal and maximal HR, SV, Q, ventilation, and lactate after training.", "预测训练后次最大和最大 HR、SV、Q、通气和乳酸变化。"),
+    ],
+    recall: [
+      { prompt: T("Name two central and four peripheral endurance adaptations.", "说出两项中枢和四项外周耐力适应。"), answer: T("Central: greater stroke volume and maximal cardiac output. Peripheral: more capillaries, mitochondria, oxidative enzymes, and oxygen extraction; improved lactate transport and fat oxidation also qualify.", "中枢：每搏输出量和最大心输出量增加。外周：毛细血管、线粒体、氧化酶和氧提取增加；乳酸转运与脂肪氧化改善也可。") },
+      { prompt: T("Why can performance improve with little change in VO2max?", "为什么 VO2max 变化很小时表现仍可提高？"), answer: T("Threshold, economy, pacing, fatigue resistance, and fueling can improve the sustainable speed or power below the same ceiling.", "阈值、经济性、配速、抗疲劳和补给可提高相同上限下可持续的速度或功率。") },
+    ],
+  },
+];
+

@@ -37,7 +37,7 @@ export const certificationRegistry: CertificationPack[] = [
     locale: "zh-CN",
     description: "A bilingual study pack grounded in the English fifth-edition textbook and official NSCA DCO",
     sourceNote: "English 5th ed. textbook · Official English DCO",
-    verifiedOn: "2026-07-19",
+    verifiedOn: "2026-07-20",
     officialFacts: [
       { value: "70", labelEn: "minimum scaled score", labelZh: "最低标准分" },
       { value: "30–40", labelEn: "video/image items in Applied", labelZh: "实践部分视频/图片题" },
@@ -46,7 +46,7 @@ export const certificationRegistry: CertificationPack[] = [
     ],
     officialSources: [
       { label: "NSCA CSCS Certification", url: "https://www.nsca.com/certification/cscs" },
-      { label: "NSCA CSCS Exam Description", url: "https://www.nsca.com/cscs-exam-description/" },
+      { label: "NSCA CSCS Exam Description", url: "https://www.nsca.com/certification/cscs/certified-strength-and-conditioning-specialist-exam-description/" },
     ],
     exam: {
       sections: [
