@@ -72,6 +72,7 @@ export default function AdminPage() {
   const [status, setStatus] = useState<"checking" | "signed-out" | "loading" | "ready" | "denied" | "error">("checking");
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [tab, setTab] = useState<Tab>("overview");
   const [query, setQuery] = useState("");
   const [chapterNumber, setChapterNumber] = useState(1);
@@ -101,14 +102,25 @@ export default function AdminPage() {
     return () => listener.subscription.unsubscribe();
   }, [load]);
 
-  async function sendLink(event: React.FormEvent) {
+  async function signIn(event: React.FormEvent) {
     event.preventDefault();
     const supabase = getSupabaseBrowser();
-    if (!supabase || !email.trim()) return;
+    if (!supabase || !email.trim() || !password) return;
     setStatus("loading");
-    const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/admin` } });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
+      setStatus("signed-out");
+      setMessage(error.message.toLowerCase().includes("invalid login credentials") ? "Email or password is incorrect." : error.message);
+    }
+  }
+
+  async function sendPasswordSetup() {
+    const supabase = getSupabaseBrowser();
+    if (!supabase || !email.trim()) { setMessage("Enter your email address first."); return; }
+    setStatus("loading");
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/certifications/nsca-cscs` });
     setStatus("signed-out");
-    setMessage(error ? error.message : "Secure administrator sign-in link sent. Check your email.");
+    setMessage(error ? error.message : "Password setup link sent. Open it once, choose a password, then return here to sign in.");
   }
 
   async function signOut() {
@@ -116,7 +128,7 @@ export default function AdminPage() {
   }
 
   if (status === "checking" || status === "loading") return <AccessFrame><div className={styles.loading}><RefreshCw className={styles.spin} /><strong>{status === "checking" ? "Checking administrator access…" : "Auditing the complete content system…"}</strong></div></AccessFrame>;
-  if (status === "signed-out") return <AccessFrame><section className={styles.accessCard}><span className={styles.accessIcon}><ShieldCheck /></span><p className={styles.kicker}>CERT LOOP · CONTENT CONTROL</p><h1>Administrator content inspector</h1><p>Sign in with the authorized owner email. Course content, answer keys, private media, research drafts, and database records never load before server-side authorization.</p><form onSubmit={sendLink}><label>Email address<input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="owner@example.com" required /></label><button type="submit">Email secure sign-in link</button></form>{message && <aside>{message}</aside>}<Link href="/"><ArrowLeft size={15}/> Back to learner site</Link></section></AccessFrame>;
+  if (status === "signed-out") return <AccessFrame><section className={styles.accessCard}><span className={styles.accessIcon}><ShieldCheck /></span><p className={styles.kicker}>CERT LOOP · CONTENT CONTROL</p><h1>Administrator content inspector</h1><p>Sign in with the authorized owner email and password. Course content, answer keys, private media, research drafts, and database records never load before server-side authorization.</p><form onSubmit={signIn}><label>Email address<input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="owner@example.com" autoComplete="email" required /></label><label>Password<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required /></label><button type="submit">Sign in</button><button type="button" className={styles.secondaryAction} onClick={sendPasswordSetup}>Forgot password or need to set one?</button></form>{message && <aside>{message}</aside>}<Link href="/"><ArrowLeft size={15}/> Back to learner site</Link></section></AccessFrame>;
   if (status === "denied" || status === "error" || !data) return <AccessFrame><section className={styles.accessCard}><span className={`${styles.accessIcon} ${styles.danger}`}><XCircle /></span><p className={styles.kicker}>{status === "denied" ? "ACCESS DENIED" : "INSPECTOR ERROR"}</p><h1>{status === "denied" ? "This account is not an administrator" : "The inspector needs attention"}</h1><p>{message}</p><button onClick={signOut}>Sign out and use another account</button><Link href="/"><ArrowLeft size={15}/> Back to learner site</Link></section></AccessFrame>;
 
   const activeChapter = data.chapters.find(chapter => chapter.n === chapterNumber) || data.chapters[0];

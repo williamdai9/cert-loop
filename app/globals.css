@@ -1519,6 +1519,8 @@ select:focus {
 .auth-panel {
   position: relative;
   width: min(470px, 100%);
+  max-height: calc(100vh - 44px);
+  overflow: auto;
   background: #f8f5ed;
   border-radius: 22px;
   padding: 40px;
@@ -1555,6 +1557,44 @@ select:focus {
   gap: 12px;
   margin-top: 22px;
 }
+.auth-mode-tabs {
+  margin-top: 20px;
+  padding: 4px;
+  border-radius: 11px;
+  background: #e8e5dc;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.auth-mode-tabs button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #68736d;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.auth-mode-tabs button.active {
+  background: #fffdf8;
+  color: #254c3d;
+  box-shadow: 0 2px 8px rgba(25, 46, 38, .09);
+}
+.auth-text-action {
+  width: 100%;
+  margin-top: 12px;
+  border: 0;
+  background: transparent;
+  color: #315c4a;
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.auth-text-action:disabled { opacity: .55; cursor: wait; }
+.auth-panel > .ghost { margin-top: 8px; }
 .auth-panel label {
   display: grid;
   gap: 7px;
@@ -1567,6 +1607,10 @@ select:focus {
   border-radius: 9px;
   padding: 10px 12px;
   color: var(--sage-dark) !important;
+}
+.auth-message.error {
+  background: #f2dfdc;
+  color: #8a453f !important;
 }
 .admin-entry-link {
   min-height: 44px;

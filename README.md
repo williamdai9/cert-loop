@@ -20,7 +20,7 @@ Live site: https://cert-loop-study.vercel.app
 - wrong-answer review loop
 - 84 original bilingual practice questions across all seven domains
 - 26-chapter textbook map and bilingual flashcards
-- passwordless Supabase authentication; signed-out visitors receive preview only
+- Supabase email/password authentication with one-time email verification; signed-out visitors receive preview only
 - optional 30-item placement with priority and fast-track recommendations; learners can start from Chapter 1 without it
 - first-run five-step site tour with an always-available replay control
 - whole-site AI Tutor grounded in the course, question bank, learner mastery, and research feed
@@ -106,9 +106,11 @@ Source metadata is safe to show as a labeled research watch;
 AI summaries and candidate questions are written to the review workflow and do
 not silently override fifth-edition or official exam truth.
 
-For passwordless email login, set the Supabase Auth Site URL to the production
-domain and allow both the production domain and `http://localhost:3000` as
-redirect URLs.
+For signup verification and password recovery, set the Supabase Auth Site URL
+to the production domain and allow both the production domain and
+`http://localhost:3000` as redirect URLs. Hosted Supabase projects should keep
+email confirmation enabled so registration verifies the address once; later
+sign-ins use email and password directly.
 
 ## Verification
 

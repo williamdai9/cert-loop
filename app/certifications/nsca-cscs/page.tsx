@@ -132,6 +132,7 @@ export default function NscaCscsCoursePage() {
   const [activeLesson, setActiveLesson] = useState<ActiveLesson | null>(null);
   const [activeChapter, setActiveChapter] = useState<CourseChapter | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [progressLoaded, setProgressLoaded] = useState(false);
@@ -176,10 +177,14 @@ export default function NscaCscsCoursePage() {
       setAuthReady(true);
       if (!sessionUser) setProgressLoaded(true);
     }).catch(() => { setAuthReady(true); setProgressLoaded(true); });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       const sessionUser = session?.user;
       setUser(sessionUser ? { id: sessionUser.id, email: sessionUser.email || "Learner" } : null);
       setAuthReady(true);
+      if (event === "PASSWORD_RECOVERY") {
+        setPasswordRecovery(true);
+        setAuthOpen(true);
+      } else if (event === "SIGNED_IN") setAuthOpen(false);
       if (!sessionUser) {
         setProgressLoaded(true);
         setSyncStatus("local");
@@ -309,12 +314,12 @@ export default function NscaCscsCoursePage() {
 
   if (!user) return <>
     <PublicPreview lang={lang} setLang={setLang} configured={cloudEnabled} onSignIn={() => setAuthOpen(true)} />
-    {authOpen && <AuthPanel lang={lang} user={null} configured={cloudEnabled} syncStatus="local" onClose={() => setAuthOpen(false)} />}
+    {authOpen && <AuthPanel lang={lang} user={null} configured={cloudEnabled} syncStatus="local" recoveryMode={passwordRecovery} onRecoveryComplete={() => setPasswordRecovery(false)} onClose={() => setAuthOpen(false)} />}
   </>;
 
   if (!state.onboardingChoice && !state.diagnostic) return <>
     <PlacementTest lang={lang} pack={pack} userEmail={user.email} onSignOut={() => setAuthOpen(true)} onSkip={startFromZero} onComplete={saveDiagnostic} />
-    {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} onClose={() => setAuthOpen(false)} />}
+    {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} recoveryMode={passwordRecovery} onRecoveryComplete={() => setPasswordRecovery(false)} onClose={() => setAuthOpen(false)} />}
   </>;
 
   return (
@@ -358,7 +363,7 @@ export default function NscaCscsCoursePage() {
       </nav>
       {activeLesson && activePlanChapter && <CourseChapterReader key={`${activeLesson.id}-${activeLesson.focusChapter}`} lang={lang} chapter={activePlanChapter} course={courseChapters} task={activeLesson} chapterScope={activeLesson.chapterNumbers} completed={state.completed.includes(activeLesson.id)} onClose={() => setActiveLesson(null)} onOpenChapter={(n) => setActiveLesson(current => current ? { ...current, focusChapter: n } : null)} onComplete={() => { if (!state.completed.includes(activeLesson.id)) { toggleTask(activeLesson.id); logStudy(0); } }} onPractice={() => { setActiveLesson(null); setTab("test"); }} />}
       {activeChapter && <CourseChapterReader key={activeChapter.n} lang={lang} chapter={activeChapter} course={courseChapters} completed={state.completed.includes(`course-chapter-${activeChapter.n}`)} onClose={() => setActiveChapter(null)} onOpenChapter={(n) => { const next = courseChapters.find(chapter => chapter.n === n); if (next) setActiveChapter(next); }} onComplete={() => { const id = `course-chapter-${activeChapter.n}`; if (!state.completed.includes(id)) { toggleTask(id); logStudy(0); } }} onPractice={() => { setActiveChapter(null); setTab("test"); }} />}
-      {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} onClose={() => setAuthOpen(false)} />}
+      {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} recoveryMode={passwordRecovery} onRecoveryComplete={() => setPasswordRecovery(false)} onClose={() => setAuthOpen(false)} />}
       <AITutor lang={lang} context={tutorContext} mastery={state.domainStats} />
       {!state.tourCompleted && <SiteTour lang={lang} onComplete={() => setState(value => ({ ...value, tourCompleted: true }))} onNavigate={(nextTab) => setTab(nextTab)} />}
     </main>
@@ -377,7 +382,7 @@ function PublicPreview({ lang, setLang, configured, onSignIn }: { lang: Lang; se
   ];
   return <main className="public-preview">
     <header><Link className="brand" href="/" aria-label="Cert Loop home"><span className="brand-mark"><Dumbbell size={20} /></span><span><b>CERT LOOP</b><small>{lang === "en" ? "Certification learning platform" : "认证考试学习平台"}</small></span></Link><div><div className="lang-toggle"><button className={lang === "zh" ? "active" : ""} onClick={() => setLang("zh")}>{lang === "en" ? "Chinese" : "中"}</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div><button className="primary" onClick={onSignIn}><LogIn size={16} /> {lang === "en" ? "Sign in to learn" : "登录开始学习"}</button></div></header>
-    <section className="preview-hero"><div><span className="status-pill"><LockKeyhole size={14} /> {lang === "en" ? "COURSE PREVIEW · SIGN-IN REQUIRED" : "课程预览 · 登录后学习"}</span><h1>{lang === "en" ? <>Prepare for the <i>NSCA Certified Strength and Conditioning Specialist® (CSCS®)</i> examination.</> : <>从零开始，准备 <i>NSCA Certified Strength and Conditioning Specialist® (CSCS®)</i> 认证考试。</>}</h1><p>{lang === "en" ? "A complete Fifth Edition curriculum with interactive visuals, optional placement, exam practice, spaced review, personal progress, and a whole-course AI tutor." : "以第五版教材为基础，提供完整课程、互动图解、可选摸底测试、考试练习、间隔复习、个人进度与全课程 AI 导师。"}</p><div><button className="primary" onClick={onSignIn}><Play size={17} /> {lang === "en" ? "Sign in and choose your starting point" : "登录并选择学习起点"}</button><span>{configured ? (lang === "en" ? "Secure passwordless sign-in" : "安全免密码登录") : (lang === "en" ? "Account setup pending" : "账号配置待完成")}</span></div></div><aside><div className="preview-orbit"><strong>26</strong><span>{lang === "en" ? "complete chapter lessons" : "章完整课程"}</span></div><div><strong>84</strong><span>{lang === "en" ? "exam-style questions" : "道考试式题目"}</span></div><div><strong>24/7</strong><span>{lang === "en" ? "whole-course AI context" : "全课程 AI 上下文"}</span></div></aside></section>
+    <section className="preview-hero"><div><span className="status-pill"><LockKeyhole size={14} /> {lang === "en" ? "COURSE PREVIEW · SIGN-IN REQUIRED" : "课程预览 · 登录后学习"}</span><h1>{lang === "en" ? <>Prepare for the <i>NSCA Certified Strength and Conditioning Specialist® (CSCS®)</i> examination.</> : <>从零开始，准备 <i>NSCA Certified Strength and Conditioning Specialist® (CSCS®)</i> 认证考试。</>}</h1><p>{lang === "en" ? "A complete Fifth Edition curriculum with interactive visuals, optional placement, exam practice, spaced review, personal progress, and a whole-course AI tutor." : "以第五版教材为基础，提供完整课程、互动图解、可选摸底测试、考试练习、间隔复习、个人进度与全课程 AI 导师。"}</p><div><button className="primary" onClick={onSignIn}><Play size={17} /> {lang === "en" ? "Sign in and choose your starting point" : "登录并选择学习起点"}</button><span>{configured ? (lang === "en" ? "Email and password · one-time verification" : "邮箱与密码 · 仅首次验证") : (lang === "en" ? "Account setup pending" : "账号配置待完成")}</span></div></div><aside><div className="preview-orbit"><strong>26</strong><span>{lang === "en" ? "complete chapter lessons" : "章完整课程"}</span></div><div><strong>84</strong><span>{lang === "en" ? "exam-style questions" : "道考试式题目"}</span></div><div><strong>24/7</strong><span>{lang === "en" ? "whole-course AI context" : "全课程 AI 上下文"}</span></div></aside></section>
     <section className="preview-workflow"><span className="eyebrow">THE CERT LOOP WORKFLOW</span><h2>{lang === "en" ? "Every study session closes the loop" : "每次学习都闭合循环"}</h2><div>{[
       ["01","START","Choose zero-start or optional placement","选择零基础或可选摸底"],
       ["02","LEARN","Read the complete visual lesson","学习完整视觉课程"],
@@ -531,18 +536,115 @@ export function LessonReader({ lang, lesson, content, completed, onClose, onComp
   </div>;
 }
 
-function AuthPanel({ lang, user, configured, syncStatus, onClose }: { lang: Lang; user: { id: string; email: string } | null; configured: boolean; syncStatus: "local" | "loading" | "synced" | "error"; onClose: () => void }) {
+function AuthPanel({ lang, user, configured, syncStatus, recoveryMode, onRecoveryComplete, onClose }: { lang: Lang; user: { id: string; email: string } | null; configured: boolean; syncStatus: "local" | "loading" | "synced" | "error"; recoveryMode: boolean; onRecoveryComplete: () => void; onClose: () => void }) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<"success" | "error">("success");
   const [busy, setBusy] = useState(false);
+  const [confirmationPending, setConfirmationPending] = useState(false);
+  const [editingPassword, setEditingPassword] = useState(recoveryMode);
 
-  async function sendLink(event: React.FormEvent) {
+  function showError(raw: string) {
+    const normalized = raw.toLowerCase();
+    setMessageTone("error");
+    if (normalized.includes("invalid login credentials")) setMessage(lang === "en" ? "Email or password is incorrect." : "邮箱或密码不正确。");
+    else if (normalized.includes("email not confirmed")) setMessage(lang === "en" ? "Verify your email once before signing in." : "请先完成一次邮箱验证，再登录。");
+    else if (normalized.includes("rate limit")) setMessage(lang === "en" ? "Too many email requests were made recently. Wait a few minutes, then try again." : "短时间内邮件请求过多，请稍后几分钟再试。");
+    else setMessage(raw);
+  }
+
+  function validateNewPassword() {
+    if (password.length < 8) {
+      setMessageTone("error");
+      setMessage(lang === "en" ? "Use at least 8 characters for your password." : "密码至少需要 8 个字符。");
+      return false;
+    }
+    if (password !== confirmPassword) {
+      setMessageTone("error");
+      setMessage(lang === "en" ? "The two passwords do not match." : "两次输入的密码不一致。");
+      return false;
+    }
+    return true;
+  }
+
+  async function authenticate(event: React.FormEvent) {
     event.preventDefault();
+    const supabase = getSupabaseBrowser();
+    if (!supabase || !email.trim() || !password) return;
+    if (mode === "signup" && !validateNewPassword()) return;
+    setBusy(true); setMessage("");
+    if (mode === "signin") {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) showError(error.message);
+      else {
+        setMessageTone("success");
+        setMessage(lang === "en" ? "Signed in securely." : "登录成功。");
+      }
+    } else {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/certifications/nsca-cscs` },
+      });
+      if (error) showError(error.message);
+      else if (data.session) {
+        setMessageTone("success");
+        setMessage(lang === "en" ? "Account created and signed in." : "账号已创建并登录。");
+      } else {
+        setConfirmationPending(true);
+        setMessageTone("success");
+        setMessage(lang === "en" ? "Account created. Verify your email once, then sign in with your password." : "账号已创建。请完成一次邮箱验证，之后即可直接使用密码登录。");
+      }
+    }
+    setBusy(false);
+  }
+
+  async function sendPasswordReset() {
+    const supabase = getSupabaseBrowser();
+    if (!supabase || !email.trim()) {
+      setMessageTone("error");
+      setMessage(lang === "en" ? "Enter your email address first." : "请先输入邮箱地址。");
+      return;
+    }
+    setBusy(true); setMessage("");
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/certifications/nsca-cscs` });
+    if (error) showError(error.message);
+    else {
+      setMessageTone("success");
+      setMessage(lang === "en" ? "Password setup link sent. Open it once to choose a new password." : "密码设置链接已发送。打开一次即可设置新密码。");
+    }
+    setBusy(false);
+  }
+
+  async function resendConfirmation() {
     const supabase = getSupabaseBrowser();
     if (!supabase || !email.trim()) return;
     setBusy(true); setMessage("");
-    const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: window.location.origin } });
-    setMessage(error ? error.message : (lang === "en" ? "Check your email for the secure sign-in link." : "请查收邮箱中的安全登录链接。"));
+    const { error } = await supabase.auth.resend({ type: "signup", email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/certifications/nsca-cscs` } });
+    if (error) showError(error.message);
+    else {
+      setMessageTone("success");
+      setMessage(lang === "en" ? "Verification email sent again." : "验证邮件已重新发送。");
+    }
+    setBusy(false);
+  }
+
+  async function updatePassword(event: React.FormEvent) {
+    event.preventDefault();
+    if (!validateNewPassword()) return;
+    const supabase = getSupabaseBrowser();
+    if (!supabase) return;
+    setBusy(true); setMessage("");
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) showError(error.message);
+    else {
+      setMessageTone("success");
+      setMessage(lang === "en" ? "Password saved. Future sign-ins only need your email and password." : "密码已保存。以后只需邮箱和密码即可登录。");
+      setPassword(""); setConfirmPassword(""); setEditingPassword(false); onRecoveryComplete();
+    }
     setBusy(false);
   }
 
@@ -551,28 +653,38 @@ function AuthPanel({ lang, user, configured, syncStatus, onClose }: { lang: Lang
     if (!supabase) return;
     setBusy(true);
     await supabase.auth.signOut();
-    setBusy(false); onClose();
+    setBusy(false); onRecoveryComplete(); onClose();
   }
+
+  const showPasswordEditor = recoveryMode || (Boolean(user) && editingPassword);
 
   return <div className="auth-overlay" role="dialog" aria-modal="true" aria-label={lang === "en" ? "Learner account" : "学习账号"}>
     <section className="auth-panel">
       <button className="icon-button auth-close" onClick={onClose} aria-label={lang === "en" ? "Close" : "关闭"}><X size={18} /></button>
       <span className="account-orbit"><UserRound size={27} /></span>
       <span className="eyebrow">CERT LOOP ACCOUNT</span>
-      <h2>{user ? (lang === "en" ? "Your progress is portable" : "你的进度可跨设备同步") : (lang === "en" ? "Keep every lesson and miss" : "保存每节课程与每道错题")}</h2>
-      {user ? <>
+      <h2>{showPasswordEditor ? (lang === "en" ? "Choose your new password" : "设置你的新密码") : user ? (lang === "en" ? "Your progress is portable" : "你的进度可跨设备同步") : (lang === "en" ? "Sign in and keep your progress" : "登录并保存你的学习进度")}</h2>
+      {showPasswordEditor ? <>
+        <p>{lang === "en" ? "Use at least 8 characters. After this one-time setup, sign in directly with your email and password." : "密码至少 8 个字符。完成这次设置后，即可直接使用邮箱和密码登录。"}</p>
+        <form onSubmit={updatePassword} className="auth-form"><label>{lang === "en" ? "New password" : "新密码"}<input type="password" value={password} onChange={event => setPassword(event.target.value)} minLength={8} autoComplete="new-password" required /></label><label>{lang === "en" ? "Confirm new password" : "确认新密码"}<input type="password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} minLength={8} autoComplete="new-password" required /></label><button className="primary wide" disabled={busy}>{busy ? (lang === "en" ? "Saving…" : "保存中…") : (lang === "en" ? "Save password" : "保存密码")}</button></form>
+        {!recoveryMode && <button type="button" className="auth-text-action" onClick={() => { setEditingPassword(false); setMessage(""); }}>{lang === "en" ? "Back to account" : "返回账号"}</button>}
+      </> : user ? <>
         <p>{lang === "en" ? `Signed in as ${user.email}. Study-plan completion, XP, attempts, and the review queue sync to Supabase.` : `已登录 ${user.email}。计划完成度、XP、作答和错题队列会同步到 Supabase。`}</p>
         <div className={cn("sync-indicator", syncStatus)}>{syncStatus === "synced" ? <Cloud size={16} /> : syncStatus === "error" ? <CloudOff size={16} /> : <RotateCcw size={16} />}<span>{syncStatus === "synced" ? (lang === "en" ? "Cloud progress synced" : "云端进度已同步") : syncStatus === "error" ? (lang === "en" ? "Sync needs attention" : "同步需要处理") : (lang === "en" ? "Syncing progress…" : "正在同步进度…")}</span></div>
         <Link className="admin-entry-link" href="/admin"><BookMarked size={16} /> {lang === "en" ? "Open content inspector" : "打开内容检查后台"}</Link>
+        <button className="ghost wide" disabled={busy} onClick={() => { setEditingPassword(true); setMessage(""); }}>{lang === "en" ? "Set or change password" : "设置或修改密码"}</button>
         <button className="ghost wide" disabled={busy} onClick={signOut}><LogOut size={16} /> {lang === "en" ? "Sign out" : "退出登录"}</button>
       </> : configured ? <>
-        <p>{lang === "en" ? "Use a passwordless email link. Your private study progress is protected by Supabase Row Level Security." : "使用免密码邮箱链接登录。个人学习进度由 Supabase 行级安全策略保护。"}</p>
-        <form onSubmit={sendLink}><label>{lang === "en" ? "Email address" : "邮箱地址"}<input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" /></label><button className="primary wide" disabled={busy}>{busy ? (lang === "en" ? "Sending…" : "发送中…") : (lang === "en" ? "Email me a sign-in link" : "发送登录链接")}</button></form>
-        {message && <p className="auth-message">{message}</p>}
+        <p>{lang === "en" ? "Register once, verify your email once, then use your password for every future sign-in." : "注册时只需验证一次邮箱，之后每次都可以直接使用密码登录。"}</p>
+        <div className="auth-mode-tabs" role="tablist" aria-label={lang === "en" ? "Account action" : "账号操作"}><button type="button" role="tab" aria-selected={mode === "signin"} className={mode === "signin" ? "active" : ""} onClick={() => { setMode("signin"); setMessage(""); }}>{lang === "en" ? "Sign in" : "登录"}</button><button type="button" role="tab" aria-selected={mode === "signup"} className={mode === "signup" ? "active" : ""} onClick={() => { setMode("signup"); setMessage(""); }}>{lang === "en" ? "Create account" : "注册账号"}</button></div>
+        <form onSubmit={authenticate} className="auth-form"><label>{lang === "en" ? "Email address" : "邮箱地址"}<input type="email" value={email} onChange={event => setEmail(event.target.value)} required autoComplete="email" placeholder="you@example.com" /></label><label>{lang === "en" ? "Password" : "密码"}<input type="password" value={password} onChange={event => setPassword(event.target.value)} required minLength={mode === "signup" ? 8 : undefined} autoComplete={mode === "signin" ? "current-password" : "new-password"} placeholder={lang === "en" ? "At least 8 characters" : "至少 8 个字符"} /></label>{mode === "signup" && <label>{lang === "en" ? "Confirm password" : "确认密码"}<input type="password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} required minLength={8} autoComplete="new-password" /></label>}<button className="primary wide" disabled={busy}>{busy ? (lang === "en" ? "Please wait…" : "请稍候…") : mode === "signin" ? (lang === "en" ? "Sign in" : "登录") : (lang === "en" ? "Create account" : "注册账号")}</button></form>
+        {mode === "signin" && <button type="button" className="auth-text-action" disabled={busy} onClick={sendPasswordReset}>{lang === "en" ? "Forgot password or need to set one?" : "忘记密码或需要首次设置密码？"}</button>}
+        {mode === "signup" && confirmationPending && <button type="button" className="auth-text-action" disabled={busy} onClick={resendConfirmation}>{lang === "en" ? "Resend verification email" : "重新发送验证邮件"}</button>}
       </> : <>
         <p>{lang === "en" ? "The account experience is built, but this deployment still needs a dedicated Supabase project before email sign-in can be enabled. Device-local progress continues to work meanwhile." : "账号功能已经实现，但此部署仍需要绑定专用 Supabase 项目才能启用邮箱登录。在此之前，本机进度会继续正常保存。"}</p>
         <div className="sync-indicator local"><CloudOff size={16} /><span>{lang === "en" ? "Using device-local progress" : "当前使用本机进度"}</span></div>
       </>}
+      {message && <p className={cn("auth-message", messageTone === "error" && "error")} role={messageTone === "error" ? "alert" : "status"}>{message}</p>}
     </section>
   </div>;
 }

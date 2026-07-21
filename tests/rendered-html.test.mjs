@@ -87,7 +87,11 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(page, /ChapterVisualLab/);
   assert.match(page, /ChapterOneVisualStudio/);
   assert.match(page, /AITutor/);
-  assert.match(page, /signInWithOtp/);
+  assert.match(page, /signInWithPassword/);
+  assert.match(page, /auth\.signUp/);
+  assert.match(page, /resetPasswordForEmail/);
+  assert.match(page, /auth\.updateUser\(\{ password \}\)/);
+  assert.doesNotMatch(page, /signInWithOtp|Email me a sign-in link|Use a passwordless email link/);
   assert.match(page, /function PublicPreview/);
   assert.match(page, /function PlacementTest/);
   assert.match(page, /Start from the beginning/);
