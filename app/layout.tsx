@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="en">
       <body className={`${noto.variable} ${newsreader.variable}`}>{children}</body>
     </html>
   );

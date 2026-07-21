@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { BookOpen, ExternalLink, Globe2, LoaderCircle, MessageCircle, Send, Sparkles, X } from "lucide-react";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 type Lang = "en" | "zh";
 type TutorContext = { chapterNumber?: number; chapterTitle?: string; taskId?: string; taskTitle?: string };
@@ -29,7 +30,11 @@ export function AITutor({ lang, context, mastery }: { lang: Lang; context?: Tuto
     const nextMessages: ChatMessage[] = [...messages, { role: "user", text: cleaned }];
     setMessages(nextMessages); setQuestion(""); setBusy(true); setError("");
     try {
-      const response = await fetch("/api/tutor", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: cleaned, lang, context, research, mastery, history: nextMessages.slice(-8).map(item => ({ role: item.role, text: item.text })) }) });
+      const supabase = getSupabaseBrowser();
+      const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
+      const token = data.session?.access_token;
+      if (!token) throw new Error(lang === "en" ? "Sign in again to use the AI Tutor." : "请重新登录后使用 AI 导师。");
+      const response = await fetch("/api/tutor", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ question: cleaned, lang, context, research, mastery, history: nextMessages.slice(-8).map(item => ({ role: item.role, text: item.text })) }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Tutor request failed");
       setMessages(values => [...values, { role: "assistant", text: payload.answer, sources: payload.sources }]);

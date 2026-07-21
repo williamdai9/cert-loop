@@ -4,14 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, BookMarked, BookOpen, Brain, CalendarDays, Check,
   ChevronRight, CircleHelp, Cloud, CloudOff, Clock3, Dumbbell,
-  Flame, LayoutDashboard, LogIn, LogOut, Medal, RotateCcw,
-  Settings2, Sparkles, Target, Trophy, UserRound, X, Zap
+  Compass, Flame, LayoutDashboard, LockKeyhole, LogIn, LogOut,
+  Medal, Play, RotateCcw, Settings2, Sparkles, Target, Trophy,
+  UserRound, X, Zap
 } from "lucide-react";
 import { certificationRegistry, type CertificationPack, type Question } from "@/lib/certifications";
 import type { BilingualText, LessonContent } from "@/lib/lesson-data";
 import { cscsCourse, type CourseChapter, type CourseText } from "@/lib/course";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 import { ChapterVisualLab } from "@/app/components/chapter-visual-lab";
+import { MindMapRecap, SectionNoteFigures, TextbookVisualAtlas } from "@/app/components/course-media";
 import { AITutor } from "@/app/components/ai-tutor";
 import { ResearchPulse } from "@/app/components/research-pulse";
 
@@ -40,6 +42,7 @@ type SavedState = {
   lastStudy: string;
   domainStats: Record<string, { correct: number; total: number }>;
   diagnostic?: DiagnosticResult;
+  tourCompleted?: boolean;
 };
 
 const initial: SavedState = {
@@ -104,7 +107,7 @@ export default function Home() {
   const [lang, setLang] = useState<Lang>("en");
   const t = copy[lang];
   const [activeCertId, setActiveCertId] = useState(certificationRegistry[0].id);
-  const pack = certificationRegistry.find(c => c.id === activeCertId) || certificationRegistry[0];
+  const registeredPack = certificationRegistry.find(c => c.id === activeCertId) || certificationRegistry[0];
   const [tab, setTab] = useState<Tab>("dashboard");
   const [state, setState] = useState<SavedState>(initial);
   const [ready, setReady] = useState(false);
@@ -112,8 +115,12 @@ export default function Home() {
   const [activeChapter, setActiveChapter] = useState<CourseChapter | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [progressLoaded, setProgressLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<"local" | "loading" | "synced" | "error">("local");
   const [courseChapters, setCourseChapters] = useState<CourseChapter[]>(cscsCourse);
+  const [cloudQuestions, setCloudQuestions] = useState<Question[]>([]);
+  const pack = useMemo(() => cloudQuestions.length ? { ...registeredPack, questions: cloudQuestions } : registeredPack, [cloudQuestions, registeredPack]);
   const cloudEnabled = isSupabaseConfigured();
 
   useEffect(() => {
@@ -143,21 +150,31 @@ export default function Home() {
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
-    if (!supabase) return;
+    if (!supabase) { queueMicrotask(() => { setAuthReady(true); setProgressLoaded(true); }); return; }
     supabase.auth.getSession().then(({ data }) => {
       const sessionUser = data.session?.user;
       setUser(sessionUser ? { id: sessionUser.id, email: sessionUser.email || "Learner" } : null);
-    });
+      setAuthReady(true);
+      if (!sessionUser) setProgressLoaded(true);
+    }).catch(() => { setAuthReady(true); setProgressLoaded(true); });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUser = session?.user;
       setUser(sessionUser ? { id: sessionUser.id, email: sessionUser.email || "Learner" } : null);
+      setAuthReady(true);
+      if (!sessionUser) {
+        setProgressLoaded(true);
+        setSyncStatus("local");
+        setCloudQuestions([]);
+        setActiveLesson(null);
+        setActiveChapter(null);
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
-    if (!supabase) return;
+    if (!supabase || !user || !state.diagnostic) return;
     let cancelled = false;
     supabase.from("lessons")
       .select("task_id,content")
@@ -169,26 +186,42 @@ export default function Home() {
         const chapters = data.filter(row => row.task_id.startsWith("course-chapter-")).map(row => row.content as CourseChapter).sort((a, b) => a.n - b.n);
         if (chapters.length === 26) setCourseChapters(chapters);
       });
+    supabase.from("questions")
+      .select("external_id,language,domain_id,cognition,prompt,options,answer_index,explanation,source_refs")
+      .eq("certification_id", activeCertId)
+      .eq("status", "published")
+      .then(({ data, error }) => {
+        if (cancelled || error || !data) return;
+        const rows = data as Array<{ external_id: string; language: "en" | "zh"; domain_id: Question["domain"]; cognition: Question["cognition"]; prompt: string; options: [string,string,string]; answer_index: number; explanation: string; source_refs?: Array<{ source?: string }> }>;
+        const byId = new Map<string, Partial<Record<"en" | "zh", (typeof rows)[number]>>>();
+        rows.forEach(row => byId.set(row.external_id, { ...(byId.get(row.external_id) || {}), [row.language]: row }));
+        const hydrated = Array.from(byId.entries()).flatMap(([id, pair]) => {
+          if (!pair.en || !pair.zh || pair.en.options.length !== 3 || pair.zh.options.length !== 3) return [];
+          return [{ id, section: (["exercise-science","sport-psychology","nutrition"] as string[]).includes(pair.en.domain_id) ? "科学基础" as const : "实践应用" as const, domain: pair.en.domain_id, cognition: pair.en.cognition, prompt: pair.zh.prompt, options: pair.zh.options, answer: pair.en.answer_index, explanation: pair.zh.explanation, source: pair.en.source_refs?.[0]?.source || "English 5th ed. aligned", en: { prompt: pair.en.prompt, options: pair.en.options, explanation: pair.en.explanation } }];
+        }).sort((a, b) => a.id.localeCompare(b.id));
+        if (hydrated.length >= 84) setCloudQuestions(hydrated);
+      });
     return () => { cancelled = true; };
-  }, [activeCertId]);
+  }, [activeCertId, user, state.diagnostic]);
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
     if (!supabase || !user) return;
     let cancelled = false;
-    queueMicrotask(() => setSyncStatus("loading"));
+    queueMicrotask(() => { setSyncStatus("loading"); setProgressLoaded(false); });
     supabase.from("user_progress").select("state").eq("user_id", user.id).eq("certification_id", activeCertId).maybeSingle().then(({ data, error }) => {
       if (cancelled) return;
-      if (error) { setSyncStatus("error"); return; }
+      if (error) { setSyncStatus("error"); setProgressLoaded(true); return; }
       if (data?.state) setState({ ...initial, ...(data.state as SavedState) });
       setSyncStatus("synced");
+      setProgressLoaded(true);
     });
     return () => { cancelled = true; };
   }, [user, activeCertId]);
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
-    if (!supabase || !user || !ready || syncStatus === "loading") return;
+    if (!supabase || !user || !ready || !progressLoaded || syncStatus === "loading") return;
     const timer = window.setTimeout(async () => {
       const { error } = await supabase.from("user_progress").upsert({
         user_id: user.id,
@@ -199,7 +232,7 @@ export default function Home() {
       setSyncStatus(error ? "error" : "synced");
     }, 650);
     return () => window.clearTimeout(timer);
-  }, [state, user, activeCertId, ready, syncStatus]);
+  }, [state, user, activeCertId, ready, progressLoaded, syncStatus]);
 
   const studyDays = useMemo(() => {
     if (!state.examDate) return 84;
@@ -239,11 +272,23 @@ export default function Home() {
   }
 
   function saveDiagnostic(result: DiagnosticResult) {
-    setState(current => ({ ...current, diagnostic: result }));
+    setState(current => ({ ...current, diagnostic: result, domainStats: result.domains }));
   }
 
   const activePlanChapter = activeLesson ? courseChapters.find(chapter => chapter.n === activeLesson.focusChapter) || courseChapters[0] : null;
   const tutorContext = activeLesson ? { chapterNumber: activeLesson.focusChapter, chapterTitle: activePlanChapter?.title.en, taskId: activeLesson.id, taskTitle: activeLesson.label } : activeChapter ? { chapterNumber: activeChapter.n, chapterTitle: activeChapter.title.en } : undefined;
+
+  if (!ready || !authReady || (user && !progressLoaded)) return <LoadingGate lang={lang} />;
+
+  if (!user) return <>
+    <PublicPreview lang={lang} setLang={setLang} configured={cloudEnabled} onSignIn={() => setAuthOpen(true)} />
+    {authOpen && <AuthPanel lang={lang} user={null} configured={cloudEnabled} syncStatus="local" onClose={() => setAuthOpen(false)} />}
+  </>;
+
+  if (!state.diagnostic) return <>
+    <PlacementTest lang={lang} pack={pack} userEmail={user.email} onSignOut={() => setAuthOpen(true)} onComplete={saveDiagnostic} />
+    {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} onClose={() => setAuthOpen(false)} />}
+  </>;
 
   return (
     <main className="app-shell">
@@ -271,7 +316,7 @@ export default function Home() {
             <span className="eyebrow">{pack.name.toUpperCase()}</span>
             <h1>{nav.find(n => n.id === tab)?.[lang]}</h1>
           </div>
-          <div className="top-actions"><button className="account-button" onClick={() => setAuthOpen(true)}>{user ? <Cloud size={15} /> : cloudEnabled ? <LogIn size={15} /> : <CloudOff size={15} />}<span>{user ? user.email : lang === "en" ? "Sign in" : "登录"}</span></button><div className="lang-toggle"><button className={lang === "zh" ? "active" : ""} onClick={() => setLang("zh")}>中</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div><div className="top-stats"><span><Flame size={16} /> {state.streak} {t.days}</span><span><Zap size={16} /> {state.xp} XP</span></div></div>
+          <div className="top-actions"><button className="tour-replay" onClick={() => setState(value => ({ ...value, tourCompleted: false }))} title={lang === "en" ? "Replay site tour" : "重新查看网站导览"}><Compass size={16} /></button><button className="account-button" onClick={() => setAuthOpen(true)}><Cloud size={15} /><span>{user.email}</span></button><div className="lang-toggle"><button className={lang === "zh" ? "active" : ""} onClick={() => setLang("zh")}>中</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div><div className="top-stats"><span><Flame size={16} /> {state.streak} {t.days}</span><span><Zap size={16} /> {state.xp} XP</span></div></div>
         </header>
 
         {tab === "dashboard" && <Dashboard lang={lang} pack={pack} state={state} studyDays={studyDays} completion={completion} setState={setState} setTab={setTab} openLesson={setActiveLesson} />}
@@ -288,8 +333,72 @@ export default function Home() {
       {activeChapter && <CourseChapterReader key={activeChapter.n} lang={lang} chapter={activeChapter} course={courseChapters} completed={state.completed.includes(`course-chapter-${activeChapter.n}`)} onClose={() => setActiveChapter(null)} onOpenChapter={(n) => { const next = courseChapters.find(chapter => chapter.n === n); if (next) setActiveChapter(next); }} onComplete={() => { const id = `course-chapter-${activeChapter.n}`; if (!state.completed.includes(id)) { toggleTask(id); logStudy(0); } }} onPractice={() => { setActiveChapter(null); setTab("test"); }} />}
       {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} onClose={() => setAuthOpen(false)} />}
       <AITutor lang={lang} context={tutorContext} mastery={state.domainStats} />
+      {!state.tourCompleted && <SiteTour lang={lang} onComplete={() => setState(value => ({ ...value, tourCompleted: true }))} onNavigate={(nextTab) => setTab(nextTab)} />}
     </main>
   );
+}
+
+function LoadingGate({ lang }: { lang: Lang }) {
+  return <main className="access-loading"><span className="brand-mark"><Dumbbell size={22} /></span><b>CERT LOOP</b><p>{lang === "en" ? "Securing your learning workspace…" : "正在安全加载你的学习空间…"}</p></main>;
+}
+
+function PublicPreview({ lang, setLang, configured, onSignIn }: { lang: Lang; setLang: (lang: Lang) => void; configured: boolean; onSignIn: () => void }) {
+  const previews = [
+    { n: "01", en: "Structure and Function of Body Systems", zh: "身体系统的结构与功能", meta: "5 deep dives · visual atlas · anatomy lab" },
+    { n: "18", en: "Program Design for Resistance Training", zh: "抗阻训练计划设计", meta: "4 deep dives · dose calculator · checkpoints" },
+    { n: "26", en: "Policies, Procedures, Legal Duties, and Staff", zh: "政策、程序、法律责任与人员管理", meta: "risk systems · EAP · exam practice" },
+  ];
+  return <main className="public-preview">
+    <header><button className="brand" aria-label="Cert Loop"><span className="brand-mark"><Dumbbell size={20} /></span><span><b>CERT LOOP</b><small>English-first certification mastery</small></span></button><div><div className="lang-toggle"><button className={lang === "zh" ? "active" : ""} onClick={() => setLang("zh")}>中</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div><button className="primary" onClick={onSignIn}><LogIn size={16} /> {lang === "en" ? "Sign in to learn" : "登录开始学习"}</button></div></header>
+    <section className="preview-hero"><div><span className="status-pill"><LockKeyhole size={14} /> PREVIEW · SIGN-IN REQUIRED</span><h1>{lang === "en" ? <>One complete loop from <i>zero</i> to CSCS exam day.</> : <>从零开始，到 CSCS 考试日的<i>完整闭环</i>。</>}</h1><p>{lang === "en" ? "English fifth-edition source of truth, bilingual teaching support, interactive visuals, adaptive placement, exam practice, spaced review, and a whole-course AI tutor." : "以英文第五版为事实基准，提供双语教学、互动图解、自适应摸底、考试练习、间隔复习与全课程 AI 导师。"}</p><div><button className="primary" onClick={onSignIn}><Play size={17} /> {lang === "en" ? "Start with placement" : "从摸底测试开始"}</button><span>{configured ? (lang === "en" ? "Secure passwordless sign-in" : "安全免密码登录") : (lang === "en" ? "Account setup pending" : "账号配置待完成")}</span></div></div><aside><div className="preview-orbit"><strong>26</strong><span>complete chapter lessons</span></div><div><strong>84</strong><span>original bilingual questions</span></div><div><strong>24/7</strong><span>whole-course AI context</span></div></aside></section>
+    <section className="preview-workflow"><span className="eyebrow">THE CERT LOOP WORKFLOW</span><h2>{lang === "en" ? "Every study session closes the loop" : "每次学习都闭合循环"}</h2><div>{[
+      ["01","PLACE","Find the real baseline","定位真实基础"],
+      ["02","LEARN","Read the complete visual lesson","学习完整视觉课程"],
+      ["03","TEST","Apply it in exam format","用考试形式应用"],
+      ["04","REPAIR","Turn misses into retrieval","把错题变成主动提取"],
+    ].map(item => <article key={item[0]}><span>{item[0]}</span><b>{item[1]}</b><p>{lang === "en" ? item[2] : item[3]}</p></article>)}</div></section>
+    <section className="preview-syllabus"><div><span className="eyebrow">LOCKED COURSE PREVIEW</span><h2>{lang === "en" ? "A real course—not a list of summaries" : "真正的课程，而不是摘要清单"}</h2><p>{lang === "en" ? "Sign in and complete placement to unlock lessons, figures, mind maps, tests, progress, and AI tutoring." : "登录并完成摸底测试后，解锁课程、图示、思维导图、测试、进度与 AI 导师。"}</p></div><div>{previews.map(item => <article key={item.n}><span>{item.n}</span><div><b>{item.en}</b><small>{item.zh} · {item.meta}</small></div><LockKeyhole size={17} /></article>)}<button className="ghost wide" onClick={onSignIn}>{lang === "en" ? "Unlock the full 26-chapter course" : "解锁完整 26 章课程"} <ChevronRight size={16} /></button></div></section>
+  </main>;
+}
+
+function PlacementTest({ lang, pack, userEmail, onSignOut, onComplete }: { lang: Lang; pack: CertificationPack; userEmail: string; onSignOut: () => void; onComplete: (result: DiagnosticResult) => void }) {
+  const allocation: Record<string, number> = { "exercise-science": 6, "sport-psychology": 4, nutrition: 3, "program-design": 7, "exercise-technique": 4, implementation: 3, organization: 3 };
+  const questions = useMemo(() => Object.entries(allocation).flatMap(([domain, amount]) => pack.questions.filter(question => question.domain === domain).slice(0, amount)), [pack]);
+  const [index, setIndex] = useState(0);
+  const [answers, setAnswers] = useState<number[]>([]);
+  const [result, setResult] = useState<DiagnosticResult | null>(null);
+  const current = questions[index];
+  const selected = answers[index];
+
+  function finish() {
+    const domains: DiagnosticResult["domains"] = {};
+    questions.forEach((question, questionIndex) => {
+      const existing = domains[question.domain] || { correct: 0, total: 0 };
+      domains[question.domain] = { correct: existing.correct + (answers[questionIndex] === question.answer ? 1 : 0), total: existing.total + 1 };
+    });
+    setResult({ completedAt: new Date().toISOString(), score: questions.reduce((score, question, questionIndex) => score + (answers[questionIndex] === question.answer ? 1 : 0), 0), total: questions.length, domains });
+  }
+
+  if (result) {
+    const ranked = Object.entries(result.domains).map(([id, stat]) => ({ id, ...stat, rate: stat.correct / stat.total })).sort((a, b) => a.rate - b.rate);
+    return <main className="placement-shell"><header><span className="brand-mark"><Dumbbell size={20} /></span><b>CERT LOOP</b><button onClick={onSignOut}><UserRound size={15} /> {userEmail}</button></header><section className="placement-result"><span className="eyebrow">PLACEMENT COMPLETE · ENGLISH SOURCE OF TRUTH</span><div className="result-score"><strong>{Math.round(result.score / result.total * 100)}%</strong><span>{result.score} / {result.total}</span></div><h1>{lang === "en" ? "Your first route is ready" : "你的第一条学习路线已生成"}</h1><p>{lang === "en" ? "This is a baseline, not a grade. Weak high-weight domains stay in the full course; stronger domains can earn fast-track checkpoints." : "这是基线，不是成绩。高权重薄弱领域保留完整课程；强项可通过章节挑战获得快速路线。"}</p><div className="placement-domain-results">{ranked.map(item => <div key={item.id}><span><b>{pack.domains.find(domain => domain.id === item.id)?.en}</b><small>{pack.domains.find(domain => domain.id === item.id)?.label}</small></span><i><em style={{ width: `${Math.round(item.rate * 100)}%` }} /></i><strong>{Math.round(item.rate * 100)}%</strong></div>)}</div><button className="primary wide" onClick={() => onComplete(result)}>{lang === "en" ? "Build my plan and show me around" : "生成计划并开始网站导览"} <ChevronRight size={17} /></button></section></main>;
+  }
+
+  if (!current || questions.length !== 30) return <main className="placement-shell"><section className="placement-error"><h1>Placement configuration error</h1><p>Expected 30 items but found {questions.length}. The course remains locked to avoid an invalid baseline.</p></section></main>;
+  return <main className="placement-shell"><header><span className="brand-mark"><Dumbbell size={20} /></span><b>CERT LOOP</b><button onClick={onSignOut}><UserRound size={15} /> {userEmail}</button></header><div className="placement-progress"><i style={{ width: `${((index + 1) / questions.length) * 100}%` }} /><span>{index + 1} / {questions.length}</span></div><section className="placement-question"><div className="placement-intro"><span className="eyebrow">REQUIRED FIRST-LOGIN PLACEMENT</span><h1>{lang === "en" ? "Show what you know—without notes" : "不看资料，展示你的真实基础"}</h1><p>{lang === "en" ? "English is the scored source. Chinese support is shown below when Chinese mode is selected. Results create your first adaptive route." : "英文题干是计分依据；中文模式会在下方提供辅助。结果将生成首条自适应路线。"}</p></div><article className="question-card"><div className="question-meta"><span>{pack.domains.find(domain => domain.id === current.domain)?.en}</span><span>{current.source.replace("第 ","Ch. ").replace("章","")}</span><span>NO SKIP</span></div><h2>{current.en?.prompt || current.prompt}</h2>{lang === "zh" && <p className="placement-translation">{current.prompt}</p>}<div className="options">{(current.en?.options || current.options).map((option, optionIndex) => <button key={option} className={selected === optionIndex ? "selected" : ""} onClick={() => setAnswers(values => { const next = [...values]; next[index] = optionIndex; return next; })}><span>{String.fromCharCode(65 + optionIndex)}</span><b>{option}</b></button>)}</div><div className="question-footer"><span>{lang === "en" ? "Answers and explanations unlock after the baseline." : "完成基线后才显示答案与解析。"}</span><button className="primary" disabled={selected === undefined} onClick={() => index === questions.length - 1 ? finish() : setIndex(value => value + 1)}>{index === questions.length - 1 ? (lang === "en" ? "Score placement" : "提交摸底") : (lang === "en" ? "Next question" : "下一题")} <ChevronRight size={17} /></button></div></article></section></main>;
+}
+
+function SiteTour({ lang, onComplete, onNavigate }: { lang: Lang; onComplete: () => void; onNavigate: (tab: Tab) => void }) {
+  const [step, setStep] = useState(0);
+  const steps: Array<{ tab: Tab; eyebrow: string; icon: typeof LayoutDashboard; en: string; zh: string; bodyEn: string; bodyZh: string }> = [
+    { tab:"dashboard", eyebrow:"01 · TODAY", icon:LayoutDashboard, en:"Start with the next three actions", zh:"从今天的三个行动开始", bodyEn:"Today translates your placement, exam date, and unfinished work into a manageable study loop.", bodyZh:"“今日”会把摸底结果、考试日期和未完成内容转化为可执行的学习循环。" },
+    { tab:"plan", eyebrow:"02 · LEARN", icon:CalendarDays, en:"Open every plan item as a complete lesson", zh:"每个计划项都能打开完整课程", bodyEn:"Learn the English-first explanation, visual atlas, personal-note figures, interactive lab, mind map, checkpoints, and recall prompts.", bodyZh:"依次学习英文主讲、视觉图谱、个人笔记图、互动实验、思维导图、章节测试与主动回忆。" },
+    { tab:"test", eyebrow:"03 · TEST", icon:CircleHelp, en:"Use exam format to expose weak reasoning", zh:"用考试形式暴露推理弱点", bodyEn:"Practice explains immediately; exam mode scores at the end. Every miss enters the review loop automatically.", bodyZh:"练习模式即时讲解，模拟模式统一评分；所有错题自动进入回炉队列。" },
+    { tab:"mistakes", eyebrow:"04 · REPAIR", icon:RotateCcw, en:"Retrieve before you reread", zh:"先主动提取，再重新阅读", bodyEn:"Turn each miss into a short rule, answer aloud, and retest until the error no longer repeats.", bodyZh:"把每个错题改写成短规则，先口述答案，再测试，直到错误不再重复。" },
+    { tab:"library", eyebrow:"05 · ASK & EXPLORE", icon:Sparkles, en:"Use the library and whole-course AI Tutor", zh:"使用资料库与全课程 AI 导师", bodyEn:"The Tutor searches all 26 chapters and your mastery record. Live research is clearly labeled and never silently overrides exam truth.", bodyZh:"AI 导师检索全部 26 章与掌握度；最新研究会明确标注，绝不会静默覆盖考试事实。" },
+  ];
+  const item = steps[step]; const Icon = item.icon;
+  return <div className="tour-layer" role="dialog" aria-modal="true" aria-label="Cert Loop site tour"><section className="tour-card"><div className="tour-visual"><span><Icon size={32} /></span><div>{steps.map((_, index) => <i className={index <= step ? "active" : ""} key={index} />)}</div></div><div className="tour-copy"><span className="eyebrow">{item.eyebrow} · FIRST-TIME SITE GUIDE</span><h2>{lang === "en" ? item.en : item.zh}</h2><p>{lang === "en" ? item.bodyEn : item.bodyZh}</p><small>{lang === "en" ? "You can replay this tour anytime with the compass button in the top bar." : "以后可随时点击顶部指南针按钮重新查看。"}</small><footer><button className="text-button" onClick={onComplete}>{lang === "en" ? "Skip tour" : "跳过导览"}</button><span>{step + 1} / {steps.length}</span><button className="primary" onClick={() => { onNavigate(item.tab); if (step === steps.length - 1) onComplete(); else setStep(value => value + 1); }}>{step === steps.length - 1 ? (lang === "en" ? "Enter Cert Loop" : "进入 Cert Loop") : (lang === "en" ? "Next" : "下一步")} <ChevronRight size={16} /></button></footer></div></section></div>;
 }
 
 function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab, openLesson }: { lang: Lang; pack: CertificationPack; state: SavedState; studyDays: number; completion: number; setState: React.Dispatch<React.SetStateAction<SavedState>>; setTab: (t: Tab) => void; openLesson: (lesson: ActiveLesson) => void }) {
@@ -577,12 +686,15 @@ function CourseChapterReader({ lang, chapter, course, task, chapterScope, comple
 
             <ChapterVisualLab chapter={chapter} lang={lang} />
 
+            <TextbookVisualAtlas chapter={chapter.n} lang={lang} />
+
             <nav className="section-jump" aria-label={lang === "en" ? "Chapter sections" : "章节小节"}>{chapter.sections.map((section, index) => <a key={section.id} href={`#chapter-${chapter.n}-${section.id}`}><span>{String(index + 1).padStart(2,"0")}</span>{tx(section.title)}</a>)}</nav>
 
             {chapter.sections.map((section, index) => <section className="deep-dive" id={`chapter-${chapter.n}-${section.id}`} key={section.id}>
               <div className="deep-dive-heading"><span>{String(index + 1).padStart(2,"0")}</span><div><span className="eyebrow">DEEP DIVE</span><h2>{tx(section.title)}</h2><small>{other(section.title)}</small></div></div>
               <div className="lecture-copy">{section.explanation.map((paragraph, pi) => <p key={pi}>{paragraph}</p>)}</div>
               <div className="knowledge-board"><span className="eyebrow">KNOWLEDGE YOU MUST OWN</span><ul>{section.details.map((detail, di) => <li key={di}><Check size={15} /><span>{detail}</span></li>)}</ul></div>
+              <SectionNoteFigures chapter={chapter.n} sectionId={section.id} lang={lang} />
               <div className="decision-grid">
                 <aside className="coach-decision"><span className="eyebrow">COACHING DECISION</span><strong>{section.decision.en}</strong><p>{section.decision.zh}</p></aside>
                 <aside className="exam-cue"><span className="eyebrow">EXAM CUE</span><strong>{section.examCue.en}</strong><p>{section.examCue.zh}</p></aside>
@@ -594,6 +706,8 @@ function CourseChapterReader({ lang, chapter, course, task, chapterScope, comple
             <section className="reference-block"><span className="eyebrow">KEY TERMINOLOGY</span><h2>{lang === "en" ? "Language the exam expects" : "考试要求掌握的术语"}</h2><div className="term-grid">{chapter.terms.map(item => <article key={item.term}><strong>{item.term}</strong><p>{item.meaning.en}</p><small>{item.meaning.zh}</small></article>)}</div></section>
 
             <section className="mastery-block"><div><span className="eyebrow">EXAM-READY CHECKLIST</span><h2>{lang === "en" ? "Can you do all of these without notes?" : "你能否不看笔记完成以下任务？"}</h2></div><ul>{chapter.examChecklist.map((item, index) => <li key={index}><span><Check size={15} /></span><div><b>{item.en}</b><small>{item.zh}</small></div></li>)}</ul></section>
+
+            <MindMapRecap chapter={chapter.n} lang={lang} />
 
             <section className="checkpoint-lab"><div className="checkpoint-heading"><div><span className="eyebrow">CHAPTER CHECKPOINTS</span><h2>{lang === "en" ? "Apply every deep-dive decision" : "应用每个深度单元的决策"}</h2><p>{lang === "en" ? "These exam-style checks make every section testable. Choose the decision that best fits the named problem." : "这些考试式检查覆盖每个小节。选择最符合指定问题的教练决策。"}</p></div><strong>{Object.keys(checkpointAnswers).length === sectionCount ? `${checkpointScore}/${sectionCount}` : `${Object.keys(checkpointAnswers).length}/${sectionCount}`}</strong></div><div className="checkpoint-list">{chapter.sections.map((section, index) => { const { options, correctIndex } = checkpointOptions(index); const selected = checkpointAnswers[index]; const answered = selected !== undefined; return <article key={section.id}><span className="checkpoint-number">CHECK {String(index + 1).padStart(2,"0")}</span><h3>{lang === "en" ? `Which decision best applies to ${section.title.en}?` : `哪项决策最适用于「${section.title.zh}」？`}</h3><small>{section.title[lang === "en" ? "zh" : "en"]}</small><div>{options.map((option, optionIndex) => <button key={optionIndex} disabled={answered} className={cn(answered && optionIndex === correctIndex && "correct", answered && selected === optionIndex && optionIndex !== correctIndex && "wrong")} onClick={() => setCheckpointAnswers(values => ({ ...values, [index]: optionIndex }))}><span>{String.fromCharCode(65 + optionIndex)}</span><b>{option}</b>{answered && optionIndex === correctIndex && <Check size={17} />}{answered && selected === optionIndex && optionIndex !== correctIndex && <X size={17} />}</button>)}</div>{answered && <aside className={selected === correctIndex ? "good" : "bad"}><strong>{selected === correctIndex ? (lang === "en" ? "Correct" : "正确") : (lang === "en" ? `Best answer: ${String.fromCharCode(65 + correctIndex)}` : `最佳答案：${String.fromCharCode(65 + correctIndex)}`)}</strong><p>{section.examCue.en}</p><small>{section.examCue.zh}</small></aside>}</article>})}</div></section>
 

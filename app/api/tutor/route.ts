@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { buildTutorContext } from "@/lib/tutor-context";
 
 type Incoming = {
@@ -47,11 +48,26 @@ function retrievalFallback(
   return `COURSE RETRIEVAL MODE (generative AI is not enabled yet)\n\nI searched all 26 chapters and prioritized the closest English exam evidence:\n\n${evidence}${practice ? `\n\nRELATED CHECKPOINT\n${practice}` : ""}${researchNote}\n\nNext step: explain the mechanism → coaching decision → likely exam trap in your own words. Once Vercel AI Gateway or OPENAI_API_KEY is enabled, this same tutor automatically adds synthesized teaching, follow-up questions, and live web research.`;
 }
 
-async function recentResearch(question: string) {
+async function requirePlacedLearner(request: Request) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const authorization = request.headers.get("authorization") || "";
+  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+  if (!url || !key || !token) return { error: NextResponse.json({ error: "Sign in to use the AI Tutor." }, { status: 401 }) };
+  const supabase = createClient(url, key, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: userData, error: userError } = await supabase.auth.getUser(token);
+  if (userError || !userData.user) return { error: NextResponse.json({ error: "Your session expired. Sign in again." }, { status: 401 }) };
+  const { data: progress } = await supabase.from("user_progress").select("state").eq("user_id", userData.user.id).eq("certification_id", "nsca-cscs-5").maybeSingle();
+  const state = progress?.state as { diagnostic?: unknown } | null;
+  if (!state?.diagnostic) return { error: NextResponse.json({ error: "Complete the required placement before using the AI Tutor." }, { status: 403 }) };
+  return { token, userId: userData.user.id };
+}
+
+async function recentResearch(question: string, token: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return [];
-  const response = await fetch(`${url}/rest/v1/research_items?select=provider,title,summary_en,summary_zh,source_url,published_at,chapter_numbers&order=published_at.desc&limit=30`, { headers: { apikey: key, Authorization: `Bearer ${key}` }, next: { revalidate: 900 } }).catch(() => null);
+  const response = await fetch(`${url}/rest/v1/research_items?select=provider,title,summary_en,summary_zh,source_url,published_at,chapter_numbers&order=published_at.desc&limit=30`, { headers: { apikey: key, Authorization: `Bearer ${token}` }, cache: "no-store" }).catch(() => null);
   if (!response?.ok) return [];
   const items = await response.json() as Array<{ provider: string; title: string; summary_en?: string; summary_zh?: string; source_url: string; published_at?: string; chapter_numbers?: number[] }>;
   const terms = question.toLowerCase().split(/\W+/).filter(term => term.length > 3);
@@ -63,6 +79,8 @@ async function recentResearch(question: string) {
 }
 
 export async function POST(request: Request) {
+  const learner = await requirePlacedLearner(request);
+  if (learner.error) return learner.error;
   const directOpenAI = process.env.OPENAI_API_KEY;
   const gatewayToken = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || request.headers.get("x-vercel-oidc-token");
   const apiKey = directOpenAI || gatewayToken;
@@ -73,7 +91,7 @@ export async function POST(request: Request) {
   if (!question || question.length > 2000) return NextResponse.json({ error: "Ask a question between 1 and 2,000 characters." }, { status: 400 });
 
   const grounded = buildTutorContext(question, body.context, body.mastery);
-  const research = await recentResearch(question);
+  const research = await recentResearch(question, learner.token!);
   const researchText = research.length ? research.map(item => {
     const label = item.provider === "NSCA official" ? "Official NSCA watch" : item.provider.includes("community lead") ? "Unverified community lead" : "Research watch";
     return `[${label} · ${item.published_at || "recent"}] ${item.title}\n${item.summary_en || "Metadata only; inspect the linked source."}\nURL: ${item.source_url}`;

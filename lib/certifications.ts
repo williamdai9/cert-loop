@@ -3,6 +3,7 @@ import {
   type DomainId, type Question, type Section,
 } from "./cscs-data";
 import { cardEnglish, planEnglish, questionEnglish } from "./cscs-en";
+import { extendedQuestions } from "./question-bank-extended";
 
 export type { DomainId, Question, Section };
 
@@ -59,7 +60,7 @@ export const certificationRegistry: CertificationPack[] = [
     chapters,
     plan: basePlan.map(w => ({ ...w, en: planEnglish[w.id] })),
     quickCards: quickCards.map(c => ({ ...c, en: cardEnglish[c.front] })),
-    questions: questions.map(q => ({ ...q, en: questionEnglish[q.id] })),
+    questions: [...questions.map(q => ({ ...q, en: questionEnglish[q.id] })), ...extendedQuestions],
   },
 ];
 
