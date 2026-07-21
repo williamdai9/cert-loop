@@ -37,14 +37,35 @@ function ImageViewer({ figure, lang, onClose }: { figure: { path: string; title:
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const previousFocus = useRef<HTMLElement | null>(null);
   const reset = () => { setScale(1); setOffset({ x: 0, y: 0 }); };
 
-  return <div className="image-viewer-layer" role="dialog" aria-modal="true" aria-label={figure.title[lang]}>
+  useEffect(() => {
+    previousFocus.current = document.activeElement as HTMLElement | null;
+    const root = dialog.current;
+    const controls = () => Array.from(root?.querySelectorAll<HTMLElement>("button:not([disabled])") || []);
+    controls()[0]?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+      if (event.key !== "Tab") return;
+      const items = controls();
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => { document.removeEventListener("keydown", handleKey); previousFocus.current?.focus(); };
+  }, [onClose]);
+
+  return <div ref={dialog} className="image-viewer-layer" role="dialog" aria-modal="true" aria-label={figure.title[lang]}>
     <header><div><span>PROTECTED COURSE VISUAL</span><strong>{figure.title[lang]}</strong></div><div><button onClick={() => setScale(value => Math.max(0.75, value - 0.25))} aria-label="Zoom out"><ZoomOut size={18} /></button><b>{Math.round(scale * 100)}%</b><button onClick={() => setScale(value => Math.min(4, value + 0.25))} aria-label="Zoom in"><ZoomIn size={18} /></button><button onClick={reset} aria-label="Reset view"><RotateCcw size={17} /></button><button onClick={onClose} aria-label="Close image"><X size={19} /></button></div></header>
     <div className={scale > 1 ? "image-viewer-canvas pannable" : "image-viewer-canvas"}
       onPointerDown={event => { if (scale <= 1) return; drag.current = { x: event.clientX, y: event.clientY, ox: offset.x, oy: offset.y }; event.currentTarget.setPointerCapture(event.pointerId); }}
-      onPointerMove={event => { if (!drag.current) return; setOffset({ x: drag.current.ox + event.clientX - drag.current.x, y: drag.current.oy + event.clientY - drag.current.y }); }}
+      onPointerMove={event => { if (!drag.current) return; const limitX = window.innerWidth * .75, limitY = window.innerHeight * .75; setOffset({ x: Math.max(-limitX, Math.min(limitX, drag.current.ox + event.clientX - drag.current.x)), y: Math.max(-limitY, Math.min(limitY, drag.current.oy + event.clientY - drag.current.y)) }); }}
       onPointerUp={() => { drag.current = null; }}
+      onPointerCancel={() => { drag.current = null; }}
       onDoubleClick={() => { if (scale === 1) setScale(2); else reset(); }}>
       <ProtectedCourseImage path={figure.path} alt={figure.alt[lang]} className="image-viewer-image" />
       <style>{`.image-viewer-image{transform:translate(${offset.x}px,${offset.y}px) scale(${scale})}`}</style>

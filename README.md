@@ -11,6 +11,7 @@ Live site: https://cert-loop-study.vercel.app
 - adaptive 8, 12, or 16 week study plans
 - every Plan item opens its linked complete chapter course, not a separate summary
 - 26 original fifth-edition visual atlases plus chapter-specific calculators and simulations
+- Chapter 1 visual curriculum audited against all 17 figures and 2 tables: muscle structure, excitation-contraction coupling, motor-unit behavior, proprioception, circulation, ECG, ventilation, and gas exchange
 - protected personal-note figures and 20 supplied mind maps with zoom/pan study views
 - English-first deep dives, coaching decisions, exam cues, checkpoints, and active recall
 - official CSCS domain weights and exam structure

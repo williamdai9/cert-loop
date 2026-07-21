@@ -3,6 +3,7 @@ import test from "node:test";
 import { cscsCourse } from "../lib/course/index.ts";
 import { certificationRegistry } from "../lib/certifications.ts";
 import { courseMedia } from "../lib/course-media.ts";
+import { chapterOneVisualCoverage } from "../lib/chapter-one-visual-coverage.ts";
 
 test("ships a complete, ordered 26-chapter CSCS course", () => {
   assert.equal(cscsCourse.length, 26);
@@ -30,6 +31,26 @@ test("maps every chapter to an original textbook visual model", () => {
   }
   assert.ok(courseMedia[1].noteFigures?.length >= 6, "chapter 1 needs the supplied anatomy and contraction figures");
   assert.ok(Object.values(courseMedia).filter((media) => media.mindMap).length >= 20, "personal mind-map coverage is incomplete");
+});
+
+test("audits every Chapter 1 fifth-edition figure and table into a learning module", () => {
+  const expected = [
+    ...Array.from({ length: 17 }, (_, index) => `Figure 1.${index + 1}`),
+    "Table 1.1",
+    "Table 1.2",
+  ];
+  assert.equal(chapterOneVisualCoverage.length, 19);
+  assert.deepEqual(chapterOneVisualCoverage.map((item) => item.id), expected);
+  assert.deepEqual(
+    new Set(chapterOneVisualCoverage.map((item) => item.sectionId)),
+    new Set(["musculoskeletal", "contraction", "neuromuscular", "cardiovascular", "respiratory"]),
+  );
+  assert.ok(chapterOneVisualCoverage.filter((item) => item.implementation === "interactive-original").length >= 14);
+  for (const item of chapterOneVisualCoverage) {
+    assert.ok(item.pdfPage, `${item.id} needs a verified PDF page`);
+    assert.ok(item.concept.length > 20, `${item.id} needs a meaningful concept description`);
+    assert.ok(item.module, `${item.id} needs an implemented module`);
+  }
 });
 
 test("every chapter contains a full lesson and retrieval practice", () => {

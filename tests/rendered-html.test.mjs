@@ -37,7 +37,7 @@ test("server-renders a secure Cert Loop access boundary", async () => {
 });
 
 test("ships plan-linked complete lessons, adaptive testing, research, and private progress sync", async () => {
-  const [page, lessons, supabase, migration, tutor, visuals, researchMigration, protectionMigration, courseMedia, tutorClient] = await Promise.all([
+  const [page, lessons, supabase, migration, tutor, visuals, chapterOneVisuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/lesson-data.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/supabase-browser.ts", import.meta.url), "utf8"),
@@ -50,6 +50,9 @@ test("ships plan-linked complete lessons, adaptive testing, research, and privat
     ),
     readFile(new URL("../app/api/tutor/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/chapter-visual-lab.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/chapter-one-visual-studio.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/chapter-one-visual-coverage.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/course-media.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260720203000_daily_research_pipeline.sql", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260721153000_protect_learning_content.sql", import.meta.url), "utf8"),
     readFile(new URL("../lib/course-media.ts", import.meta.url), "utf8"),
@@ -65,6 +68,7 @@ test("ships plan-linked complete lessons, adaptive testing, research, and privat
   assert.match(page, /task=\{activeLesson\}/);
   assert.match(page, /Adaptive diagnostic/);
   assert.match(page, /ChapterVisualLab/);
+  assert.match(page, /ChapterOneVisualStudio/);
   assert.match(page, /AITutor/);
   assert.match(page, /signInWithOtp/);
   assert.match(page, /function PublicPreview/);
@@ -82,6 +86,23 @@ test("ships plan-linked complete lessons, adaptive testing, research, and privat
   assert.match(tutorClient, /Authorization: `Bearer/);
   assert.match(visuals, /Joint torque calculator/);
   assert.match(visuals, /Energy-system continuum/);
+  assert.doesNotMatch(visuals, /function ContractionLab/);
+  assert.match(chapterOneVisuals, /Tricuspid valve/);
+  assert.match(chapterOneVisuals, /Pulmonary valve \+ artery/);
+  assert.match(chapterOneVisuals, /Mitral valve/);
+  assert.match(chapterOneVisuals, /Aortic valve/);
+  assert.match(chapterOneVisuals, /Twitch summation/);
+  assert.match(chapterOneVisuals, /motor-unit-mosaic/);
+  assert.match(chapterOneVisuals, /Type IIx/);
+  assert.match(chapterOneVisuals, /Mitochondrial size and density/);
+  assert.match(chapterOneVisuals, /Distance cycling/);
+  assert.match(chapterOneVisuals, /Conduction \+ ECG/);
+  assert.match(chapterOneVisuals, /tidalVolume - anatomicalDeadSpace - physiologicalDeadSpace/);
+  assert.match(visualCoverage, /Figure 1\.17/);
+  assert.match(visualCoverage, /Table 1\.2/);
+  assert.match(courseMediaViewer, /event\.key === "Escape"/);
+  assert.match(courseMediaViewer, /onPointerCancel/);
+  assert.match(courseMediaViewer, /querySelectorAll<HTMLElement>/);
   assert.match(researchMigration, /research_items/);
   assert.match(researchMigration, /content_review_queue|research_sync_runs/);
   assert.match(protectionMigration, /authenticated learners read published lessons/);

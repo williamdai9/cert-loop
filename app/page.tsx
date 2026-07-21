@@ -14,6 +14,7 @@ import { cscsCourse, type CourseChapter, type CourseText } from "@/lib/course";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 import { ChapterVisualLab } from "@/app/components/chapter-visual-lab";
 import { MindMapRecap, SectionNoteFigures, TextbookVisualAtlas } from "@/app/components/course-media";
+import { ChapterOneVisualStudio } from "@/app/components/chapter-one-visual-studio";
 import { AITutor } from "@/app/components/ai-tutor";
 import { ResearchPulse } from "@/app/components/research-pulse";
 
@@ -316,7 +317,7 @@ export default function Home() {
             <span className="eyebrow">{pack.name.toUpperCase()}</span>
             <h1>{nav.find(n => n.id === tab)?.[lang]}</h1>
           </div>
-          <div className="top-actions"><button className="tour-replay" onClick={() => setState(value => ({ ...value, tourCompleted: false }))} title={lang === "en" ? "Replay site tour" : "重新查看网站导览"}><Compass size={16} /></button><button className="account-button" onClick={() => setAuthOpen(true)}><Cloud size={15} /><span>{user.email}</span></button><div className="lang-toggle"><button className={lang === "zh" ? "active" : ""} onClick={() => setLang("zh")}>中</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div><div className="top-stats"><span><Flame size={16} /> {state.streak} {t.days}</span><span><Zap size={16} /> {state.xp} XP</span></div></div>
+          <div className="top-actions"><button className="tour-replay" onClick={() => setState(value => ({ ...value, tourCompleted: false }))} title={lang === "en" ? "Replay site tour" : "重新查看网站导览"}><Compass size={16} /></button><button className="account-button" aria-label={lang === "en" ? `Account: ${user.email}` : `账户：${user.email}`} onClick={() => setAuthOpen(true)}><Cloud size={15} /><span>{user.email}</span></button><div className="lang-toggle"><button className={lang === "zh" ? "active" : ""} onClick={() => setLang("zh")}>中</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div><div className="top-stats"><span><Flame size={16} /> {state.streak} {t.days}</span><span><Zap size={16} /> {state.xp} XP</span></div></div>
         </header>
 
         {tab === "dashboard" && <Dashboard lang={lang} pack={pack} state={state} studyDays={studyDays} completion={completion} setState={setState} setTab={setTab} openLesson={setActiveLesson} />}
@@ -694,6 +695,7 @@ function CourseChapterReader({ lang, chapter, course, task, chapterScope, comple
               <div className="deep-dive-heading"><span>{String(index + 1).padStart(2,"0")}</span><div><span className="eyebrow">DEEP DIVE</span><h2>{tx(section.title)}</h2><small>{other(section.title)}</small></div></div>
               <div className="lecture-copy">{section.explanation.map((paragraph, pi) => <p key={pi}>{paragraph}</p>)}</div>
               <div className="knowledge-board"><span className="eyebrow">KNOWLEDGE YOU MUST OWN</span><ul>{section.details.map((detail, di) => <li key={di}><Check size={15} /><span>{detail}</span></li>)}</ul></div>
+              {chapter.n === 1 && <ChapterOneVisualStudio sectionId={section.id} lang={lang} />}
               <SectionNoteFigures chapter={chapter.n} sectionId={section.id} lang={lang} />
               <div className="decision-grid">
                 <aside className="coach-decision"><span className="eyebrow">COACHING DECISION</span><strong>{section.decision.en}</strong><p>{section.decision.zh}</p></aside>
