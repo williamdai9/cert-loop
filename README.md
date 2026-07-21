@@ -10,18 +10,19 @@ Live site: https://cert-loop-study.vercel.app
 
 - adaptive 8, 12, or 16 week study plans
 - every Plan item opens its linked complete chapter course, not a separate summary
-- 26 original interactive concept maps plus chapter-specific calculators and simulations
+- 26 original fifth-edition visual atlases plus chapter-specific calculators and simulations
+- protected personal-note figures and 20 supplied mind maps with zoom/pan study views
 - English-first deep dives, coaching decisions, exam cues, checkpoints, and active recall
 - official CSCS domain weights and exam structure
 - practice and exam test modes
 - wrong-answer review loop
-- 42 original bilingual practice questions across all seven domains
+- 84 original bilingual practice questions across all seven domains
 - 26-chapter textbook map and bilingual flashcards
-- passwordless Supabase authentication and private cloud progress sync
-- 30-item adaptive diagnostic with priority and fast-track recommendations
+- passwordless Supabase authentication; signed-out visitors receive preview only
+- required first-login 30-item placement with priority and fast-track recommendations
+- first-run five-step site tour with an always-available replay control
 - whole-site AI Tutor grounded in the course, question bank, learner mastery, and research feed
 - daily multi-source watch across NSCA official articles, Europe PMC research, and selected community leads; AI-drafted content/questions are held for review
-- local, certificate-scoped progress fallback for signed-out learners
 - responsive desktop and mobile interface
 
 ## Content policy
@@ -48,20 +49,23 @@ npm run dev
 Open http://localhost:3000.
 
 Copy `.env.example` to `.env.local` and add the project's public Supabase
-credentials to enable authentication and cloud sync. The app remains usable
-with local progress when those values are absent.
+credentials to enable authentication and cloud sync. Full learning content is
+intentionally unavailable to signed-out visitors.
 
-The AI Tutor uses Vercel AI Gateway with the deployment's short-lived
-`VERCEL_OIDC_TOKEN` in production. For local use, set `AI_GATEWAY_API_KEY` or
-`OPENAI_API_KEY`. Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser.
+The AI Tutor prefers the server-only `OPENAI_API_KEY` and can fall back to
+Vercel AI Gateway. For local use, set `OPENAI_API_KEY` or
+`AI_GATEWAY_API_KEY`. Never expose either key—or
+`SUPABASE_SERVICE_ROLE_KEY`—to the browser.
 
 ## Supabase
 
 The schema is versioned in `supabase/migrations`. It includes reusable tables
 for certifications, sources, lessons, questions, per-user progress, and a
-content-review queue. Published lessons are read from Supabase at runtime, with
-the versioned code content retained as an offline fallback. Row Level Security
-keeps each learner's progress private.
+content-review queue. Published lessons and questions are read from Supabase at
+runtime after authentication, with versioned code content retained as a build
+fallback. Course images are stored in the private `course-media` bucket. Row
+Level Security blocks anonymous learning-content reads and keeps each learner's
+progress private.
 
 ```bash
 supabase login
@@ -72,6 +76,10 @@ supabase db push
 `npm run db:content` generates the published lesson seed SQL from the canonical
 English-first lesson source. Content changes should be reviewed before the
 resulting migration is pushed.
+
+`npm run questions:publish` publishes the reviewed 84-item bilingual bank to
+Supabase. It requires the server-only `SUPABASE_SERVICE_ROLE_KEY`; never place
+that key in a browser-visible environment variable.
 
 `research-update` is a deployed Supabase Edge Function. Vercel Cron invokes it
 daily at 08:17 UTC. It monitors NSCA's official RSS feed, Europe PMC, and the
