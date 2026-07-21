@@ -60,7 +60,7 @@ function StructureExplorer({ lang }: { lang: Lang }) {
           <path className="force-route" d="M716 267H120"/><path className="force-arrow" d="m120 267 15-9v18z"/>
           <text className="force-label" x="333" y="293">FORCE TRANSMISSION TO TENDON / BONE</text>
         </svg>
-        <ol className={recall ? "structure-labels recall" : "structure-labels"}>{hierarchy.map((item, index) => <li key={item[0]}><span>{index + 1}</span><b>{recall ? "?" : item[lang === "en" ? 0 : 1]}</b>{!recall && <small>{item[lang === "en" ? 1 : 0]}</small>}</li>)}</ol>
+        <ol className={recall ? "structure-labels recall" : "structure-labels"}>{hierarchy.map((item, index) => <li key={item[0]}><span>{index + 1}</span><b>{recall ? "?" : item[lang === "en" ? 0 : 1]}</b>{lang === "zh" && !recall && <small>{item[0]}</small>}</li>)}</ol>
       </div>
 
       <aside className="visual-retrieval-card"><span>RETRIEVAL CHECK</span><h4>{copy(lang, "Which connective layer surrounds a fascicle?", "哪一层结缔组织包绕肌束？")}</h4><div>{[["Epimysium","肌外膜"],["Perimysium","肌束膜"],["Endomysium","肌内膜"]].map(([en,zh]) => <button key={en} className={answer === en ? (en === "Perimysium" ? "correct" : "wrong") : ""} onClick={() => setAnswer(en)}>{lang === "en" ? en : zh}</button>)}</div>{answer && <p aria-live="polite"><strong>{answer === "Perimysium" ? copy(lang,"Correct.","正确。") : copy(lang,"Try again.","再试一次。")}</strong> {copy(lang, "Epimysium surrounds the whole muscle; perimysium surrounds fascicles; endomysium surrounds individual fibers.", "肌外膜包绕整块肌肉；肌束膜包绕肌束；肌内膜包绕单条肌纤维。")}</p>}</aside>

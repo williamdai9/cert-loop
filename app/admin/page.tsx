@@ -135,7 +135,7 @@ export default function AdminPage() {
     </aside>
 
     <main className={styles.main}>
-      <header className={styles.topbar}><div><p className={styles.kicker}>CSCS · ENGLISH SOURCE OF TRUTH</p><h1>{tabs.find(item => item.id === tab)?.label}</h1></div><div className={styles.topActions}><span className={data.cloud.status === "healthy" ? styles.healthy : styles.warning}><Cloud size={14}/> {data.cloud.status}</span><button onClick={() => session && load(session.access_token)} aria-label="Refresh content"><RefreshCw size={16}/></button><button onClick={signOut} aria-label="Sign out"><LogOut size={16}/><span>Sign out</span></button></div></header>
+      <header className={styles.topbar}><div><p className={styles.kicker}>NSCA CERTIFIED STRENGTH AND CONDITIONING SPECIALIST®</p><h1>{tabs.find(item => item.id === tab)?.label}</h1></div><div className={styles.topActions}><span className={data.cloud.status === "healthy" ? styles.healthy : styles.warning}><Cloud size={14}/> {data.cloud.status}</span><button onClick={() => session && load(session.access_token)} aria-label="Refresh content"><RefreshCw size={16}/></button><button onClick={signOut} aria-label="Sign out"><LogOut size={16}/><span>Sign out</span></button></div></header>
       <div className={styles.content}>
         {tab === "overview" && <Overview data={data} />}
         {tab === "curriculum" && <Curriculum data={data} active={activeChapter} selected={chapterNumber} onSelect={setChapterNumber} query={query} setQuery={setQuery} />}

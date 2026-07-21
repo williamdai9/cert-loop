@@ -32,12 +32,12 @@ export type CertificationPack = {
 export const certificationRegistry: CertificationPack[] = [
   {
     id: "nsca-cscs-5",
-    acronym: "CSCS",
-    name: "Certified Strength & Conditioning Specialist",
-    edition: "第五版",
+    acronym: "CSCS®",
+    name: "NSCA Certified Strength and Conditioning Specialist® (CSCS®)",
+    edition: "Essentials of Strength Training and Conditioning, Fifth Edition",
     locale: "zh-CN",
-    description: "A bilingual study pack grounded in the English fifth-edition textbook and official NSCA DCO",
-    sourceNote: "English 5th ed. textbook · Official English DCO",
+    description: "A complete course aligned to Essentials of Strength Training and Conditioning, Fifth Edition, and the official NSCA Detailed Content Outline",
+    sourceNote: "National Strength and Conditioning Association · Official CSCS® Detailed Content Outline",
     verifiedOn: "2026-07-20",
     officialFacts: [
       { value: "70", labelEn: "minimum scaled score", labelZh: "最低标准分" },
@@ -46,8 +46,8 @@ export const certificationRegistry: CertificationPack[] = [
       { value: "B.A./B.S. + CPR/AED", labelEn: "current eligibility baseline", labelZh: "当前报考资格基线" },
     ],
     officialSources: [
-      { label: "NSCA CSCS Certification", url: "https://www.nsca.com/certification/cscs" },
-      { label: "NSCA CSCS Exam Description", url: "https://www.nsca.com/certification/cscs/certified-strength-and-conditioning-specialist-exam-description/" },
+      { label: "NSCA Certified Strength and Conditioning Specialist®", url: "https://www.nsca.com/certification/cscs" },
+      { label: "Official CSCS® Exam Description", url: "https://www.nsca.com/certification/cscs/certified-strength-and-conditioning-specialist-exam-description/" },
     ],
     exam: {
       sections: [

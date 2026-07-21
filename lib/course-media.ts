@@ -27,7 +27,7 @@ const map = (path: string, en: string, zh: string, outline: CourseText[]) => ({
   path,
   title: t(en, zh),
   caption: t(
-    "Personal study map supplied by the learner. Use it for retrieval after learning from the English-first lesson; verify any conflicting wording against the fifth edition.",
+    "Personal study map supplied by the learner. Use it for retrieval after completing the lesson, and verify any conflicting wording against the fifth edition.",
     "学习者提供的个人思维导图。请先学习英文主课程，再用它主动回忆；如有冲突，以第五版英文内容为准。",
   ),
   outline,

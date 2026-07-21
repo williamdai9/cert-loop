@@ -27,17 +27,18 @@ async function render() {
   return requestWorker("/");
 }
 
-test("server-renders a secure Cert Loop access boundary", async () => {
+test("server-renders a general certification catalog", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Cert Loop — Scalable Certification Learning<\/title>/i);
+  assert.match(html, /<title>Cert Loop — End-to-End Certification Learning<\/title>/i);
   assert.match(html, /CERT LOOP/);
-  assert.match(html, /Securing your learning workspace/);
-  assert.match(html, /CSCS/);
-  assert.doesNotMatch(html, /Learn it, test it/);
+  assert.match(html, /Prepare for the credential/);
+  assert.match(html, /Certified Strength and Conditioning Specialist/);
+  assert.match(html, /\/certifications\/nsca-cscs/);
+  assert.doesNotMatch(html, /English-first/);
 });
 
 test("rejects anonymous administrator API inspection", async () => {
@@ -46,9 +47,10 @@ test("rejects anonymous administrator API inspection", async () => {
   assert.deepEqual(await response.json(), { error: "Sign in with an administrator account." });
 });
 
-test("ships plan-linked complete lessons, adaptive testing, research, and private progress sync", async () => {
-  const [page, lessons, supabase, migration, tutor, visuals, chapterOneVisuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, adminPage, adminApi] = await Promise.all([
+test("ships plan-linked complete lessons, optional placement, research, and private progress sync", async () => {
+  const [catalogPage, page, lessons, supabase, migration, tutor, visuals, chapterOneVisuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, adminPage, adminApi, registry] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/certifications/nsca-cscs/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/lesson-data.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/supabase-browser.ts", import.meta.url), "utf8"),
     readFile(
@@ -69,6 +71,7 @@ test("ships plan-linked complete lessons, adaptive testing, research, and privat
     readFile(new URL("../app/components/ai-tutor.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/admin/content/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/certifications.ts", import.meta.url), "utf8"),
   ]);
 
   const lessonIds = lessons.match(/"w(?:[1-9]|1[0-2])-[0-3]":\s*L\(/g) ?? [];
@@ -78,13 +81,20 @@ test("ships plan-linked complete lessons, adaptive testing, research, and privat
   assert.match(page, /from\("lessons"\)/);
   assert.match(page, /activePlanChapter/);
   assert.match(page, /task=\{activeLesson\}/);
-  assert.match(page, /Adaptive diagnostic/);
+  assert.match(page, /Optional placement/);
+  assert.match(page, /useState\("weighted"\)/);
+  assert.match(page, /tasks: standard\[0\]\.tasks\.filter\(task => task\.id !== "w1-0"\)/);
   assert.match(page, /ChapterVisualLab/);
   assert.match(page, /ChapterOneVisualStudio/);
   assert.match(page, /AITutor/);
   assert.match(page, /signInWithOtp/);
   assert.match(page, /function PublicPreview/);
   assert.match(page, /function PlacementTest/);
+  assert.match(page, /Start from the beginning/);
+  assert.match(page, /Take a placement test/);
+  assert.match(page, /onboardingChoice: "zero"/);
+  assert.match(page, /OPTIONAL PLACEMENT · 30 QUESTIONS/);
+  assert.doesNotMatch(page, /REQUIRED FIRST-LOGIN PLACEMENT|NO SKIP|English-first certification mastery/);
   assert.match(page, /function SiteTour/);
   assert.match(page, /MindMapRecap/);
   assert.match(page, /TextbookVisualAtlas/);
@@ -95,7 +105,9 @@ test("ships plan-linked complete lessons, adaptive testing, research, and privat
   assert.match(migration, /auth\.uid\(\) = user_id/);
   assert.match(tutor, /buildTutorContext/);
   assert.match(tutor, /web_search/);
-  assert.match(tutor, /requirePlacedLearner/);
+  assert.match(tutor, /requireOnboardedLearner/);
+  assert.match(tutor, /Choose a starting point before using the AI Tutor/);
+  assert.match(tutor, /Do not add Chinese text in English mode/);
   assert.match(tutorClient, /Authorization: `Bearer/);
   assert.match(visuals, /Joint torque calculator/);
   assert.match(visuals, /Energy-system continuum/);
@@ -137,4 +149,7 @@ test("ships plan-linked complete lessons, adaptive testing, research, and privat
   assert.match(adminApi, /from\("research_items"\)/);
   assert.match(adminApi, /from\("content_review_queue"\)/);
   assert.match(adminApi, /createSignedUrls/);
+  assert.match(catalogPage, /End-to-end curriculum/);
+  assert.match(catalogPage, /\/certifications\/nsca-cscs/);
+  assert.match(registry, /NSCA Certified Strength and Conditioning Specialist® \(CSCS®\)/);
 });

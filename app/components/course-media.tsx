@@ -79,7 +79,7 @@ function FigureCard({ figure, lang }: { figure: Figure; lang: Lang }) {
   return <>
     <button className="note-figure-card" onClick={() => setOpen(true)}>
       <div><ProtectedCourseImage path={figure.path} alt={figure.alt[lang]} /></div>
-      <span><strong>{figure.title.en}</strong><small>{figure.title.zh}</small><p>{figure.caption[lang]}</p><em><Expand size={14} /> {lang === "en" ? "Open zoomable study view" : "打开可缩放学习视图"}</em></span>
+      <span><strong>{figure.title[lang]}</strong>{lang === "zh" && <small>{figure.title.en}</small>}<p>{figure.caption[lang]}</p><em><Expand size={14} /> {lang === "en" ? "Open zoomable study view" : "打开可缩放学习视图"}</em></span>
     </button>
     {open && <ImageViewer figure={figure} lang={lang} onClose={() => setOpen(false)} />}
   </>;
@@ -107,8 +107,8 @@ export function TextbookVisualAtlas({ chapter, lang }: { chapter: number; lang: 
     <div className="visual-lab-heading"><div><span className="eyebrow">5TH-EDITION VISUAL ATLAS · ORIGINAL REDRAW</span><h2>{lang === "en" ? "Rebuild the textbook's visual logic" : "重建教材的视觉逻辑"}</h2><p>{intro}</p></div><span className="visual-badge"><BookImage size={16} /> {media.textbookAtlas.length} {lang === "en" ? "models" : "个模型"}</span></div>
     <div className="atlas-tabs">{media.textbookAtlas.map((item, index) => <button className={index === active ? "active" : ""} key={item.title.en} onClick={() => setActive(index)}><span>{String(index + 1).padStart(2, "0")}</span><b>{item.title[lang]}</b></button>)}</div>
     <article className="atlas-model">
-      <header><span>{current.relationship.en}</span><small>{current.relationship.zh}</small></header>
-      <div>{current.steps.map((step, index) => <div key={step.en}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step.en}</strong><small>{step.zh}</small>{index < current.steps.length - 1 && <i>→</i>}</div>)}</div>
+      <header><span>{current.relationship[lang]}</span>{lang === "zh" && <small>{current.relationship.en}</small>}</header>
+      <div>{current.steps.map((step, index) => <div key={step.en}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step[lang]}</strong>{lang === "zh" && <small>{step.en}</small>}{index < current.steps.length - 1 && <i>→</i>}</div>)}</div>
       <footer><Check size={15} /><span>{lang === "en" ? "Exam use: explain the arrows—not just the nouns—before moving on." : "考试用法：先解释箭头所代表的关系，而不只是背名词。"}</span></footer>
     </article>
   </section>;
@@ -123,7 +123,7 @@ export function MindMapRecap({ chapter, lang }: { chapter: number; lang: Lang })
   return <>
     <section className="mind-map-recap">
       <button className="mind-map-preview" onClick={() => setOpen(true)}><ProtectedCourseImage path={mindMap.path} alt={mindMap.title[lang]} /><span><Expand size={18} /> {lang === "en" ? "Open full map" : "打开完整导图"}</span></button>
-      <div><span className="eyebrow">MIND MAP RECAP · PERSONAL STUDY LAYER</span><h2>{mindMap.title.en}</h2><h3>{mindMap.title.zh}</h3><p>{mindMap.caption[lang]}</p><ol>{mindMap.outline.map((item, index) => <li key={item.en}><span>{index + 1}</span><div><b>{item.en}</b><small>{item.zh}</small></div></li>)}</ol><button className="ghost" onClick={() => setOpen(true)}><ZoomIn size={15} /> {lang === "en" ? "Zoom, pan, and study" : "缩放、拖动并学习"}</button></div>
+      <div><span className="eyebrow">MIND MAP RECAP · PERSONAL STUDY LAYER</span><h2>{mindMap.title[lang]}</h2>{lang === "zh" && <h3>{mindMap.title.en}</h3>}<p>{mindMap.caption[lang]}</p><ol>{mindMap.outline.map((item, index) => <li key={item.en}><span>{index + 1}</span><div><b>{item[lang]}</b>{lang === "zh" && <small>{item.en}</small>}</div></li>)}</ol><button className="ghost" onClick={() => setOpen(true)}><ZoomIn size={15} /> {lang === "en" ? "Zoom, pan, and study" : "缩放、拖动并学习"}</button></div>
     </section>
     {open && <ImageViewer figure={viewerFigure} lang={lang} onClose={() => setOpen(false)} />}
   </>;

@@ -48,7 +48,7 @@ function retrievalFallback(
   return `COURSE RETRIEVAL MODE (generative AI is not enabled yet)\n\nI searched all 26 chapters and prioritized the closest English exam evidence:\n\n${evidence}${practice ? `\n\nRELATED CHECKPOINT\n${practice}` : ""}${researchNote}\n\nNext step: explain the mechanism → coaching decision → likely exam trap in your own words. Once Vercel AI Gateway or OPENAI_API_KEY is enabled, this same tutor automatically adds synthesized teaching, follow-up questions, and live web research.`;
 }
 
-async function requirePlacedLearner(request: Request) {
+async function requireOnboardedLearner(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const authorization = request.headers.get("authorization") || "";
@@ -58,8 +58,8 @@ async function requirePlacedLearner(request: Request) {
   const { data: userData, error: userError } = await supabase.auth.getUser(token);
   if (userError || !userData.user) return { error: NextResponse.json({ error: "Your session expired. Sign in again." }, { status: 401 }) };
   const { data: progress } = await supabase.from("user_progress").select("state").eq("user_id", userData.user.id).eq("certification_id", "nsca-cscs-5").maybeSingle();
-  const state = progress?.state as { diagnostic?: unknown } | null;
-  if (!state?.diagnostic) return { error: NextResponse.json({ error: "Complete the required placement before using the AI Tutor." }, { status: 403 }) };
+  const state = progress?.state as { diagnostic?: unknown; onboardingChoice?: "zero" | "placement" } | null;
+  if (!state?.diagnostic && !state?.onboardingChoice) return { error: NextResponse.json({ error: "Choose a starting point before using the AI Tutor." }, { status: 403 }) };
   return { token, userId: userData.user.id };
 }
 
@@ -79,7 +79,7 @@ async function recentResearch(question: string, token: string) {
 }
 
 export async function POST(request: Request) {
-  const learner = await requirePlacedLearner(request);
+  const learner = await requireOnboardedLearner(request);
   if (learner.error) return learner.error;
   const directOpenAI = process.env.OPENAI_API_KEY;
   const gatewayToken = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || request.headers.get("x-vercel-oidc-token");
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     const label = item.provider === "NSCA official" ? "Official NSCA watch" : item.provider.includes("community lead") ? "Unverified community lead" : "Research watch";
     return `[${label} · ${item.published_at || "recent"}] ${item.title}\n${item.summary_en || "Metadata only; inspect the linked source."}\nURL: ${item.source_url}`;
   }).join("\n\n") : "No matching reviewed item in the daily feed.";
-  const languageRule = body.lang === "zh" ? "Answer in clear Chinese, but keep all tested English terms and formulas in English beside the translation." : "Answer in English first. Add a short Chinese support note only when it materially prevents confusion.";
+  const languageRule = body.lang === "zh" ? "Answer in clear Chinese, but keep all tested English terms and formulas in English beside the translation." : "Answer only in professional English. Do not add Chinese text in English mode.";
   const history = (body.history || []).slice(-8).map(item => `${item.role.toUpperCase()}: ${item.text}`).join("\n");
   const useWeb = Boolean(body.research);
   const baseSources: Array<{ title: string; url?: string; kind: "course" | "official" | "research" | "community" | "web" }> = [

@@ -47,7 +47,7 @@ export function AITutor({ lang, context, mastery }: { lang: Lang; context?: Tuto
     <button className="tutor-launch" onClick={() => setOpen(true)} aria-label={lang === "en" ? "Open AI Tutor" : "打开 AI 导师"}><span><Sparkles size={18} /></span><b>AI Tutor</b><small>{lang === "en" ? "Whole-site context" : "全站上下文"}</small></button>
     {open && <div className="tutor-layer" role="dialog" aria-modal="true" aria-label="AI Tutor">
       <aside className="tutor-panel">
-        <header><div><span><MessageCircle size={18} /></span><div><strong>Cert Loop AI Tutor</strong><small>{lang === "en" ? "English source of truth · Chinese support" : "英文事实基准 · 中文辅助"}</small></div></div><button onClick={() => setOpen(false)} aria-label="Close tutor"><X size={18} /></button></header>
+        <header><div><span><MessageCircle size={18} /></span><div><strong>Cert Loop AI Tutor</strong><small>{lang === "en" ? "Full curriculum · cited sources" : "完整课程 · 引用来源"}</small></div></div><button onClick={() => setOpen(false)} aria-label="Close tutor"><X size={18} /></button></header>
         <div className="tutor-context"><BookOpen size={15} /><div><small>{lang === "en" ? "PRIORITY CONTEXT" : "优先上下文"}</small><b>{contextLabel}</b></div><span>{lang === "en" ? "Searches all 26 chapters" : "检索全部 26 章"}</span></div>
         <label className={research ? "research-toggle active" : "research-toggle"}><input type="checkbox" checked={research} onChange={e => setResearch(e.target.checked)} /><Globe2 size={15} /><span><b>{lang === "en" ? "Live research mode" : "实时研究模式"}</b><small>{lang === "en" ? "Search current official/open sources and cite them" : "搜索最新官方/开放来源并引用"}</small></span></label>
         <div className="tutor-thread">
