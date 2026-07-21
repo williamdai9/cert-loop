@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   ArrowLeft, BookMarked, BookOpen, Brain, CalendarDays, Check,
   ChevronRight, CircleHelp, Cloud, CloudOff, Clock3, Dumbbell,
@@ -535,6 +536,7 @@ function AuthPanel({ lang, user, configured, syncStatus, onClose }: { lang: Lang
       {user ? <>
         <p>{lang === "en" ? `Signed in as ${user.email}. Study-plan completion, XP, attempts, and the review queue sync to Supabase.` : `已登录 ${user.email}。计划完成度、XP、作答和错题队列会同步到 Supabase。`}</p>
         <div className={cn("sync-indicator", syncStatus)}>{syncStatus === "synced" ? <Cloud size={16} /> : syncStatus === "error" ? <CloudOff size={16} /> : <RotateCcw size={16} />}<span>{syncStatus === "synced" ? (lang === "en" ? "Cloud progress synced" : "云端进度已同步") : syncStatus === "error" ? (lang === "en" ? "Sync needs attention" : "同步需要处理") : (lang === "en" ? "Syncing progress…" : "正在同步进度…")}</span></div>
+        <Link className="admin-entry-link" href="/admin"><BookMarked size={16} /> {lang === "en" ? "Open content inspector" : "打开内容检查后台"}</Link>
         <button className="ghost wide" disabled={busy} onClick={signOut}><LogOut size={16} /> {lang === "en" ? "Sign out" : "退出登录"}</button>
       </> : configured ? <>
         <p>{lang === "en" ? "Use a passwordless email link. Your private study progress is protected by Supabase Row Level Security." : "使用免密码邮箱链接登录。个人学习进度由 Supabase 行级安全策略保护。"}</p>

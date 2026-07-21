@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-async function render() {
+async function requestWorker(path = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
+  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${Math.random()}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
-    new Request("http://localhost/", {
+    new Request(`http://localhost${path}`, {
       headers: { accept: "text/html" },
     }),
     {
@@ -21,6 +21,10 @@ async function render() {
       passThroughOnException() {},
     },
   );
+}
+
+async function render() {
+  return requestWorker("/");
 }
 
 test("server-renders a secure Cert Loop access boundary", async () => {
@@ -36,8 +40,14 @@ test("server-renders a secure Cert Loop access boundary", async () => {
   assert.doesNotMatch(html, /Learn it, test it/);
 });
 
+test("rejects anonymous administrator API inspection", async () => {
+  const response = await requestWorker("/api/admin/content");
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "Sign in with an administrator account." });
+});
+
 test("ships plan-linked complete lessons, adaptive testing, research, and private progress sync", async () => {
-  const [page, lessons, supabase, migration, tutor, visuals, chapterOneVisuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient] = await Promise.all([
+  const [page, lessons, supabase, migration, tutor, visuals, chapterOneVisuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, adminPage, adminApi] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/lesson-data.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/supabase-browser.ts", import.meta.url), "utf8"),
@@ -57,6 +67,8 @@ test("ships plan-linked complete lessons, adaptive testing, research, and privat
     readFile(new URL("../supabase/migrations/20260721153000_protect_learning_content.sql", import.meta.url), "utf8"),
     readFile(new URL("../lib/course-media.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ai-tutor.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/admin/content/route.ts", import.meta.url), "utf8"),
   ]);
 
   const lessonIds = lessons.match(/"w(?:[1-9]|1[0-2])-[0-3]":\s*L\(/g) ?? [];
@@ -77,6 +89,7 @@ test("ships plan-linked complete lessons, adaptive testing, research, and privat
   assert.match(page, /MindMapRecap/);
   assert.match(page, /TextbookVisualAtlas/);
   assert.match(page, /from\("user_progress"\)/);
+  assert.match(page, /href="\/admin"/);
   assert.match(supabase, /persistSession:\s*true/);
   assert.match(migration, /enable row level security/);
   assert.match(migration, /auth\.uid\(\) = user_id/);
@@ -110,4 +123,18 @@ test("ships plan-linked complete lessons, adaptive testing, research, and privat
   assert.doesNotMatch(protectionMigration, /published lessons are public"\s+on public\.lessons for select using/);
   assert.match(courseMedia, /chapter-01\/skeleton\.jpg/);
   assert.match(courseMedia, /5th-edition|fifth edition|textbookAtlas/);
+  assert.match(adminPage, /Administrator content inspector/);
+  assert.match(adminPage, /Whole-book figure audit/);
+  assert.match(adminPage, /Chapters 2–26 remain an explicit backlog/);
+  assert.match(adminPage, /Cloud database/);
+  assert.match(adminPage, /Question bank/);
+  assert.match(adminApi, /CERT_LOOP_ADMIN_EMAILS/);
+  assert.match(adminApi, /cert_loop_admin/);
+  assert.match(adminApi, /auth\.getUser\(token\)/);
+  assert.match(adminApi, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(adminApi, /from\("lessons"\)/);
+  assert.match(adminApi, /from\("questions"\)/);
+  assert.match(adminApi, /from\("research_items"\)/);
+  assert.match(adminApi, /from\("content_review_queue"\)/);
+  assert.match(adminApi, /createSignedUrls/);
 });

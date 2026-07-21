@@ -82,6 +82,20 @@ resulting migration is pushed.
 Supabase. It requires the server-only `SUPABASE_SERVICE_ROLE_KEY`; never place
 that key in a browser-visible environment variable.
 
+## Administrator content inspector
+
+Open `/admin` to audit the complete curriculum, bilingual question bank,
+private course media, research feed, human-review queue, and the actual rows
+published to Supabase. The inspector is read-only and requires a valid Supabase
+session plus server-side authorization. Add one or more comma-separated owner
+emails to `CERT_LOOP_ADMIN_EMAILS`, or set
+`app_metadata.cert_loop_admin=true` on an administrator account. The Supabase
+service-role key stays on the server and is never returned to the browser.
+
+The dashboard deliberately distinguishes content depth from visual completion:
+Chapter 1 is the completed figure-by-figure audit, while Chapters 2–26 remain
+visible as an explicit visual-review backlog until each chapter is verified.
+
 `research-update` is a deployed Supabase Edge Function. Vercel Cron invokes it
 daily at 08:17 UTC. It monitors NSCA's official RSS feed, Europe PMC, and the
 open Physical Fitness Stack Exchange community feed. Community items remain explicitly
