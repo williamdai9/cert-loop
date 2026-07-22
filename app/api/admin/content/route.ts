@@ -80,7 +80,7 @@ function staticAudit() {
         textbookFigures: Object.values(courseMedia).reduce((sum, media) => sum + (media.textbookFigures?.length || 0), 0),
         noteFigures: Object.values(courseMedia).reduce((sum, media) => sum + (media.noteFigures?.length || 0), 0),
         mindMaps: Object.values(courseMedia).filter(media => media.mindMap).length,
-        figureAuditsComplete: 18,
+        figureAuditsComplete: 21,
       },
     },
   };

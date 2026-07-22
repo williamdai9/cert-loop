@@ -14,7 +14,8 @@ import type { BilingualText, LessonContent } from "@/lib/lesson-data";
 import { cscsCourse, type CourseChapter, type CourseText } from "@/lib/course";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 import { ChapterVisualLab } from "@/app/components/chapter-visual-lab";
-import { SectionNoteFigures, SectionTextbookFigures, TextbookConceptMap, TextbookVisualAtlas } from "@/app/components/course-media";
+import { ChapterSourceAppendix, SectionNoteFigures, SectionTextbookFigures, TextbookConceptMap, TextbookVisualAtlas } from "@/app/components/course-media";
+import { mediaForChapter } from "@/lib/course-media";
 import { AITutor } from "@/app/components/ai-tutor";
 import { ResearchPulse } from "@/app/components/research-pulse";
 
@@ -849,6 +850,8 @@ function CourseChapterReader({ lang, chapter, course, task, chapterScope, comple
               </div>
             </section>)}
 
+            <ChapterSourceAppendix chapter={chapter.n} sectionIds={chapter.sections.map(section => section.id)} lang={lang} />
+
             {!!chapter.formulas.length && <section className="reference-block"><span className="eyebrow">FORMULAS & WORKED USE</span><h2>{lang === "en" ? "Calculate it, then interpret it" : "先计算，再解释"}</h2><div className="formula-grid">{chapter.formulas.map(formula => <article key={formula.name}><span>{formula.name}</span><code>{formula.expression}</code><p>{formula.use[lang]}</p>{lang === "zh" && <small>{formula.use.en}</small>}{formula.example && <em>Example · {formula.example}</em>}</article>)}</div></section>}
 
             <section className="reference-block"><span className="eyebrow">KEY TERMINOLOGY</span><h2>{lang === "en" ? "Language the exam expects" : "考试要求掌握的术语"}</h2><div className="term-grid">{chapter.terms.map(item => <article key={item.term}><strong>{item.term}</strong><p>{item.meaning[lang]}</p>{lang === "zh" && <small>{item.meaning.en}</small>}</article>)}</div></section>
@@ -859,7 +862,7 @@ function CourseChapterReader({ lang, chapter, course, task, chapterScope, comple
 
             <section className="recall-lab"><span className="eyebrow">ACTIVE RECALL LAB</span><h2>{lang === "en" ? "Answer aloud before revealing" : "先口述，再查看答案"}</h2><p>{lang === "en" ? "Retrieval is the study event. Close your notes, produce the answer, then compare and correct." : "主动提取本身就是学习。合上笔记，先说出答案，再对照纠正。"}</p><div>{chapter.recall.map((item, index) => { const isOpen = revealed.includes(index); return <article key={index}><span>Q{index + 1}</span><h3>{tx(item.prompt)}</h3>{lang === "zh" && <small>{item.prompt.en}</small>}{isOpen ? <div className="recall-answer"><strong>MODEL ANSWER</strong><p>{item.answer[lang]}</p>{lang === "zh" && <small>{item.answer.en}</small>}</div> : <button className="ghost" onClick={() => setRevealed(values => [...values, index])}>{lang === "en" ? "Reveal after answering" : "回答后查看"} <ChevronRight size={15} /></button>}</article>})}</div></section>
 
-            <section className="course-source-note"><BookMarked size={19} /><div><strong>{lang === "en" ? "How this lesson was built" : "本课程如何编写"}</strong><p>{chapter.n <= 16 ? (lang === "en" ? "Instruction is aligned to Essentials of Strength Training and Conditioning, Fifth Edition, and the official NSCA CSCS® Detailed Content Outline. Protected Fifth Edition figure excerpts are included inside the authenticated course for close reading and are paired with original explanations and retrieval checks." : "课程依据《Essentials of Strength Training and Conditioning》第五版与 NSCA 官方 CSCS® 考试大纲编写。登录后的课程中包含受保护的第五版图示节选，并配有原创讲解与主动回忆检查。") : (lang === "en" ? "Original instruction aligned to Essentials of Strength Training and Conditioning, Fifth Edition, and the official NSCA CSCS® Detailed Content Outline. It teaches and synthesizes tested concepts while this chapter's protected source-figure set is being prepared." : "原创教学内容依据《Essentials of Strength Training and Conditioning》第五版与 NSCA 官方 CSCS® 考试大纲综合编写；本章受保护的教材图示集正在整理中。")}</p></div></section>
+            <section className="course-source-note"><BookMarked size={19} /><div><strong>{lang === "en" ? "How this lesson was built" : "本课程如何编写"}</strong><p>{(mediaForChapter(chapter.n).textbookFigures?.length || 0) > 0 ? (lang === "en" ? "Instruction is aligned to Essentials of Strength Training and Conditioning, Fifth Edition, and the official NSCA CSCS® Detailed Content Outline. Protected Fifth Edition figure excerpts are included inside the authenticated course for close reading and are paired with original explanations and retrieval checks." : "课程依据《Essentials of Strength Training and Conditioning》第五版与 NSCA 官方 CSCS® 考试大纲编写。登录后的课程中包含受保护的第五版图示节选，并配有原创讲解与主动回忆检查。") : (lang === "en" ? "Original instruction aligned to Essentials of Strength Training and Conditioning, Fifth Edition, and the official NSCA CSCS® Detailed Content Outline. It teaches and synthesizes tested concepts while this chapter's protected source-figure set is being prepared." : "原创教学内容依据《Essentials of Strength Training and Conditioning》第五版与 NSCA 官方 CSCS® 考试大纲综合编写；本章受保护的教材图示集正在整理中。")}</p></div></section>
           </div>
 
           <footer className="course-footer">

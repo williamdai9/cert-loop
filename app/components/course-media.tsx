@@ -129,6 +129,20 @@ export function SectionTextbookFigures({ chapter, sectionId, lang }: { chapter: 
   </section>;
 }
 
+export function ChapterSourceAppendix({ chapter, sectionIds, lang }: { chapter: number; sectionIds: string[]; lang: Lang }) {
+  const knownSections = new Set(sectionIds);
+  const figures = (mediaForChapter(chapter).textbookFigures || []).filter(figure => !knownSections.has(figure.sectionId));
+  if (!figures.length) return null;
+  return <section className="textbook-figure-set" aria-label={lang === "en" ? "Protected fifth-edition source appendix" : "受保护的第五版教材附录"}>
+    <header>
+      <div><span className="eyebrow">ENGLISH FIFTH EDITION · SOURCE APPENDIX</span><h3>{lang === "en" ? "Study the chapter-wide source material" : "学习全章教材资料"}</h3><p>{lang === "en" ? "These source plates support the whole chapter rather than one deep-dive unit. They are kept here so no audited textbook material is silently omitted." : "这些教材图版服务于整章而非单个深度单元，因此集中保留在这里，确保已审核资料不会被遗漏。"}</p></div>
+      <span><BookImage size={15} /> {figures.length} {lang === "en" ? (figures.length === 1 ? "source plate" : "source plates") : "张教材图版"}</span>
+    </header>
+    <div>{figures.map(figure => <TextbookFigureCard key={figure.path} figure={figure} lang={lang} />)}</div>
+    <footer>{lang === "en" ? "Authenticated course access only · English fifth edition is the source of truth" : "仅限登录后的课程学习 · 以英文第五版为事实依据"}</footer>
+  </section>;
+}
+
 export function SectionNoteFigures({ chapter, sectionId, lang }: { chapter: number; sectionId: string; lang: Lang }) {
   const figures = (mediaForChapter(chapter).noteFigures || []).filter(figure => figure.sectionId === sectionId);
   if (!figures.length) return null;

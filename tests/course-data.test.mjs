@@ -51,12 +51,25 @@ test("maps every chapter to an original textbook visual model", () => {
     [16, 48],
     [17, 83],
     [18, 36],
+    [19, 161],
+    [20, 96],
+    [21, 37],
   ]);
   for (const [chapter, count] of completedFigureSets) {
     assert.equal(courseMedia[chapter].textbookFigures?.length, count, `chapter ${chapter} needs its complete English Fifth Edition figure/table set`);
     assert.ok(courseMedia[chapter].textbookFigures?.every((figure) => figure.path.startsWith(`textbook/chapter-${String(chapter).padStart(2, "0")}/`)), `chapter ${chapter} figures must use the protected media namespace`);
   }
   assert.ok(Object.values(courseMedia).filter((media) => media.mindMap).length >= 20, "personal mind-map coverage is incomplete");
+});
+
+test("never silently drops audited textbook figures from the learner course", () => {
+  for (const chapter of cscsCourse) {
+    const validSections = new Set(chapter.sections.map((section) => section.id));
+    const figures = courseMedia[chapter.n].textbookFigures || [];
+    const sectionFigures = figures.filter((figure) => validSections.has(figure.sectionId));
+    const appendixFigures = figures.filter((figure) => !validSections.has(figure.sectionId));
+    assert.equal(sectionFigures.length + appendixFigures.length, figures.length, `chapter ${chapter.n} loses an audited source figure`);
+  }
 });
 
 test("audits every Chapter 1 fifth-edition figure and table into a learning module", () => {
