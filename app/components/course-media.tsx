@@ -105,7 +105,7 @@ function TextbookFigureCard({ figure, lang }: { figure: TextbookFigure; lang: La
         <span><Expand size={15} /> {lang === "en" ? "Open full-resolution figure" : "打开高清原图"}</span>
       </button>
       <div className="textbook-figure-copy">
-        <span className="textbook-figure-source">{figure.figureRef} · FIFTH EDITION · P. {figure.page}</span>
+        <span className="textbook-figure-source">{figure.figureRef} · FIFTH EDITION · {Array.isArray(figure.page) ? `PP. ${figure.page.join(", ")}` : `P. ${figure.page}`}</span>
         <h4>{figure.title[lang]}</h4>
         {lang === "zh" && <small>{figure.title.en}</small>}
         <p>{figure.caption[lang]}</p>

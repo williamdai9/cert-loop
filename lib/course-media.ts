@@ -18,7 +18,7 @@ export type CourseMedia = {
     path: string;
     sectionId: string;
     figureRef: string;
-    page: number;
+    page: number | number[];
     title: CourseText;
     caption: CourseText;
     check: CourseText;
@@ -37,7 +37,7 @@ const textbookFigure = (
   file: string,
   sectionId: string,
   figureRef: string,
-  page: number,
+  page: number | number[],
   titleEn: string,
   titleZh: string,
   captionEn: string,
@@ -60,7 +60,7 @@ const textbookFigureForChapter = (
   file: string,
   sectionId: string,
   figureRef: string,
-  page: number,
+  page: number | number[],
   titleEn: string,
   titleZh: string,
   captionEn: string,
