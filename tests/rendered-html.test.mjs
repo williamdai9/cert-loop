@@ -104,6 +104,8 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(page, /TextbookVisualAtlas/);
   assert.match(page, /from\("user_progress"\)/);
   assert.match(page, /href="\/admin"/);
+  assert.match(page, /className="admin-top-link"/);
+  assert.match(page, /className="placement-admin-link"/);
   assert.match(supabase, /persistSession:\s*true/);
   assert.match(migration, /enable row level security/);
   assert.match(migration, /auth\.uid\(\) = user_id/);
