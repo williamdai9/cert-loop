@@ -25,7 +25,7 @@ export type CertificationPack = {
   domains: typeof domains;
   chapters: typeof chapters;
   plan: Array<(typeof basePlan)[number] & { en?: { title: string; subtitle: string; tasks: string[] } }>;
-  quickCards: Array<(typeof quickCards)[number] & { en?: { front: string; back: string } }>;
+  quickCards: Array<(typeof quickCards)[number] & { en?: { tag: string; front: string; back: string } }>;
   questions: Question[];
 };
 

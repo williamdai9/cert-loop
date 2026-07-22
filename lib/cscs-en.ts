@@ -13,19 +13,19 @@ export const planEnglish: Record<string, { title: string; subtitle: string; task
   w12:{title:"Exam taper",subtitle:"Lower load, high accuracy, calm pacing",tasks:["Complete one full-pace simulation","Review only misses and low-confidence items","Review formulas and safety red flags","Stop high-volume cramming the day before"]},
 };
 
-export const cardEnglish: Record<string, { front: string; back: string }> = {
-  "功率 Power":{front:"Power",back:"Power = work ÷ time; it can also be expressed as force × velocity."},
-  "10 秒以内的最大爆发":{front:"Maximal efforts under 10 seconds",back:"The phosphagen system dominates; programming typically allows longer recovery to preserve power."},
-  "非疲劳测试优先":{front:"Non-fatiguing tests first",back:"Static measures → agility → max strength/power → sprint → local endurance → anaerobic capacity → aerobic capacity."},
-  "2-for-2 法则":{front:"2-for-2 rule",back:"If the athlete exceeds the repetition goal by two in the last set for two consecutive sessions, increase the load next time."},
-  "液体损失换算":{front:"Fluid-loss estimate",back:"About 1 kg of body-mass loss across a session represents roughly 1 L of fluid loss."},
-  "识别心理困扰第一步":{front:"First step in recognizing distress",back:"Observe and classify Affect, Behavior, and Cognition; refer when the issue exceeds scope."},
-  "早期力量快速上升":{front:"Rapid early strength gains",back:"In novices, the first weeks are driven mainly by neural adaptations, not an increase in fiber number."},
-  "拉伸—缩短周期":{front:"Stretch-shortening cycle",back:"Eccentric preload → amortization → concentric action. A short transition better preserves elastic energy."},
-  "标准照护义务":{front:"Standard of care",back:"Act as a reasonable, prudent professional would under similar circumstances."},
-  "30–15 IFT":{front:"30–15 IFT",back:"Thirty seconds running and 15 seconds walking; useful for intermittent team sports and VIFT-based prescription."},
-  "信度 vs 效度":{front:"Reliability vs validity",back:"Reliability is consistency; validity is whether the test measures the intended quality."},
-  "功能性过度伸展":{front:"Functional overreaching",back:"Short performance decrement followed by supercompensation after adequate recovery; distinct from overtraining syndrome."},
+export const cardEnglish: Record<string, { tag: string; front: string; back: string }> = {
+  "功率 Power":{tag:"Biomechanics",front:"Power",back:"Power = work ÷ time; it can also be expressed as force × velocity."},
+  "10 秒以内的最大爆发":{tag:"Energy systems",front:"Maximal efforts under 10 seconds",back:"The phosphagen system dominates; programming typically allows longer recovery to preserve power."},
+  "非疲劳测试优先":{tag:"Test order",front:"Non-fatiguing tests first",back:"Static measures → agility → max strength/power → sprint → local endurance → anaerobic capacity → aerobic capacity."},
+  "2-for-2 法则":{tag:"Program design",front:"2-for-2 rule",back:"If the athlete exceeds the repetition goal by two in the last set for two consecutive sessions, increase the load next time."},
+  "液体损失换算":{tag:"Nutrition",front:"Fluid-loss estimate",back:"About 1 kg of body-mass loss across a session represents roughly 1 L of fluid loss."},
+  "识别心理困扰第一步":{tag:"Psychology",front:"First step in recognizing distress",back:"Observe and classify Affect, Behavior, and Cognition; refer when the issue exceeds scope."},
+  "早期力量快速上升":{tag:"Exercise science",front:"Rapid early strength gains",back:"In novices, the first weeks are driven mainly by neural adaptations, not an increase in fiber number."},
+  "拉伸—缩短周期":{tag:"Plyometrics",front:"Stretch-shortening cycle",back:"Eccentric preload → amortization → concentric action. A short transition better preserves elastic energy."},
+  "标准照护义务":{tag:"Administration",front:"Standard of care",back:"Act as a reasonable, prudent professional would under similar circumstances."},
+  "30–15 IFT":{tag:"New testing",front:"30–15 IFT",back:"Thirty seconds running and 15 seconds walking; useful for intermittent team sports and VIFT-based prescription."},
+  "信度 vs 效度":{tag:"Testing",front:"Reliability vs validity",back:"Reliability is consistency; validity is whether the test measures the intended quality."},
+  "功能性过度伸展":{tag:"Recovery",front:"Functional overreaching",back:"Short performance decrement followed by supercompensation after adequate recovery; distinct from overtraining syndrome."},
 };
 
 type QEn = { prompt: string; options: [string,string,string]; explanation: string };

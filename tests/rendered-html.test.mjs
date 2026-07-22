@@ -100,6 +100,7 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(page, /OPTIONAL PLACEMENT · 30 QUESTIONS/);
   assert.doesNotMatch(page, /REQUIRED FIRST-LOGIN PLACEMENT|NO SKIP|English-first certification mastery/);
   assert.match(page, /function SiteTour/);
+  assert.match(page, /card\.en\.tag/);
   assert.doesNotMatch(page, /MindMapRecap/);
   assert.match(page, /TextbookConceptMap/);
   assert.match(courseMediaViewer, /ENGLISH FIFTH EDITION · CHAPTER CONCEPT MAP/);
