@@ -34,6 +34,22 @@ test("maps every chapter to an original textbook visual model", () => {
   assert.ok(courseMedia[1].textbookFigures?.every((figure) => figure.path.startsWith("textbook/chapter-01/")), "chapter 1 textbook figures must use the protected media namespace");
   assert.equal(courseMedia[2].textbookFigures?.length, 18, "chapter 2 needs all 15 figures plus its multipage figure and table plates");
   assert.ok(courseMedia[2].textbookFigures?.every((figure) => figure.path.startsWith("textbook/chapter-02/")), "chapter 2 textbook figures must use the protected media namespace");
+  const completedFigureSets = new Map([
+    [3, 19],
+    [4, 10],
+    [5, 10],
+    [6, 9],
+    [7, 7],
+    [8, 5],
+    [9, 7],
+    [10, 41],
+    [11, 9],
+    [12, 14],
+  ]);
+  for (const [chapter, count] of completedFigureSets) {
+    assert.equal(courseMedia[chapter].textbookFigures?.length, count, `chapter ${chapter} needs its complete English Fifth Edition figure/table set`);
+    assert.ok(courseMedia[chapter].textbookFigures?.every((figure) => figure.path.startsWith(`textbook/chapter-${String(chapter).padStart(2, "0")}/`)), `chapter ${chapter} figures must use the protected media namespace`);
+  }
   assert.ok(Object.values(courseMedia).filter((media) => media.mindMap).length >= 20, "personal mind-map coverage is incomplete");
 });
 

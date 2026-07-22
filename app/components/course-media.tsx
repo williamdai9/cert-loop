@@ -121,8 +121,8 @@ export function SectionTextbookFigures({ chapter, sectionId, lang }: { chapter: 
   if (!figures.length) return null;
   return <section className="textbook-figure-set" aria-label={lang === "en" ? "Protected fifth-edition textbook figures" : "受保护的第五版教材图"}>
     <header>
-      <div><span className="eyebrow">ENGLISH FIFTH EDITION · PROTECTED FIGURE SET</span><h3>{lang === "en" ? "Study the real anatomy and physiology figure" : "直接学习真实教材解剖与生理图"}</h3><p>{lang === "en" ? "These source figures replace the former abstract redraws. Read the labels, explain the relationship, then answer the figure check before continuing." : "这些教材原图已替换原先的抽象重绘。先读标签、解释关系，再完成读图检查。"}</p></div>
-      <span><BookImage size={15} /> {figures.length} {lang === "en" ? "source figures" : "张教材图"}</span>
+      <div><span className="eyebrow">ENGLISH FIFTH EDITION · PROTECTED FIGURE SET</span><h3>{lang === "en" ? "Study the original textbook figure" : "直接学习英文教材原图"}</h3><p>{lang === "en" ? "Read the original labels and relationships, connect them to the lesson explanation, then answer the figure check before continuing." : "先阅读英文原图的标签与关系，再与课程讲解连接，并完成读图检查。"}</p></div>
+      <span><BookImage size={15} /> {figures.length} {lang === "en" ? (figures.length === 1 ? "source figure" : "source figures") : "张教材图"}</span>
     </header>
     <div>{figures.map(figure => <TextbookFigureCard key={figure.path} figure={figure} lang={lang} />)}</div>
     <footer>{lang === "en" ? "Authenticated course access only · English fifth edition is the source of truth" : "仅限登录后的课程学习 · 以英文第五版为事实依据"}</footer>
@@ -161,7 +161,7 @@ export function TextbookVisualAtlas({ chapter, lang }: { chapter: number; lang: 
 export function TextbookConceptMap({ chapter }: { chapter: CourseChapter }) {
   return <section className="textbook-concept-map" aria-label={`English concept map for Chapter ${chapter.n}: ${chapter.title.en}`}>
     <header>
-      <div><span className="eyebrow">ENGLISH FIFTH EDITION · CHAPTER CONCEPT MAP</span><h2>See the whole chapter before studying the parts</h2><p>This map is generated from the English textbook curriculum. Personal Chinese notes are reference material only and are not displayed as the learning map.</p></div>
+      <div><span className="eyebrow">ENGLISH FIFTH EDITION · CHAPTER CONCEPT MAP</span><h2>See the whole chapter before studying the parts</h2><p>Built from the English Fifth Edition curriculum, this map connects every unit to the relationships and exam decisions you must retrieve.</p></div>
       <span>CH. {String(chapter.n).padStart(2, "0")}</span>
     </header>
     <div className="textbook-concept-map-stage">

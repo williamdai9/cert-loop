@@ -103,7 +103,9 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.doesNotMatch(page, /MindMapRecap/);
   assert.match(page, /TextbookConceptMap/);
   assert.match(courseMediaViewer, /ENGLISH FIFTH EDITION · CHAPTER CONCEPT MAP/);
-  assert.match(courseMediaViewer, /Personal Chinese notes are reference material only/);
+  assert.match(courseMediaViewer, /Built from the English Fifth Edition curriculum/);
+  assert.doesNotMatch(courseMediaViewer, /Personal Chinese notes are reference material only/);
+  assert.match(courseMediaViewer, /Study the original textbook figure/);
   assert.match(page, /TextbookVisualAtlas/);
   assert.match(page, /from\("user_progress"\)/);
   assert.match(page, /href="\/admin"/);

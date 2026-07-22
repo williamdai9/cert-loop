@@ -32,7 +32,7 @@ function staticAudit() {
       noteFigures: media?.noteFigures?.length || 0,
       mindMap: Boolean(media?.mindMap),
       depthReady: chapter.sections.length >= 4 && chapter.sections.every(section => section.explanation.length >= 2 && section.details.length >= 4),
-      figureAudit: chapter.n <= 2 ? "complete" : "pending",
+      figureAudit: chapter.n <= 12 ? "complete" : "pending",
     };
   });
   const questionDomains = pack.domains.map(domain => ({
@@ -80,7 +80,7 @@ function staticAudit() {
         textbookFigures: Object.values(courseMedia).reduce((sum, media) => sum + (media.textbookFigures?.length || 0), 0),
         noteFigures: Object.values(courseMedia).reduce((sum, media) => sum + (media.noteFigures?.length || 0), 0),
         mindMaps: Object.values(courseMedia).filter(media => media.mindMap).length,
-        figureAuditsComplete: 2,
+        figureAuditsComplete: 12,
       },
     },
   };
