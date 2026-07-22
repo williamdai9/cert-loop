@@ -54,6 +54,8 @@ test("maps every chapter to an original textbook visual model", () => {
     [19, 161],
     [20, 96],
     [21, 37],
+    [22, 47],
+    [24, 39],
   ]);
   for (const [chapter, count] of completedFigureSets) {
     assert.equal(courseMedia[chapter].textbookFigures?.length, count, `chapter ${chapter} needs its complete English Fifth Edition figure/table set`);
