@@ -28,6 +28,7 @@ function staticAudit() {
       knowledgePoints,
       recallChecks: chapter.recall.length,
       atlasModels: media?.textbookAtlas.length || 0,
+      textbookFigures: media?.textbookFigures?.length || 0,
       noteFigures: media?.noteFigures?.length || 0,
       mindMap: Boolean(media?.mindMap),
       depthReady: chapter.sections.length >= 4 && chapter.sections.every(section => section.explanation.length >= 2 && section.details.length >= 4),
@@ -41,6 +42,7 @@ function staticAudit() {
   }));
   const mediaPaths = Array.from(new Set(Object.values(courseMedia).flatMap(media => [
     ...(media.mindMap ? [media.mindMap.path] : []),
+    ...(media.textbookFigures || []).map(figure => figure.path),
     ...(media.noteFigures || []).map(figure => figure.path),
   ])));
 
@@ -75,6 +77,7 @@ function staticAudit() {
         knowledgePoints: chapters.reduce((sum, chapter) => sum + chapter.knowledgePoints, 0),
         questions: pack.questions.length,
         atlasModels: Object.values(courseMedia).reduce((sum, media) => sum + media.textbookAtlas.length, 0),
+        textbookFigures: Object.values(courseMedia).reduce((sum, media) => sum + (media.textbookFigures?.length || 0), 0),
         noteFigures: Object.values(courseMedia).reduce((sum, media) => sum + (media.noteFigures?.length || 0), 0),
         mindMaps: Object.values(courseMedia).filter(media => media.mindMap).length,
         figureAuditsComplete: 1,

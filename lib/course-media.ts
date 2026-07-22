@@ -14,6 +14,16 @@ export type CourseMedia = {
     caption: CourseText;
     alt: CourseText;
   }>;
+  textbookFigures?: Array<{
+    path: string;
+    sectionId: string;
+    figureRef: string;
+    page: number;
+    title: CourseText;
+    caption: CourseText;
+    check: CourseText;
+    alt: CourseText;
+  }>;
   textbookAtlas: Array<{
     title: CourseText;
     relationship: CourseText;
@@ -22,6 +32,28 @@ export type CourseMedia = {
 };
 
 const t = (en: string, zh: string): CourseText => ({ en, zh });
+
+const textbookFigure = (
+  file: string,
+  sectionId: string,
+  figureRef: string,
+  page: number,
+  titleEn: string,
+  titleZh: string,
+  captionEn: string,
+  captionZh: string,
+  checkEn: string,
+  checkZh: string,
+) => ({
+  path: `textbook/chapter-01/${file}`,
+  sectionId,
+  figureRef,
+  page,
+  title: t(titleEn, titleZh),
+  caption: t(captionEn, captionZh),
+  check: t(checkEn, checkZh),
+  alt: t(`${figureRef}: ${titleEn}`, `${figureRef}：${titleZh}`),
+});
 
 const map = (path: string, en: string, zh: string, outline: CourseText[]) => ({
   path,
@@ -48,6 +80,29 @@ export const courseMedia: Record<number, CourseMedia> = {
       { path: "chapter-01/sliding-filament.jpg", sectionId: "contraction", title: t("Sliding-filament comparison", "滑行肌丝对比"), caption: t("During shortening, Z-lines approach and the I band and H zone narrow; the A band stays constant.", "缩短时 Z 线靠近、I 带与 H 区变窄；A 带长度保持不变。"), alt: t("Relaxed and contracted sarcomere comparison", "放松与收缩肌节对比") },
       { path: "chapter-01/contraction-phases.png", sectionId: "contraction", title: t("Cross-bridge cycle", "横桥循环"), caption: t("Trace ATP binding, detachment, hydrolysis, cross-bridge formation, and the power stroke as a causal loop.", "把 ATP 结合、解离、水解、横桥形成与动力冲程作为因果循环学习。"), alt: t("Phases of the actin-myosin cross-bridge cycle", "肌动蛋白与肌球蛋白横桥循环阶段") },
       { path: "chapter-01/neuromuscular-junction.png", sectionId: "neuromuscular", title: t("Neuromuscular junction", "神经肌肉接头"), caption: t("Link acetylcholine release to end-plate depolarization, T-tubule signaling, and calcium release.", "把乙酰胆碱释放与终板去极化、T 管信号和钙释放连成一条链。"), alt: t("Neuromuscular junction anatomy and signaling", "神经肌肉接头结构与信号传递") },
+    ],
+    textbookFigures: [
+      textbookFigure("figure-1-1.png", "musculoskeletal", "Figure 1.1", 41, "Adult skeleton: anterior and posterior views", "成人骨骼：前后视图", "Use the paired views to locate the axial skeleton, appendicular skeleton, and the named landmarks most likely to anchor movement questions.", "用前后视图定位中轴骨骼、附肢骨骼，以及动作题常用的骨性标志。", "Without labels, can you identify the scapula, sternum, pelvis, radius, ulna, femur, tibia, and fibula?", "遮住标签后，你能指出肩胛骨、胸骨、骨盆、桡骨、尺骨、股骨、胫骨和腓骨吗？"),
+      textbookFigure("figure-1-2.png", "musculoskeletal", "Figure 1.2", 45, "Major skeletal musculature: anterior and posterior views", "主要骨骼肌：前后视图", "Read the figure spatially: identify where each muscle sits, then connect that location to its main joint action rather than memorizing an isolated name.", "按空间关系读图：先定位肌肉，再把位置与主要关节动作连接起来，而不是孤立背名称。", "Which muscles shown contribute to shoulder abduction, elbow extension, hip extension, knee extension, and plantar flexion?", "图中哪些肌肉参与肩外展、伸肘、髋伸、伸膝和跖屈？"),
+      textbookFigure("figure-1-3.png", "musculoskeletal", "Figure 1.3", 46, "Whole muscle, fascicle, fiber, and connective tissue", "整块肌肉、肌束、肌纤维与结缔组织", "This is the accurate hierarchy missing from the former abstract diagram. Follow muscle belly → fasciculus → single fiber → myofibril → myofilaments while matching epimysium, perimysium, and endomysium to the structure each surrounds.", "这是原抽象图未能准确表达的层级。沿肌腹 → 肌束 → 单条肌纤维 → 肌原纤维 → 肌丝学习，并把肌外膜、肌束膜和肌内膜对应到各自包绕的结构。", "Explain how the three connective-tissue layers converge toward tendon and transmit contractile force to bone.", "解释三层结缔组织如何汇向肌腱，并把收缩力传递到骨。"),
+      textbookFigure("figure-1-5.png", "contraction", "Figure 1.5", 48, "Sectional view of a muscle fiber", "肌纤维剖面", "Locate the sarcolemma, myofibrils, mitochondria, T-tubule openings, and sarcoplasmic reticulum. The arrangement explains how a surface action potential rapidly reaches the fiber interior and triggers calcium release.", "定位肌膜、肌原纤维、线粒体、T 管开口与肌浆网。这个布局解释了表面动作电位如何快速进入纤维内部并触发钙释放。", "Why are T-tubules and the sarcoplasmic reticulum positioned around the myofibrils rather than only at the cell surface?", "为什么 T 管和肌浆网围绕肌原纤维分布，而不只存在于细胞表面？"),
+      textbookFigure("figure-1-6.png", "contraction", "Figure 1.6", 50, "Myofilament and sarcomere organization", "肌丝与肌节组织", "Move from the muscle to the myofibril, then to a single sarcomere and its thick and thin filaments. Use the cross-sections to understand why the A band, I band, H zone, M line, and Z lines look different.", "从肌肉进入肌原纤维，再到单个肌节及粗、细肌丝。结合横截面理解 A 带、I 带、H 区、M 线与 Z 线为何不同。", "Which proteins form the thick and thin filaments, and where do crossbridges form?", "粗肌丝和细肌丝分别由哪些蛋白构成？横桥在哪里形成？"),
+      textbookFigure("figure-1-7.png", "contraction", "Figure 1.7", 52, "Sarcomere length and filament overlap", "肌节长度与肌丝重叠", "Compare stretched, useful-overlap, and over-shortened states. The filaments keep their length; Z lines move, the I band and H zone change, and the A band remains constant.", "比较拉长、有效重叠和过度缩短状态。肌丝长度不变；Z 线移动，I 带与 H 区改变，而 A 带保持不变。", "At which state is force potential reduced by too little overlap, and what causes force loss when the sarcomere is over-shortened?", "哪种状态因重叠不足而降低产力？肌节过度缩短时又为什么丢失力量？"),
+      textbookFigure("figure-1-4.png", "neuromuscular", "Figure 1.4", 47, "Motor neuron and motor-unit anatomy", "运动神经元与运动单位结构", "Use the labeled neuron to follow dendrites → cell body → axon hillock → myelinated axon → terminal branches. A motor unit includes one alpha motor neuron and every muscle fiber supplied by its terminal branches.", "沿树突 → 胞体 → 轴丘 → 有髓轴突 → 末梢分支追踪信号。一个运动单位包括一个 α 运动神经元及其末梢支配的全部肌纤维。", "What is the functional effect of myelin and nodes of Ranvier on action-potential conduction?", "髓鞘和郎飞结对动作电位传导有什么功能影响？"),
+      textbookFigure("figure-1-8.png", "neuromuscular", "Figure 1.8", 58, "Twitch, summation, and tetanus", "单收缩、叠加与强直收缩", "Read left to right as firing frequency rises: single twitch, summation, unfused tetanus, then fused tetanus. A new stimulus arriving before full relaxation raises total force.", "随放电频率从左到右增加：单收缩、收缩叠加、不完全强直、完全强直。完全舒张前到来的新刺激会提高总力量。", "What distinguishes unfused from fused tetanus on a force-time trace?", "在力量—时间曲线上，不完全强直与完全强直有何区别？"),
+      textbookFigure("figure-1-9.png", "neuromuscular", "Figure 1.9", 60, "Slow- and fast-twitch motor units", "慢肌与快肌运动单位", "The mosaic shows that fibers from different motor units are intermingled. Compare threshold, conduction velocity, fiber number, fatigue resistance, and the recruitment response to low versus higher force demand.", "镶嵌图说明不同运动单位的肌纤维彼此交错。比较募集阈值、传导速度、支配纤维数、抗疲劳性，以及低负荷与较高负荷的募集反应。", "State the size principle and explain why a heavier curl recruits units that an unloaded curl may not require.", "说出大小原则，并解释为什么更重的弯举会募集徒手弯举不需要的运动单位。"),
+      textbookFigure("table-1-1a.png", "neuromuscular", "Table 1.1 · Part 1", 61, "Major characteristics of muscle fiber types", "肌纤维类型主要特征（上）", "Begin the Type I, IIa, and IIx comparison with motor-neuron size, recruitment threshold, and conduction velocity.", "从运动神经元大小、募集阈值和传导速度开始比较 I、IIa 与 IIx 型肌纤维。", "Which phenotype is recruited first, and which has the highest threshold?", "哪种表型最先募集？哪种募集阈值最高？"),
+      textbookFigure("table-1-1b.png", "neuromuscular", "Table 1.1 · Part 2", 62, "Muscle fiber phenotype comparison", "肌纤维表型比较（下）", "Continue across speed, fatigue resistance, force, power, enzyme content, capillary density, myoglobin, mitochondria, diameter, and color. IIa is often intermediate rather than identical to either extreme.", "继续比较速度、抗疲劳性、力量、功率、酶含量、毛细血管密度、肌红蛋白、线粒体、直径和颜色。IIa 往往处于两端之间。", "Cover the values and reconstruct one complete column from memory before comparing it with the table.", "遮住数值，先凭记忆重建一整列，再与表格核对。"),
+      textbookFigure("table-1-2a.png", "neuromuscular", "Table 1.2 · Part 1", 63, "Relative fiber-type involvement by sport", "不同运动项目的相对肌纤维参与（上）", "Treat the entries as relative demand patterns, not as a claim that only one fiber type works. Duration, force, speed, and repeated-effort demands shape the profile.", "把表中内容理解为相对需求模式，而不是某项目只使用一种肌纤维。持续时间、力量、速度和重复用力共同决定参与模式。", "Before revealing each row, predict Type I and Type II involvement from the event's intensity-duration profile.", "查看每一行前，先依据项目的强度—持续时间特征预测 I 型与 II 型参与。"),
+      textbookFigure("table-1-2b.png", "neuromuscular", "Table 1.2 · Part 2", 64, "Relative fiber-type involvement by sport, continued", "不同运动项目的相对肌纤维参与（续）", "Use the continuation to compare mixed-demand events with predominantly endurance or power events.", "用续表比较混合需求项目与主要耐力或功率项目。", "Why can rowing show high involvement of both Type I and Type II fibers?", "为什么划船项目中 I 型和 II 型肌纤维都可能高度参与？"),
+      textbookFigure("figure-1-10.png", "neuromuscular", "Figure 1.10", 66, "Muscle spindle and Golgi tendon organ", "肌梭与高尔基腱器官", "The muscle spindle lies in parallel with extrafusal fibers and responds to length and rate of stretch. The Golgi tendon organ lies in the tendon in series with the muscle and responds to tension.", "肌梭与梭外肌纤维并联，感受长度及拉伸速度；高尔基腱器官位于肌腱内，与肌肉串联，感受张力。", "Compare location, stimulus, afferent information, and immediate reflex effect for the spindle and GTO.", "比较肌梭与 GTO 的位置、刺激、传入信息及即时反射作用。"),
+      textbookFigure("figure-1-11.png", "cardiovascular", "Figure 1.11", 71, "Heart chambers, valves, and blood flow", "心腔、瓣膜与血流", "Trace one complete circuit: venae cavae → right atrium → tricuspid valve → right ventricle → pulmonary valve and artery → lungs → pulmonary veins → left atrium → mitral valve → left ventricle → aortic valve and aorta.", "追踪完整循环：腔静脉 → 右心房 → 三尖瓣 → 右心室 → 肺动脉瓣与肺动脉 → 肺 → 肺静脉 → 左心房 → 二尖瓣 → 左心室 → 主动脉瓣与主动脉。", "Can you trace the route without using color as a cue and name all four valves in order?", "不依赖颜色提示，你能按顺序说出完整路线和四个瓣膜吗？"),
+      textbookFigure("figure-1-12.png", "cardiovascular", "Figure 1.12", 72, "Electrical conduction system of the heart", "心脏电传导系统", "Follow SA node → internodal pathways → AV node → bundle branches → Purkinje fibers. The delay and distribution coordinate atrial contraction before organized ventricular contraction.", "沿 SA 结 → 结间通路 → AV 结 → 束支 → 浦肯野纤维学习。延迟与分布使心房先收缩，再协调心室收缩。", "Why is AV nodal delay useful, and which structures rapidly distribute depolarization through the ventricles?", "AV 结延迟为什么有用？哪些结构把去极化快速分布到心室？"),
+      textbookFigure("figure-1-13.png", "cardiovascular", "Figure 1.13", 74, "Normal electrocardiogram", "正常心电图", "Map the P wave to atrial depolarization, the QRS complex to ventricular depolarization, and the T wave to ventricular repolarization. Electrical events precede the mechanical response.", "把 P 波对应心房去极化、QRS 波群对应心室去极化、T 波对应心室复极。电活动发生在机械反应之前。", "What electrical event is largely hidden within the QRS complex?", "哪一个电活动通常被 QRS 波群掩盖？"),
+      textbookFigure("figure-1-14.png", "cardiovascular", "Figure 1.14", 75, "Circulatory route and resting blood-volume distribution", "循环路线与静息血容量分布", "Read the closed circuit and the percentages together. At rest, veins and venules contain the largest share of blood volume, supporting their role as a capacitance reservoir.", "把闭合循环与比例一起阅读。静息时，静脉和小静脉容纳最大比例的血容量，体现其容量血管作用。", "Which compartment stores the most blood at rest, and how can venoconstriction support venous return during exercise?", "静息时哪个区室储血最多？运动时静脉收缩如何支持静脉回流？"),
+      textbookFigure("figure-1-15.png", "respiratory", "Figure 1.15", 80, "Gross anatomy of the respiratory system", "呼吸系统大体解剖", "Trace inspired air through the upper airway, trachea, main bronchi, bronchioles, and alveoli. Distinguish air-conducting structures from the alveolar surface where gas exchange occurs.", "追踪吸入空气经上气道、气管、主支气管、细支气管到肺泡。区分传导气道与发生气体交换的肺泡表面。", "Where does conducting-zone airflow end and the gas-exchange region begin?", "传导区气流在哪里结束？气体交换区从哪里开始？"),
+      textbookFigure("figure-1-16.png", "respiratory", "Figure 1.16", 91, "Tidal volume and dead-space distribution", "潮气量与无效腔分布", "A typical 500 mL breath is partitioned into alveolar air, anatomical dead space, and a smaller physiological dead-space component. Only the alveolar portion directly participates in exchange.", "典型 500 mL 呼吸被分为肺泡气、解剖无效腔和较小的生理无效腔部分；只有肺泡部分直接参与交换。", "Why can minute ventilation rise without an equal rise in effective alveolar ventilation?", "为什么分钟通气量增加时，有效肺泡通气量不一定等比例增加？"),
+      textbookFigure("figure-1-17.png", "respiratory", "Figure 1.17", 92, "Oxygen and carbon-dioxide pressure gradients", "氧与二氧化碳分压梯度", "At the lungs, oxygen moves from alveoli toward blood while carbon dioxide moves toward alveoli. At working tissue the directions reverse, always following the relevant partial-pressure gradient.", "在肺部，氧从肺泡进入血液，二氧化碳进入肺泡；在工作组织处方向相反，始终沿相应分压梯度移动。", "Using the displayed PO₂ and PCO₂ values, explain every gas-direction arrow without relying on memorization.", "根据图中 PO₂ 与 PCO₂ 数值解释每一条气体移动箭头，而不是死记方向。"),
     ],
     textbookAtlas: [
       { title: t("Muscle organization", "肌肉组织层级"), relationship: t("Structure constrains force transmission", "结构决定力量传递"), steps: [t("Whole muscle", "整块肌肉"), t("Fascicle", "肌束"), t("Fiber", "肌纤维"), t("Myofibril", "肌原纤维"), t("Sarcomere", "肌节")] },

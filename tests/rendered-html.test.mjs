@@ -48,7 +48,7 @@ test("rejects anonymous administrator API inspection", async () => {
 });
 
 test("ships plan-linked complete lessons, optional placement, research, and private progress sync", async () => {
-  const [catalogPage, page, lessons, supabase, migration, tutor, visuals, chapterOneVisuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, adminPage, adminApi, registry] = await Promise.all([
+  const [catalogPage, page, lessons, supabase, migration, tutor, visuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, adminPage, adminApi, registry] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/certifications/nsca-cscs/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/lesson-data.ts", import.meta.url), "utf8"),
@@ -62,7 +62,6 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
     ),
     readFile(new URL("../app/api/tutor/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/chapter-visual-lab.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/components/chapter-one-visual-studio.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/chapter-one-visual-coverage.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/course-media.tsx", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/20260720203000_daily_research_pipeline.sql", import.meta.url), "utf8"),
@@ -85,7 +84,8 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(page, /useState\("weighted"\)/);
   assert.match(page, /tasks: standard\[0\]\.tasks\.filter\(task => task\.id !== "w1-0"\)/);
   assert.match(page, /ChapterVisualLab/);
-  assert.match(page, /ChapterOneVisualStudio/);
+  assert.doesNotMatch(page, /ChapterOneVisualStudio/);
+  assert.match(page, /SectionTextbookFigures/);
   assert.match(page, /AITutor/);
   assert.match(page, /signInWithPassword/);
   assert.match(page, /auth\.signUp/);
@@ -118,19 +118,11 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(visuals, /Joint torque calculator/);
   assert.match(visuals, /Energy-system continuum/);
   assert.doesNotMatch(visuals, /function ContractionLab/);
-  assert.match(chapterOneVisuals, /Tricuspid valve/);
-  assert.match(chapterOneVisuals, /Pulmonary valve \+ artery/);
-  assert.match(chapterOneVisuals, /Mitral valve/);
-  assert.match(chapterOneVisuals, /Aortic valve/);
-  assert.match(chapterOneVisuals, /Twitch summation/);
-  assert.match(chapterOneVisuals, /motor-unit-mosaic/);
-  assert.match(chapterOneVisuals, /Type IIx/);
-  assert.match(chapterOneVisuals, /Mitochondrial size and density/);
-  assert.match(chapterOneVisuals, /Distance cycling/);
-  assert.match(chapterOneVisuals, /Conduction \+ ECG/);
-  assert.match(chapterOneVisuals, /tidalVolume - anatomicalDeadSpace - physiologicalDeadSpace/);
   assert.match(visualCoverage, /Figure 1\.17/);
   assert.match(visualCoverage, /Table 1\.2/);
+  assert.match(visualCoverage, /protected-textbook-excerpt/);
+  assert.match(courseMediaViewer, /function SectionTextbookFigures/);
+  assert.match(courseMediaViewer, /PROTECTED FIGURE SET/);
   assert.match(courseMediaViewer, /event\.key === "Escape"/);
   assert.match(courseMediaViewer, /onPointerCancel/);
   assert.match(courseMediaViewer, /querySelectorAll<HTMLElement>/);
@@ -140,6 +132,9 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(protectionMigration, /authenticated learners read course media/);
   assert.doesNotMatch(protectionMigration, /published lessons are public"\s+on public\.lessons for select using/);
   assert.match(courseMedia, /chapter-01\/skeleton\.jpg/);
+  assert.match(courseMedia, /textbookFigure\("figure-1-3\.png"/);
+  assert.match(courseMedia, /textbookFigure\("figure-1-17\.png"/);
+  assert.match(courseMedia, /textbookFigure\("table-1-1a\.png"/);
   assert.match(courseMedia, /5th-edition|fifth edition|textbookAtlas/);
   assert.match(adminPage, /Administrator content inspector/);
   assert.match(adminPage, /Whole-book figure audit/);

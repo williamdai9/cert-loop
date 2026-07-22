@@ -7,6 +7,7 @@ import { mediaForChapter, type CourseMedia } from "@/lib/course-media";
 
 type Lang = "en" | "zh";
 type Figure = NonNullable<CourseMedia["noteFigures"]>[number];
+type TextbookFigure = NonNullable<CourseMedia["textbookFigures"]>[number];
 
 const signedUrlCache = new Map<string, string>();
 
@@ -83,6 +84,48 @@ function FigureCard({ figure, lang }: { figure: Figure; lang: Lang }) {
     </button>
     {open && <ImageViewer figure={figure} lang={lang} onClose={() => setOpen(false)} />}
   </>;
+}
+
+function TextbookFigureCard({ figure, lang }: { figure: TextbookFigure; lang: Lang }) {
+  const [open, setOpen] = useState(false);
+  const viewerFigure = {
+    path: figure.path,
+    title: {
+      en: `${figure.figureRef} · ${figure.title.en}`,
+      zh: `${figure.figureRef} · ${figure.title.zh}`,
+    },
+    alt: figure.alt,
+  };
+
+  return <>
+    <article className="textbook-figure-card">
+      <button className="textbook-figure-image" onClick={() => setOpen(true)} aria-label={lang === "en" ? `Open ${figure.figureRef} in the study viewer` : `在学习视图中打开 ${figure.figureRef}`}>
+        <ProtectedCourseImage path={figure.path} alt={figure.alt[lang]} />
+        <span><Expand size={15} /> {lang === "en" ? "Open full-resolution figure" : "打开高清原图"}</span>
+      </button>
+      <div className="textbook-figure-copy">
+        <span className="textbook-figure-source">{figure.figureRef} · FIFTH EDITION · P. {figure.page}</span>
+        <h4>{figure.title[lang]}</h4>
+        {lang === "zh" && <small>{figure.title.en}</small>}
+        <p>{figure.caption[lang]}</p>
+        <aside><strong>{lang === "en" ? "CHECK YOUR READING" : "读图检查"}</strong><p>{figure.check[lang]}</p></aside>
+      </div>
+    </article>
+    {open && <ImageViewer figure={viewerFigure} lang={lang} onClose={() => setOpen(false)} />}
+  </>;
+}
+
+export function SectionTextbookFigures({ chapter, sectionId, lang }: { chapter: number; sectionId: string; lang: Lang }) {
+  const figures = (mediaForChapter(chapter).textbookFigures || []).filter(figure => figure.sectionId === sectionId);
+  if (!figures.length) return null;
+  return <section className="textbook-figure-set" aria-label={lang === "en" ? "Protected fifth-edition textbook figures" : "受保护的第五版教材图"}>
+    <header>
+      <div><span className="eyebrow">ENGLISH FIFTH EDITION · PROTECTED FIGURE SET</span><h3>{lang === "en" ? "Study the real anatomy and physiology figure" : "直接学习真实教材解剖与生理图"}</h3><p>{lang === "en" ? "These source figures replace the former abstract redraws. Read the labels, explain the relationship, then answer the figure check before continuing." : "这些教材原图已替换原先的抽象重绘。先读标签、解释关系，再完成读图检查。"}</p></div>
+      <span><BookImage size={15} /> {figures.length} {lang === "en" ? "source figures" : "张教材图"}</span>
+    </header>
+    <div>{figures.map(figure => <TextbookFigureCard key={figure.path} figure={figure} lang={lang} />)}</div>
+    <footer>{lang === "en" ? "Authenticated course access only · English fifth edition is the source of truth" : "仅限登录后的课程学习 · 以英文第五版为事实依据"}</footer>
+  </section>;
 }
 
 export function SectionNoteFigures({ chapter, sectionId, lang }: { chapter: number; sectionId: string; lang: Lang }) {

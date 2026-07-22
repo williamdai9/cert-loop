@@ -30,6 +30,8 @@ test("maps every chapter to an original textbook visual model", () => {
     assert.ok(courseMedia[chapter]?.textbookAtlas.length, `chapter ${chapter} needs a textbook visual model`);
   }
   assert.ok(courseMedia[1].noteFigures?.length >= 6, "chapter 1 needs the supplied anatomy and contraction figures");
+  assert.equal(courseMedia[1].textbookFigures?.length, 21, "chapter 1 needs all 17 figures and both two-page tables from the English Fifth Edition");
+  assert.ok(courseMedia[1].textbookFigures?.every((figure) => figure.path.startsWith("textbook/chapter-01/")), "chapter 1 textbook figures must use the protected media namespace");
   assert.ok(Object.values(courseMedia).filter((media) => media.mindMap).length >= 20, "personal mind-map coverage is incomplete");
 });
 
@@ -45,7 +47,7 @@ test("audits every Chapter 1 fifth-edition figure and table into a learning modu
     new Set(chapterOneVisualCoverage.map((item) => item.sectionId)),
     new Set(["musculoskeletal", "contraction", "neuromuscular", "cardiovascular", "respiratory"]),
   );
-  assert.ok(chapterOneVisualCoverage.filter((item) => item.implementation === "interactive-original").length >= 14);
+  assert.ok(chapterOneVisualCoverage.every((item) => item.implementation === "protected-textbook-excerpt"));
   for (const item of chapterOneVisualCoverage) {
     assert.ok(item.pdfPage, `${item.id} needs a verified PDF page`);
     assert.ok(item.concept.length > 20, `${item.id} needs a meaningful concept description`);

@@ -14,8 +14,7 @@ import type { BilingualText, LessonContent } from "@/lib/lesson-data";
 import { cscsCourse, type CourseChapter, type CourseText } from "@/lib/course";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 import { ChapterVisualLab } from "@/app/components/chapter-visual-lab";
-import { MindMapRecap, SectionNoteFigures, TextbookVisualAtlas } from "@/app/components/course-media";
-import { ChapterOneVisualStudio } from "@/app/components/chapter-one-visual-studio";
+import { MindMapRecap, SectionNoteFigures, SectionTextbookFigures, TextbookVisualAtlas } from "@/app/components/course-media";
 import { AITutor } from "@/app/components/ai-tutor";
 import { ResearchPulse } from "@/app/components/research-pulse";
 
@@ -830,9 +829,9 @@ function CourseChapterReader({ lang, chapter, course, task, chapterScope, comple
               <ol>{chapter.objectives.map((objective, index) => <li key={index}><span>{index + 1}</span><div><b>{objective[lang]}</b>{lang === "zh" && <small>{objective.en}</small>}</div></li>)}</ol>
             </section>
 
-            <ChapterVisualLab chapter={chapter} lang={lang} />
+            {chapter.n !== 1 && <ChapterVisualLab chapter={chapter} lang={lang} />}
 
-            <TextbookVisualAtlas chapter={chapter.n} lang={lang} />
+            {chapter.n !== 1 && <TextbookVisualAtlas chapter={chapter.n} lang={lang} />}
 
             <nav className="section-jump" aria-label={lang === "en" ? "Chapter sections" : "章节小节"}>{chapter.sections.map((section, index) => <a key={section.id} href={`#chapter-${chapter.n}-${section.id}`}><span>{String(index + 1).padStart(2,"0")}</span>{tx(section.title)}</a>)}</nav>
 
@@ -840,7 +839,7 @@ function CourseChapterReader({ lang, chapter, course, task, chapterScope, comple
               <div className="deep-dive-heading"><span>{String(index + 1).padStart(2,"0")}</span><div><span className="eyebrow">DEEP DIVE</span><h2>{tx(section.title)}</h2>{lang === "zh" && <small>{section.title.en}</small>}</div></div>
               <div className="lecture-copy">{section.explanation.map((paragraph, pi) => <p key={pi}>{paragraph}</p>)}</div>
               <div className="knowledge-board"><span className="eyebrow">KNOWLEDGE YOU MUST OWN</span><ul>{section.details.map((detail, di) => <li key={di}><Check size={15} /><span>{detail}</span></li>)}</ul></div>
-              {chapter.n === 1 && <ChapterOneVisualStudio sectionId={section.id} lang={lang} />}
+              <SectionTextbookFigures chapter={chapter.n} sectionId={section.id} lang={lang} />
               <SectionNoteFigures chapter={chapter.n} sectionId={section.id} lang={lang} />
               <div className="decision-grid">
                 <aside className="coach-decision"><span className="eyebrow">COACHING DECISION</span><strong>{section.decision[lang]}</strong>{lang === "zh" && <p>{section.decision.en}</p>}</aside>
@@ -860,7 +859,7 @@ function CourseChapterReader({ lang, chapter, course, task, chapterScope, comple
 
             <section className="recall-lab"><span className="eyebrow">ACTIVE RECALL LAB</span><h2>{lang === "en" ? "Answer aloud before revealing" : "先口述，再查看答案"}</h2><p>{lang === "en" ? "Retrieval is the study event. Close your notes, produce the answer, then compare and correct." : "主动提取本身就是学习。合上笔记，先说出答案，再对照纠正。"}</p><div>{chapter.recall.map((item, index) => { const isOpen = revealed.includes(index); return <article key={index}><span>Q{index + 1}</span><h3>{tx(item.prompt)}</h3>{lang === "zh" && <small>{item.prompt.en}</small>}{isOpen ? <div className="recall-answer"><strong>MODEL ANSWER</strong><p>{item.answer[lang]}</p>{lang === "zh" && <small>{item.answer.en}</small>}</div> : <button className="ghost" onClick={() => setRevealed(values => [...values, index])}>{lang === "en" ? "Reveal after answering" : "回答后查看"} <ChevronRight size={15} /></button>}</article>})}</div></section>
 
-            <section className="course-source-note"><BookMarked size={19} /><div><strong>{lang === "en" ? "How this lesson was built" : "本课程如何编写"}</strong><p>{lang === "en" ? "Original instruction aligned to Essentials of Strength Training and Conditioning, Fifth Edition, and the official NSCA CSCS® Detailed Content Outline. It teaches and synthesizes tested concepts without reproducing publisher text or figures." : "原创教学内容依据《Essentials of Strength Training and Conditioning》第五版与 NSCA 官方 CSCS® 考试大纲综合编写，不复制出版社原文或插图。"}</p></div></section>
+            <section className="course-source-note"><BookMarked size={19} /><div><strong>{lang === "en" ? "How this lesson was built" : "本课程如何编写"}</strong><p>{chapter.n === 1 ? (lang === "en" ? "Instruction is aligned to Essentials of Strength Training and Conditioning, Fifth Edition, and the official NSCA CSCS® Detailed Content Outline. Protected Fifth Edition figure excerpts are included inside the authenticated course for close reading and are paired with original explanations and retrieval checks." : "课程依据《Essentials of Strength Training and Conditioning》第五版与 NSCA 官方 CSCS® 考试大纲编写。登录后的课程中包含受保护的第五版图示节选，并配有原创讲解与主动回忆检查。") : (lang === "en" ? "Original instruction aligned to Essentials of Strength Training and Conditioning, Fifth Edition, and the official NSCA CSCS® Detailed Content Outline. It teaches and synthesizes tested concepts without reproducing publisher text or figures." : "原创教学内容依据《Essentials of Strength Training and Conditioning》第五版与 NSCA 官方 CSCS® 考试大纲综合编写，不复制出版社原文或插图。")}</p></div></section>
           </div>
 
           <footer className="course-footer">
