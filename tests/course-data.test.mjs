@@ -3,7 +3,9 @@ import test from "node:test";
 import { cscsCourse } from "../lib/course/index.ts";
 import { certificationRegistry } from "../lib/certifications.ts";
 import { courseMedia } from "../lib/course-media.ts";
+import { editorialMediaForSection, isTextHeavySourceAsset } from "../lib/course-media-presentation.ts";
 import { chapterOneVisualCoverage } from "../lib/chapter-one-visual-coverage.ts";
+import { planTaskCurriculum } from "../lib/plan-curriculum.ts";
 
 test("ships a complete, ordered 26-chapter CSCS course", () => {
   assert.equal(cscsCourse.length, 26);
@@ -67,14 +69,47 @@ test("maps every chapter to an original textbook visual model", () => {
   assert.ok(Object.values(courseMedia).filter((media) => media.mindMap).length >= 20, "personal mind-map coverage is incomplete");
 });
 
-test("never silently drops audited textbook figures from the learner course", () => {
+test("retains every audited source asset while learner presentation separates explanatory visuals from prose sources", () => {
+  const allFigures = Object.values(courseMedia).flatMap((media) => media.textbookFigures || []);
+  assert.equal(allFigures.length, 991);
+  assert.equal(allFigures.filter(isTextHeavySourceAsset).length, 553, "the audited text-heavy set must stay out of learner image walls");
+  assert.equal(allFigures.filter((figure) => !isTextHeavySourceAsset(figure)).length, 438, "the audited explanatory visual set must remain available inline");
   for (const chapter of cscsCourse) {
     const validSections = new Set(chapter.sections.map((section) => section.id));
     const figures = courseMedia[chapter.n].textbookFigures || [];
-    const sectionFigures = figures.filter((figure) => validSections.has(figure.sectionId));
-    const appendixFigures = figures.filter((figure) => !validSections.has(figure.sectionId));
-    assert.equal(sectionFigures.length + appendixFigures.length, figures.length, `chapter ${chapter.n} loses an audited source figure`);
+    const assigned = figures.filter((figure) => validSections.has(figure.sectionId));
+    const adminOnly = figures.filter((figure) => !validSections.has(figure.sectionId));
+    assert.equal(assigned.length + adminOnly.length, figures.length, `chapter ${chapter.n} loses an audited source asset`);
+    for (const section of chapter.sections) {
+      const editorial = editorialMediaForSection(chapter.n, section.id);
+      assert.equal(editorial.totalAudited, figures.filter((figure) => figure.sectionId === section.id).length);
+      assert.ok(editorial.visuals.every((figure) => !isTextHeavySourceAsset(figure)), `chapter ${chapter.n} ${section.id} leaks a text-heavy screenshot into learner view`);
+      assert.ok(editorial.insights.every(isTextHeavySourceAsset), `chapter ${chapter.n} ${section.id} insight must come from a prose-oriented source`);
+    }
   }
+});
+
+test("maps every plan learning task to valid exact units and covers the complete 116-section curriculum", () => {
+  const known = new Map(cscsCourse.map((chapter) => [chapter.n, new Set(chapter.sections.map((section) => section.id))]));
+  const covered = new Set();
+  assert.equal(Object.keys(planTaskCurriculum).length, 48);
+  for (const [taskId, curriculum] of Object.entries(planTaskCurriculum)) {
+    if (curriculum.kind === "learn") assert.ok(curriculum.targets.length, `${taskId} needs an exact destination`);
+    if (curriculum.kind !== "learn") assert.equal(curriculum.targets.length, 0, `${taskId} should open its guided task instead of a chapter`);
+    for (const target of curriculum.targets) {
+      assert.ok(known.has(target.chapter), `${taskId} targets unknown chapter ${target.chapter}`);
+      assert.ok(target.sectionIds.length, `${taskId} has an empty chapter target`);
+      for (const sectionId of target.sectionIds) {
+        assert.ok(known.get(target.chapter).has(sectionId), `${taskId} targets unknown section ${target.chapter}:${sectionId}`);
+        covered.add(`${target.chapter}:${sectionId}`);
+      }
+    }
+  }
+  const allSections = cscsCourse.flatMap((chapter) => chapter.sections.map((section) => `${chapter.n}:${section.id}`));
+  assert.equal(allSections.length, 116);
+  assert.deepEqual(allSections.filter((key) => !covered.has(key)), []);
+  assert.deepEqual(planTaskCurriculum["w1-1"].targets.map((target) => target.chapter), [1]);
+  assert.deepEqual(planTaskCurriculum["w1-2"].targets.map((target) => target.chapter), [2]);
 });
 
 test("audits every Chapter 1 fifth-edition figure and table into a learning module", () => {

@@ -48,7 +48,7 @@ test("rejects anonymous administrator API inspection", async () => {
 });
 
 test("ships plan-linked complete lessons, optional placement, research, and private progress sync", async () => {
-  const [catalogPage, page, lessons, supabase, migration, tutor, visuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, adminPage, adminApi, registry] = await Promise.all([
+  const [catalogPage, page, lessons, supabase, migration, tutor, visuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, adminPage, adminApi, registry, planCurriculum, mediaPresentation] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/certifications/nsca-cscs/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/lesson-data.ts", import.meta.url), "utf8"),
@@ -71,6 +71,8 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
     readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/admin/content/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/certifications.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/plan-curriculum.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/course-media-presentation.ts", import.meta.url), "utf8"),
   ]);
 
   const lessonIds = lessons.match(/"w(?:[1-9]|1[0-2])-[0-3]":\s*L\(/g) ?? [];
@@ -82,10 +84,13 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(page, /task=\{activeLesson\}/);
   assert.match(page, /Optional placement/);
   assert.match(page, /useState\("weighted"\)/);
-  assert.match(page, /tasks: standard\[0\]\.tasks\.filter\(task => task\.id !== "w1-0"\)/);
+  assert.match(page, /function adaptivePlan/);
+  assert.match(page, /minutesRemaining \/ weeksRemaining/);
+  assert.match(page, /task\.targets\.reduce/);
   assert.match(page, /ChapterVisualLab/);
   assert.doesNotMatch(page, /ChapterOneVisualStudio/);
-  assert.match(page, /SectionTextbookFigures/);
+  assert.match(page, /SectionLearningFlow/);
+  assert.doesNotMatch(page, /<SectionTextbookFigures|<ChapterSourceAppendix|<SectionNoteFigures/);
   assert.match(page, /AITutor/);
   assert.match(page, /signInWithPassword/);
   assert.match(page, /auth\.signUp/);
@@ -106,7 +111,8 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(courseMediaViewer, /ENGLISH FIFTH EDITION · CHAPTER CONCEPT MAP/);
   assert.match(courseMediaViewer, /Built from the English Fifth Edition curriculum/);
   assert.doesNotMatch(courseMediaViewer, /Personal Chinese notes are reference material only/);
-  assert.match(courseMediaViewer, /Study the original textbook figure/);
+  assert.match(courseMediaViewer, /function SectionLearningFlow/);
+  assert.match(courseMediaViewer, /TEXTBOOK SOURCE · INTEGRATED INTO THE LESSON/);
   assert.match(page, /TextbookVisualAtlas/);
   assert.match(page, /from\("user_progress"\)/);
   assert.match(page, /href="\/admin"/);
@@ -127,8 +133,14 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(visualCoverage, /Figure 1\.17/);
   assert.match(visualCoverage, /Table 1\.2/);
   assert.match(visualCoverage, /protected-textbook-excerpt/);
-  assert.match(courseMediaViewer, /function SectionTextbookFigures/);
-  assert.match(courseMediaViewer, /PROTECTED FIGURE SET/);
+  assert.match(courseMediaViewer, /data-block-id/);
+  assert.match(courseMediaViewer, /data-media-id/);
+  assert.match(mediaPresentation, /textOnlyMovementBasenames/);
+  assert.match(mediaPresentation, /retainedForAdmin/);
+  assert.match(planCurriculum, /"w1-1"/);
+  assert.match(planCurriculum, /"w12-3"/);
+  assert.match(page, /focusedSectionIds/);
+  assert.match(page, /EXACT CURRICULUM DESTINATION/);
   assert.match(courseMediaViewer, /event\.key === "Escape"/);
   assert.match(courseMediaViewer, /onPointerCancel/);
   assert.match(courseMediaViewer, /querySelectorAll<HTMLElement>/);

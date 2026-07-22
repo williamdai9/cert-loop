@@ -10,11 +10,12 @@ import {
   UserRound, X, Zap
 } from "lucide-react";
 import { certificationRegistry, type CertificationPack, type Question } from "@/lib/certifications";
-import type { BilingualText, LessonContent } from "@/lib/lesson-data";
+import { getLessonContent, type BilingualText, type LessonContent } from "@/lib/lesson-data";
 import { cscsCourse, type CourseChapter, type CourseText } from "@/lib/course";
+import { chaptersForTargets, curriculumForTask, type PlanTaskKind, type PlanTaskTarget } from "@/lib/plan-curriculum";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 import { ChapterVisualLab } from "@/app/components/chapter-visual-lab";
-import { ChapterSourceAppendix, SectionNoteFigures, SectionTextbookFigures, TextbookConceptMap, TextbookVisualAtlas } from "@/app/components/course-media";
+import { SectionLearningFlow, TextbookConceptMap, TextbookVisualAtlas } from "@/app/components/course-media";
 import { mediaForChapter } from "@/lib/course-media";
 import { AITutor } from "@/app/components/ai-tutor";
 import { ResearchPulse } from "@/app/components/research-pulse";
@@ -30,6 +31,9 @@ type ActiveLesson = {
   domain: string;
   chapterNumbers: number[];
   focusChapter: number;
+  kind: PlanTaskKind;
+  targets: PlanTaskTarget[];
+  minutes: number;
 };
 type DiagnosticResult = { completedAt: string; score: number; total: number; domains: Record<string, { correct: number; total: number }> };
 type SavedState = {
@@ -62,14 +66,15 @@ const nav = [
 ] as const;
 
 const copy = {
-  zh: { currentCert:"当前认证", add:"新增认证只需接入内容包", countdown:"考试倒计时", days:"天", progress:"当前计划完成", local:"进度按认证独立保存在此设备", todayLoop:"今日学习循环", heroA:"读懂，做题，", heroB:"把错题练成反射。", heroP:"按官方考试权重推进，不平均用力。今天建议先完成一个知识块，再用 10 道题检验。", startPlan:"开始今日计划", directTest:"直接测试", planProgress:"计划进度", examIn:"距离考试", streak:"连续学习", misses:"待回炉错题", points:"学习积分", next:"今天做这三件事", about:"约", minutes:"分钟", pace:"调整你的节奏", examDate:"考试日期", cycle:"计划周期", weekly:"每周时间", sixDays:"建议每周 6 天，每次“学习 → 主动回忆 → 测试 → 错题回炉”。", weighting:"把时间花在分值上", adaptive:"自适应路线", weekPlan:"周学习计划", planDesc:"标准版以 12 周为骨架。8 周合并相邻模块；16 周插入四个间隔复习周。", build:"建构前 1/3", apply:"应用中 1/3", mock:"模拟后 1/3", complete:"完成", testHero:"用考试方式学习", testDesc:"严格采用三选一题型，覆盖记忆、应用与分析。练习模式即时讲解，模拟模式统一交卷。", done:"本轮完成", wrongSaved:"错题已经自动进入回炉队列。", practice:"练习模式", exam:"模拟模式", chooseSet:"选择题组", weighted:"官方权重", mixed:"七领域混合", science:"科学基础", practical:"实践应用", wrongLoop:"错题回炉", currentCount:"当前", items:"题", roundSize:"本轮题数", start:"开始测试", again:"再来一轮", total:"总题数", scored:"计分", perQuestion:"每题选项数", best:"选最优答案", exit:"退出", nextQ:"下一题", submit:"交卷", immediate:"选择后立即查看解析", recorded:"答案会在交卷后统一记录", correct:"回答正确", correctAnswer:"正确答案", reviewTitle:"错题回炉", reviewDesc:"错题不是收藏夹。看完规则，遮住答案口述一次，再回测试中心重做。", startReview:"开始回炉", noWrong:"暂时没有错题", noWrongP:"完成一轮测试后，答错的题会自动出现在这里。", goTest:"去做题", remember:"记住：", mastered:"我已掌握", libraryTitle:"教材与高频记忆库", libraryDesc:"教材按考试领域重新索引；保留中英术语，方便适应原版题干。", search:"搜索章节或领域…", cards:"高频闪卡", flip:"点击翻面", seeAnswer:"点击查看答案", back:"点击返回问题", chapterMap:"教材章节地图", chapters:"章" },
-  en: { currentCert:"Current certification", add:"Add future certificates as content packs", countdown:"Exam countdown", days:"days", progress:"Plan complete", local:"Progress is stored separately for each certificate", todayLoop:"TODAY'S STUDY LOOP", heroA:"Learn it, test it,", heroB:"turn misses into reflexes.", heroP:"Follow the official exam weighting instead of studying every topic equally. Learn one block, then test it with ten questions.", startPlan:"Start today's plan", directTest:"Take a test", planProgress:"Plan progress", examIn:"Until exam", streak:"Study streak", misses:"Questions to review", points:"Study points", next:"Your next three actions", about:"About", minutes:"minutes", pace:"Set your pace", examDate:"Exam date", cycle:"Plan length", weekly:"Weekly time", sixDays:"Study six days per week using Learn → Recall → Test → Review.", weighting:"Put time where the points are", adaptive:"ADAPTIVE ROADMAP", weekPlan:"week study plan", planDesc:"The 12-week plan is the baseline. Eight weeks merges adjacent modules; 16 weeks inserts four spaced-review weeks.", build:"Build · first third", apply:"Apply · middle third", mock:"Simulate · final third", complete:"done", testHero:"Learn in exam format", testDesc:"Three-option items across recall, application, and analysis. Practice mode explains immediately; exam mode scores at submission.", done:"Round complete", wrongSaved:"Missed items were added to your review queue.", practice:"Practice", exam:"Exam mode", chooseSet:"Choose a question set", weighted:"Official weighting", mixed:"Seven-domain mix", science:"Scientific Foundations", practical:"Practical / Applied", wrongLoop:"Review misses", currentCount:"Current", items:"items", roundSize:"Questions this round", start:"Start test", again:"Start another round", total:"total items", scored:"scored", perQuestion:"Options per item", best:"Choose the best answer", exit:"Exit", nextQ:"Next", submit:"Submit", immediate:"See the rationale after each answer", recorded:"Answers are recorded when you submit", correct:"Correct", correctAnswer:"Correct answer", reviewTitle:"Review queue", reviewDesc:"A missed question is not a bookmark. Read the rule, cover it, recall it aloud, then test it again.", startReview:"Start review", noWrong:"No missed questions yet", noWrongP:"Questions you miss in a test will appear here automatically.", goTest:"Take a test", remember:"Remember: ", mastered:"Mark mastered", libraryTitle:"Curriculum and high-yield library", libraryDesc:"The complete curriculum is indexed by official exam domain, with every chapter available as a full lesson.", search:"Search chapters or domains…", cards:"High-yield flashcards", flip:"Click to flip", seeAnswer:"View answer", back:"Back to prompt", chapterMap:"Textbook chapter map", chapters:"chapters" },
+  zh: { currentCert:"当前认证", add:"新增认证只需接入内容包", countdown:"考试倒计时", days:"天", progress:"当前计划完成", local:"进度按认证独立保存在此设备", todayLoop:"今日学习循环", heroA:"读懂，做题，", heroB:"把错题练成反射。", heroP:"按官方考试权重推进，不平均用力。今天建议先完成一个知识块，再用 10 道题检验。", startPlan:"开始今日计划", directTest:"直接测试", planProgress:"计划进度", examIn:"距离考试", streak:"连续学习", misses:"待回炉错题", points:"学习积分", next:"今天做这三件事", about:"约", minutes:"分钟", pace:"调整你的节奏", examDate:"考试日期", cycle:"计划周期", weekly:"每周时间", sixDays:"建议每周 6 天，每次“学习 → 主动回忆 → 测试 → 错题回炉”。", weighting:"把时间花在分值上", adaptive:"自适应路线", weekPlan:"周学习计划", planDesc:"课程任务与对应知识点保持不变；选择 8、12 或 16 周时，系统会按总学习量重新分配每周任务，而不是重复或删减课程。", build:"建构前 1/3", apply:"应用中 1/3", mock:"模拟后 1/3", complete:"完成", testHero:"用考试方式学习", testDesc:"严格采用三选一题型，覆盖记忆、应用与分析。练习模式即时讲解，模拟模式统一交卷。", done:"本轮完成", wrongSaved:"错题已经自动进入回炉队列。", practice:"练习模式", exam:"模拟模式", chooseSet:"选择题组", weighted:"官方权重", mixed:"七领域混合", science:"科学基础", practical:"实践应用", wrongLoop:"错题回炉", currentCount:"当前", items:"题", roundSize:"本轮题数", start:"开始测试", again:"再来一轮", total:"总题数", scored:"计分", perQuestion:"每题选项数", best:"选最优答案", exit:"退出", nextQ:"下一题", submit:"交卷", immediate:"选择后立即查看解析", recorded:"答案会在交卷后统一记录", correct:"回答正确", correctAnswer:"正确答案", reviewTitle:"错题回炉", reviewDesc:"错题不是收藏夹。看完规则，遮住答案口述一次，再回测试中心重做。", startReview:"开始回炉", noWrong:"暂时没有错题", noWrongP:"完成一轮测试后，答错的题会自动出现在这里。", goTest:"去做题", remember:"记住：", mastered:"我已掌握", libraryTitle:"教材与高频记忆库", libraryDesc:"教材按考试领域重新索引；保留中英术语，方便适应原版题干。", search:"搜索章节或领域…", cards:"高频闪卡", flip:"点击翻面", seeAnswer:"点击查看答案", back:"点击返回问题", chapterMap:"教材章节地图", chapters:"章" },
+  en: { currentCert:"Current certification", add:"Add future certificates as content packs", countdown:"Exam countdown", days:"days", progress:"Plan complete", local:"Progress is stored separately for each certificate", todayLoop:"TODAY'S STUDY LOOP", heroA:"Learn it, test it,", heroB:"turn misses into reflexes.", heroP:"Follow the official exam weighting instead of studying every topic equally. Learn one block, then test it with ten questions.", startPlan:"Start today's plan", directTest:"Take a test", planProgress:"Plan progress", examIn:"Until exam", streak:"Study streak", misses:"Questions to review", points:"Study points", next:"Your next three actions", about:"About", minutes:"minutes", pace:"Set your pace", examDate:"Exam date", cycle:"Plan length", weekly:"Weekly time", sixDays:"Study six days per week using Learn → Recall → Test → Review.", weighting:"Put time where the points are", adaptive:"ADAPTIVE ROADMAP", weekPlan:"week study plan", planDesc:"The task curriculum and its exact learning units stay fixed. Selecting 8, 12, or 16 weeks redistributes the same total workload instead of duplicating or removing lessons.", build:"Build · first third", apply:"Apply · middle third", mock:"Simulate · final third", complete:"done", testHero:"Learn in exam format", testDesc:"Three-option items across recall, application, and analysis. Practice mode explains immediately; exam mode scores at submission.", done:"Round complete", wrongSaved:"Missed items were added to your review queue.", practice:"Practice", exam:"Exam mode", chooseSet:"Choose a question set", weighted:"Official weighting", mixed:"Seven-domain mix", science:"Scientific Foundations", practical:"Practical / Applied", wrongLoop:"Review misses", currentCount:"Current", items:"items", roundSize:"Questions this round", start:"Start test", again:"Start another round", total:"total items", scored:"scored", perQuestion:"Options per item", best:"Choose the best answer", exit:"Exit", nextQ:"Next", submit:"Submit", immediate:"See the rationale after each answer", recorded:"Answers are recorded when you submit", correct:"Correct", correctAnswer:"Correct answer", reviewTitle:"Review queue", reviewDesc:"A missed question is not a bookmark. Read the rule, cover it, recall it aloud, then test it again.", startReview:"Start review", noWrong:"No missed questions yet", noWrongP:"Questions you miss in a test will appear here automatically.", goTest:"Take a test", remember:"Remember: ", mastered:"Mark mastered", libraryTitle:"Curriculum and high-yield library", libraryDesc:"The complete curriculum is indexed by official exam domain, with every chapter available as a full lesson.", search:"Search chapters or domains…", cards:"High-yield flashcards", flip:"Click to flip", seeAnswer:"View answer", back:"Back to prompt", chapterMap:"Textbook chapter map", chapters:"chapters" },
 } as const;
 
 const cn = (...values: Array<string | false | undefined>) => values.filter(Boolean).join(" ");
 const domainEnglish: Record<string, string> = { "运动科学":"Exercise Science", "运动心理学":"Sport Psychology", "营养":"Nutrition", "计划设计":"Program Design", "运动技术":"Exercise Technique", "计划实施":"Program Implementation", "组织与管理":"Organization & Administration", "运动科学 / 心理学":"Exercise Science / Sport Psychology", "实施 / 组织管理":"Implementation / Administration", "综合":"Integrated Review" };
 
-type DisplayWeek = { key: string; title: string; subtitle: string; chapters: string; chapterNumbers: number[]; domain: string; tasks: Array<{ id: string; label: string }> };
+type DisplayTask = { id: string; label: string; kind: PlanTaskKind; targets: PlanTaskTarget[]; minutes: number; phaseTitle: string; phaseSubtitle: string; phaseChapters: string; phaseChapterNumbers: number[]; domain: string };
+type DisplayWeek = { key: string; title: string; subtitle: string; chapters: string; chapterNumbers: number[]; domain: string; minutes: number; tasks: DisplayTask[] };
 
 function chapterNumbersFromLabel(label: string) {
   if (/全书|high.frequency|whole book/i.test(label)) return Array.from({ length: 26 }, (_, index) => index + 1);
@@ -78,29 +83,72 @@ function chapterNumbersFromLabel(label: string) {
   return values.length ? values : Array.from({ length: 26 }, (_, index) => index + 1);
 }
 
-function adaptivePlan(pack: CertificationPack, length: 8 | 12 | 16, lang: Lang): DisplayWeek[] {
-  const standard = pack.plan.map(w => ({ key: w.id, title: lang === "en" && w.en ? w.en.title : w.title, subtitle: lang === "en" && w.en ? w.en.subtitle : w.subtitle, chapters: lang === "en" ? w.chapters.replace("第 ", "Ch. ").replace(/章/g, "") : w.chapters, chapterNumbers: chapterNumbersFromLabel(w.chapters), domain: lang === "en" ? (domainEnglish[w.domain] || w.domain) : w.domain, tasks: (lang === "en" && w.en ? w.en.tasks : w.tasks).map((label, i) => ({ id: `${w.id}-${i}`, label })) }));
-  standard[0] = {
-    ...standard[0],
-    subtitle: lang === "en" ? "Anatomy, physiology, and biomechanics foundations" : "解剖、生理与生物力学基础",
-    tasks: standard[0].tasks.filter(task => task.id !== "w1-0"),
-  };
-  if (length === 12) return standard;
-  if (length === 8) {
-    return [[0,1],[2,3],[4,5],[6,7],[8],[9],[10],[11]].map((indices, i) => {
-      const blocks = indices.map(x => standard[x]);
-      return { key: `sprint-${i}`, title: blocks.map(b => b.title).join(" + "), subtitle: indices.length > 1 ? (lang === "en" ? "Combined sprint week: add two short study blocks" : "冲刺合并周：建议增加两次短学习时段") : blocks[0].subtitle, chapters: blocks.map(b => b.chapters).join(" / "), chapterNumbers: Array.from(new Set(blocks.flatMap(b => b.chapterNumbers))), domain: blocks.map(b => b.domain).join(" / "), tasks: blocks.flatMap(b => b.tasks) };
+function estimatedTaskMinutes(taskId: string, kind: PlanTaskKind, targets: PlanTaskTarget[], chapters: CourseChapter[]) {
+  const guidedMinutes = getLessonContent(taskId).minutes;
+  if (kind !== "learn" || !targets.length) return guidedMinutes;
+  const curriculumMinutes = targets.reduce((sum, item) => {
+    const chapter = chapters.find(candidate => candidate.n === item.chapter);
+    if (!chapter) return sum;
+    return sum + chapter.minutes * item.sectionIds.length / chapter.sections.length;
+  }, 0);
+  return Math.max(guidedMinutes, Math.round(curriculumMinutes));
+}
+
+function adaptivePlan(pack: CertificationPack, length: 8 | 12 | 16, lang: Lang, chapters: CourseChapter[] = cscsCourse): DisplayWeek[] {
+  const canonicalTasks: DisplayTask[] = pack.plan.flatMap(phase => {
+    const title = lang === "en" && phase.en ? phase.en.title : phase.title;
+    const subtitle = lang === "en" && phase.en ? phase.en.subtitle : phase.subtitle;
+    const phaseChapters = lang === "en" ? phase.chapters.replace("第 ", "Ch. ").replace(/章/g, "") : phase.chapters;
+    const phaseChapterNumbers = chapterNumbersFromLabel(phase.chapters);
+    const domain = lang === "en" ? (domainEnglish[phase.domain] || phase.domain) : phase.domain;
+    return (lang === "en" && phase.en ? phase.en.tasks : phase.tasks).map((label, index) => {
+      const id = `${phase.id}-${index}`;
+      const curriculum = curriculumForTask(id);
+      return { id, label, kind: curriculum.kind, targets: curriculum.targets, minutes: estimatedTaskMinutes(id, curriculum.kind, curriculum.targets, chapters), phaseTitle: title, phaseSubtitle: subtitle, phaseChapters, phaseChapterNumbers, domain };
     });
-  }
-  const expanded: DisplayWeek[] = [];
-  standard.forEach((week, i) => {
-    expanded.push(week);
-    if ((i + 1) % 3 === 0) {
-      const q = (i + 1) / 3;
-      expanded.push({ key: `review-${q}`, title: lang === "en" ? `Spaced review ${q}` : `间隔复习 ${q}`, subtitle: lang === "en" ? "Use active recall to consolidate the last phase" : "用主动回忆巩固上一阶段，避免知识衰减", chapters: lang === "en" ? `Weeks ${Math.max(1, i - 1)}–${i + 1}` : `第 ${Math.max(1, i - 1)}–${i + 1} 周内容`, chapterNumbers: standard.slice(Math.max(0, i - 2), i + 1).flatMap(item => item.chapterNumbers), domain: lang === "en" ? "Review and integration" : "复习与整合", tasks: (lang === "en" ? ["Write the phase framework from memory","Redo every miss from this phase","Complete one weighted mixed set","Add three weak points to flashcards"] : ["闭卷写出本阶段知识框架", "重做本阶段全部错题", "完成一套按权重混合题", "把三个薄弱点加入闪卡"]).map((label, ti) => ({ id: `review-${q}-${ti}`, label })) });
+  }).filter(task => task.id !== "w1-0");
+
+  const weeks: DisplayTask[][] = [];
+  let cursor = 0;
+  let minutesRemaining = canonicalTasks.reduce((sum, task) => sum + task.minutes, 0);
+  for (let weekIndex = 0; weekIndex < length; weekIndex += 1) {
+    const weeksRemaining = length - weekIndex;
+    const targetMinutes = minutesRemaining / weeksRemaining;
+    const bucket: DisplayTask[] = [];
+    let bucketMinutes = 0;
+    while (cursor < canonicalTasks.length) {
+      const next = canonicalTasks[cursor];
+      const tasksAfter = canonicalTasks.length - cursor - 1;
+      const futureWeeks = weeksRemaining - 1;
+      if (bucket.length && tasksAfter >= futureWeeks && Math.abs(bucketMinutes - targetMinutes) < Math.abs(bucketMinutes + next.minutes - targetMinutes)) break;
+      bucket.push(next);
+      bucketMinutes += next.minutes;
+      cursor += 1;
+      if (tasksAfter === futureWeeks) break;
     }
+    weeks.push(bucket);
+    minutesRemaining -= bucketMinutes;
+  }
+
+  return weeks.map((tasks, index) => {
+    const phases = Array.from(new Set(tasks.map(task => task.phaseTitle)));
+    const domains = Array.from(new Set(tasks.map(task => task.domain)));
+    const targetChapters = chaptersForTargets(tasks.flatMap(task => task.targets));
+    const chapterNumbers = targetChapters.length ? targetChapters : Array.from(new Set(tasks.flatMap(task => task.phaseChapterNumbers)));
+    const firstPhase = tasks[0]?.phaseTitle || (lang === "en" ? "Review" : "复习");
+    const lastPhase = tasks.at(-1)?.phaseTitle || firstPhase;
+    const minutes = tasks.reduce((sum, task) => sum + task.minutes, 0);
+    return {
+      key: `paced-${length}-${index + 1}`,
+      title: phases.length === 1 ? firstPhase : `${firstPhase} → ${lastPhase}`,
+      subtitle: lang === "en" ? `${tasks.length} task-based sessions · ${minutes} planned minutes` : `${tasks.length} 个任务式学习单元 · 计划 ${minutes} 分钟`,
+      chapters: chapterNumbers.length ? (lang === "en" ? `Ch. ${chapterNumbers.join(", ")}` : `第 ${chapterNumbers.join("、")} 章`) : tasks.map(task => task.phaseChapters).join(" / "),
+      chapterNumbers,
+      domain: domains.join(" / "),
+      minutes,
+      tasks,
+    };
   });
-  return expanded;
 }
 
 function formatDate(d: Date) {
@@ -264,7 +312,7 @@ export default function NscaCscsCoursePage() {
     // eslint-disable-next-line react-hooks/purity
     return Math.max(0, Math.ceil((new Date(`${state.examDate}T12:00:00`).getTime() - Date.now()) / 86400000));
   }, [state.examDate]);
-  const activePlan = adaptivePlan(pack, state.planLength, lang);
+  const activePlan = adaptivePlan(pack, state.planLength, lang, courseChapters);
   const totalTasks = activePlan.reduce((sum, w) => sum + w.tasks.length, 0);
   const completedInPlan = activePlan.flatMap(w => w.tasks).filter(t => state.completed.includes(t.id)).length;
   const completion = Math.round((completedInPlan / totalTasks) * 100);
@@ -307,8 +355,8 @@ export default function NscaCscsCoursePage() {
     setState(current => ({ ...current, onboardingChoice: "zero", diagnostic: undefined, domainStats: {}, tourCompleted: false }));
   }
 
-  const activePlanChapter = activeLesson ? courseChapters.find(chapter => chapter.n === activeLesson.focusChapter) || courseChapters[0] : null;
-  const tutorContext = activeLesson ? { chapterNumber: activeLesson.focusChapter, chapterTitle: activePlanChapter?.title.en, taskId: activeLesson.id, taskTitle: activeLesson.label } : activeChapter ? { chapterNumber: activeChapter.n, chapterTitle: activeChapter.title.en } : undefined;
+  const activePlanChapter = activeLesson?.kind === "learn" ? courseChapters.find(chapter => chapter.n === activeLesson.focusChapter) || null : null;
+  const tutorContext = activeLesson ? { chapterNumber: activePlanChapter?.n, chapterTitle: activePlanChapter?.title.en, taskId: activeLesson.id, taskTitle: activeLesson.label } : activeChapter ? { chapterNumber: activeChapter.n, chapterTitle: activeChapter.title.en } : undefined;
 
   if (!ready || !authReady || (user && !progressLoaded)) return <LoadingGate lang={lang} />;
 
@@ -357,7 +405,7 @@ export default function NscaCscsCoursePage() {
           </div>
         </header>
 
-        {tab === "dashboard" && <Dashboard lang={lang} pack={pack} state={state} studyDays={studyDays} completion={completion} setState={setState} setTab={setTab} openLesson={setActiveLesson} />}
+        {tab === "dashboard" && <Dashboard lang={lang} pack={pack} state={state} studyDays={studyDays} completion={completion} setState={setState} setTab={setTab} chapters={courseChapters} openLesson={setActiveLesson} />}
         {tab === "plan" && <Plan lang={lang} pack={pack} state={state} setState={setState} setTab={setTab} chapters={courseChapters} openLesson={setActiveLesson} />}
         {tab === "test" && <TestCenter lang={lang} pack={pack} wrong={state.wrong} recordAnswer={recordAnswer} onDiagnosticComplete={updateDiagnostic} />}
         {tab === "mistakes" && <Mistakes lang={lang} pack={pack} wrong={state.wrong} setTab={setTab} clearWrong={(id) => setState(s => ({ ...s, wrong: s.wrong.filter(x => x !== id) }))} />}
@@ -367,7 +415,8 @@ export default function NscaCscsCoursePage() {
       <nav className="mobile-nav" aria-label={lang === "en" ? "Mobile navigation" : "移动导航"}>
         {nav.map(item => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><item.icon size={19} /><span>{item[lang]}</span></button>)}
       </nav>
-      {activeLesson && activePlanChapter && <CourseChapterReader key={`${activeLesson.id}-${activeLesson.focusChapter}`} lang={lang} chapter={activePlanChapter} course={courseChapters} task={activeLesson} chapterScope={activeLesson.chapterNumbers} completed={state.completed.includes(activeLesson.id)} onClose={() => setActiveLesson(null)} onOpenChapter={(n) => setActiveLesson(current => current ? { ...current, focusChapter: n } : null)} onComplete={() => { if (!state.completed.includes(activeLesson.id)) { toggleTask(activeLesson.id); logStudy(0); } }} onPractice={() => { setActiveLesson(null); setTab("test"); }} />}
+      {activeLesson?.kind !== "learn" && activeLesson && <LessonReader key={activeLesson.id} lang={lang} lesson={activeLesson} content={getLessonContent(activeLesson.id)} completed={state.completed.includes(activeLesson.id)} onClose={() => setActiveLesson(null)} onComplete={() => { if (!state.completed.includes(activeLesson.id)) { toggleTask(activeLesson.id); logStudy(0); } }} onPractice={() => { setActiveLesson(null); setTab("test"); }} />}
+      {activeLesson?.kind === "learn" && activePlanChapter && <CourseChapterReader key={activeLesson.id} lang={lang} chapter={activePlanChapter} course={courseChapters} task={activeLesson} chapterScope={activeLesson.chapterNumbers} completed={state.completed.includes(activeLesson.id)} onClose={() => setActiveLesson(null)} onOpenChapter={(n) => setActiveLesson(current => current ? { ...current, focusChapter: n } : null)} onComplete={() => { if (!state.completed.includes(activeLesson.id)) { toggleTask(activeLesson.id); logStudy(0); } }} onPractice={() => { setActiveLesson(null); setTab("test"); }} />}
       {activeChapter && <CourseChapterReader key={activeChapter.n} lang={lang} chapter={activeChapter} course={courseChapters} completed={state.completed.includes(`course-chapter-${activeChapter.n}`)} onClose={() => setActiveChapter(null)} onOpenChapter={(n) => { const next = courseChapters.find(chapter => chapter.n === n); if (next) setActiveChapter(next); }} onComplete={() => { const id = `course-chapter-${activeChapter.n}`; if (!state.completed.includes(id)) { toggleTask(id); logStudy(0); } }} onPractice={() => { setActiveChapter(null); setTab("test"); }} />}
       {authOpen && <AuthPanel lang={lang} user={user} configured={cloudEnabled} syncStatus={syncStatus} recoveryMode={passwordRecovery} onRecoveryComplete={() => setPasswordRecovery(false)} onClose={() => setAuthOpen(false)} />}
       <AITutor lang={lang} context={tutorContext} mastery={state.domainStats} />
@@ -441,9 +490,9 @@ function SiteTour({ lang, onComplete, onNavigate }: { lang: Lang; onComplete: ()
   return <div className="tour-layer" role="dialog" aria-modal="true" aria-label="Cert Loop site tour"><section className="tour-card"><div className="tour-visual"><span><Icon size={32} /></span><div>{steps.map((_, index) => <i className={index <= step ? "active" : ""} key={index} />)}</div></div><div className="tour-copy"><span className="eyebrow">{item.eyebrow} · FIRST-TIME SITE GUIDE</span><h2>{lang === "en" ? item.en : item.zh}</h2><p>{lang === "en" ? item.bodyEn : item.bodyZh}</p><small>{lang === "en" ? "You can replay this tour anytime with the compass button in the top bar." : "以后可随时点击顶部指南针按钮重新查看。"}</small><footer><button className="text-button" onClick={onComplete}>{lang === "en" ? "Skip tour" : "跳过导览"}</button><span>{step + 1} / {steps.length}</span><button className="primary" onClick={() => { onNavigate(item.tab); if (step === steps.length - 1) onComplete(); else setStep(value => value + 1); }}>{step === steps.length - 1 ? (lang === "en" ? "Enter Cert Loop" : "进入 Cert Loop") : (lang === "en" ? "Next" : "下一步")} <ChevronRight size={16} /></button></footer></div></section></div>;
 }
 
-function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab, openLesson }: { lang: Lang; pack: CertificationPack; state: SavedState; studyDays: number; completion: number; setState: React.Dispatch<React.SetStateAction<SavedState>>; setTab: (t: Tab) => void; openLesson: (lesson: ActiveLesson) => void }) {
+function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab, chapters, openLesson }: { lang: Lang; pack: CertificationPack; state: SavedState; studyDays: number; completion: number; setState: React.Dispatch<React.SetStateAction<SavedState>>; setTab: (t: Tab) => void; chapters: CourseChapter[]; openLesson: (lesson: ActiveLesson) => void }) {
   const t = copy[lang];
-  const nextTasks = adaptivePlan(pack, state.planLength, lang).flatMap((week) => week.tasks.map(task => ({ id: task.id, task: task.label, week: week.title, weekSubtitle: week.subtitle, chapters: week.chapters, chapterNumbers: week.chapterNumbers, domain: week.domain }))).filter(t => !state.completed.includes(t.id)).slice(0, 3);
+  const nextTasks = adaptivePlan(pack, state.planLength, lang, chapters).flatMap((week) => week.tasks.map(task => ({ ...task, task: task.label, week: week.title, weekSubtitle: week.subtitle, chapters: task.targets.length ? (lang === "en" ? `Ch. ${chaptersForTargets(task.targets).join(", ")}` : `第 ${chaptersForTargets(task.targets).join("、")} 章`) : week.chapters, chapterNumbers: chaptersForTargets(task.targets), domain: task.domain }))).filter(t => !state.completed.includes(t.id)).slice(0, 3);
   return <div className="page-content dashboard-grid">
     <section className="hero-panel">
       <div className="hero-copy">
@@ -464,7 +513,7 @@ function Dashboard({ lang, pack, state, studyDays, completion, setState, setTab,
 
     <section className="card today-card">
       <div className="section-heading"><div><span className="eyebrow">NEXT UP</span><h3>{t.next}</h3></div><span className="duration"><Clock3 size={15} /> {t.about} {Math.max(45, Math.round(state.weeklyHours * 60 / 6))} {t.minutes}</span></div>
-      <div className="task-list">{nextTasks.length ? nextTasks.map((task, i) => <button key={task.id} className="task-row" onClick={() => openLesson({ id: task.id, label: task.task, weekTitle: task.week, weekSubtitle: task.weekSubtitle, chapters: task.chapters, chapterNumbers: task.chapterNumbers, focusChapter: task.chapterNumbers[0] || 1, domain: task.domain })}><span className="task-check">{i + 1}</span><span><b>{task.task}</b><small>{task.week} · {lang === "en" ? "Open complete lesson" : "打开完整课程"}</small></span><ChevronRight size={18} /></button>) : <div className="empty-mini"><Medal size={28} /><b>{lang === "en" ? "This cycle is complete" : "本轮任务已完成"}</b><span>{lang === "en" ? "Open the plan to begin another review cycle." : "去计划页开启下一轮复习。"}</span></div>}</div>
+      <div className="task-list">{nextTasks.length ? nextTasks.map((task, i) => <button key={task.id} className="task-row" onClick={() => openLesson({ id: task.id, label: task.task, weekTitle: task.week, weekSubtitle: task.weekSubtitle, chapters: task.chapters, chapterNumbers: task.chapterNumbers, focusChapter: task.chapterNumbers[0] || 1, domain: task.domain, kind: task.kind, targets: task.targets, minutes: task.minutes })}><span className="task-check">{i + 1}</span><span><b>{task.task}</b><small>{task.week} · {lang === "en" ? (task.kind === "learn" ? "Open exact course units" : "Open guided task") : (task.kind === "learn" ? "打开对应课程单元" : "打开任务指导")}</small></span><ChevronRight size={18} /></button>) : <div className="empty-mini"><Medal size={28} /><b>{lang === "en" ? "This cycle is complete" : "本轮任务已完成"}</b><span>{lang === "en" ? "Open the plan to begin another review cycle." : "去计划页开启下一轮复习。"}</span></div>}</div>
     </section>
 
     <section className="card setup-card">
@@ -493,7 +542,10 @@ function chapterDomainId(chapter: number) {
 
 function Plan({ lang, pack, state, setState, setTab, chapters, openLesson }: { lang: Lang; pack: CertificationPack; state: SavedState; setState: React.Dispatch<React.SetStateAction<SavedState>>; setTab: (tab: Tab) => void; chapters: CourseChapter[]; openLesson: (lesson: ActiveLesson) => void }) {
   const t = copy[lang];
-  const displayPlan = adaptivePlan(pack, state.planLength, lang);
+  const displayPlan = adaptivePlan(pack, state.planLength, lang, chapters);
+  const plannedMinutes = displayPlan.reduce((sum, week) => sum + week.minutes, 0);
+  const availableMinutes = state.planLength * state.weeklyHours * 60;
+  const overCapacity = plannedMinutes > availableMinutes;
   const recommendations = chapters.map(chapter => {
     const domain = chapterDomainId(chapter.n); const stat = state.domainStats[domain] || { correct: 0, total: 0 }; const rate = stat.total ? stat.correct / stat.total : 0;
     const status = stat.total < 3 ? (state.diagnostic ? "diagnose" : "start") : rate >= .85 ? "fast" : rate < .65 ? "priority" : "standard";
@@ -502,13 +554,14 @@ function Plan({ lang, pack, state, setState, setTab, chapters, openLesson }: { l
   const focus = [...recommendations].sort((a, b) => (a.status === "priority" ? -1 : a.status === "fast" ? 1 : 0) - (b.status === "priority" ? -1 : b.status === "fast" ? 1 : 0)).slice(0, 8);
   return <div className="page-content">
     <section className="page-intro"><div><span className="eyebrow">{t.adaptive}</span><h2>{state.planLength}-{t.weekPlan}</h2><p>{t.planDesc}</p></div><div className="segmented">{([8,12,16] as const).map(n => <button key={n} className={state.planLength === n ? "active" : ""} onClick={() => setState(s => ({ ...s, planLength: n }))}>{n} {lang === "en" ? "wk" : "周"}</button>)}</div></section>
-    <section className="adaptive-coach"><div className="adaptive-coach-copy"><span className="eyebrow">AI-ASSISTED MASTERY ROUTING</span><h3>{state.diagnostic ? (lang === "en" ? `Diagnostic: ${state.diagnostic.score}/${state.diagnostic.total}` : `诊断结果：${state.diagnostic.score}/${state.diagnostic.total}`) : (lang === "en" ? "The complete path works without placement" : "不做摸底测试，也能完成完整学习路径")}</h3><p>{state.diagnostic ? (lang === "en" ? "The engine combines diagnostic and practice history. Strong domains can move to earlier checkpoints; weak domains remain in the full learning path. No tested domain is permanently skipped." : "系统结合诊断与练习记录。强项可更早挑战章节测试；弱项保留完整学习路径。任何考试领域都不会被永久跳过。") : (lang === "en" ? "Continue from Chapter 1, or take the optional baseline whenever you want a more personalized route. Placement never blocks a lesson." : "你可以从第 1 章继续，也可以随时完成可选摸底测试来获得更个性化的路线；摸底测试不会阻挡任何课程。")}</p><button className="primary" onClick={() => setTab("test")}>{state.diagnostic ? (lang === "en" ? "Retake optional placement" : "重新完成可选摸底") : (lang === "en" ? "Take optional placement" : "完成可选摸底测试")} <ChevronRight size={16} /></button></div><div className="mastery-routes">{focus.map(item => <button key={item.chapter.n} onClick={() => openLesson({ id: `adaptive-ch-${item.chapter.n}`, label: item.status === "start" ? (lang === "en" ? "Start complete chapter lesson" : "开始完整章节课程") : item.status === "fast" ? (lang === "en" ? "Fast-track chapter checkpoint" : "快速挑战章节测试") : (lang === "en" ? "Adaptive chapter review" : "自适应章节复习"), weekTitle: item.status === "start" ? (lang === "en" ? "Complete foundation path" : "完整基础路线") : (lang === "en" ? "Adaptive route" : "自适应路线"), weekSubtitle: item.status === "fast" ? (lang === "en" ? "Prove mastery before reducing study time" : "先证明掌握，再减少学习时间") : (lang === "en" ? "Build the full foundation and verify it with practice" : "建立完整基础，并通过练习验证"), chapters: `Ch. ${item.chapter.n}`, chapterNumbers: [item.chapter.n], focusChapter: item.chapter.n, domain: item.chapter.domain[lang] })}><span className={item.status}>{item.status === "start" ? "START" : item.status === "fast" ? "FAST-TRACK" : item.status === "priority" ? "PRIORITY" : item.status === "standard" ? "STANDARD" : "DIAGNOSE"}</span><b>Ch. {item.chapter.n} · {item.chapter.title[lang]}</b><small>{item.stat.total ? `${Math.round(item.rate * 100)}% · ${item.stat.total} items` : (lang === "en" ? "Ready from Chapter 1" : "可从第 1 章开始")}</small></button>)}</div></section>
+    <section className="adaptive-coach"><div className="adaptive-coach-copy"><span className="eyebrow">AI-ASSISTED MASTERY ROUTING</span><h3>{state.diagnostic ? (lang === "en" ? `Diagnostic: ${state.diagnostic.score}/${state.diagnostic.total}` : `诊断结果：${state.diagnostic.score}/${state.diagnostic.total}`) : (lang === "en" ? "The complete path works without placement" : "不做摸底测试，也能完成完整学习路径")}</h3><p>{state.diagnostic ? (lang === "en" ? "The engine combines diagnostic and practice history. Strong domains can move to earlier checkpoints; weak domains remain in the full learning path. No tested domain is permanently skipped." : "系统结合诊断与练习记录。强项可更早挑战章节测试；弱项保留完整学习路径。任何考试领域都不会被永久跳过。") : (lang === "en" ? "Continue from Chapter 1, or take the optional baseline whenever you want a more personalized route. Placement never blocks a lesson." : "你可以从第 1 章继续，也可以随时完成可选摸底测试来获得更个性化的路线；摸底测试不会阻挡任何课程。")}</p><button className="primary" onClick={() => setTab("test")}>{state.diagnostic ? (lang === "en" ? "Retake optional placement" : "重新完成可选摸底") : (lang === "en" ? "Take optional placement" : "完成可选摸底测试")} <ChevronRight size={16} /></button></div><div className="mastery-routes">{focus.map(item => <button key={item.chapter.n} onClick={() => openLesson({ id: `adaptive-ch-${item.chapter.n}`, label: item.status === "start" ? (lang === "en" ? "Start complete chapter lesson" : "开始完整章节课程") : item.status === "fast" ? (lang === "en" ? "Fast-track chapter checkpoint" : "快速挑战章节测试") : (lang === "en" ? "Adaptive chapter review" : "自适应章节复习"), weekTitle: item.status === "start" ? (lang === "en" ? "Complete foundation path" : "完整基础路线") : (lang === "en" ? "Adaptive route" : "自适应路线"), weekSubtitle: item.status === "fast" ? (lang === "en" ? "Prove mastery before reducing study time" : "先证明掌握，再减少学习时间") : (lang === "en" ? "Build the full foundation and verify it with practice" : "建立完整基础，并通过练习验证"), chapters: `Ch. ${item.chapter.n}`, chapterNumbers: [item.chapter.n], focusChapter: item.chapter.n, domain: item.chapter.domain[lang], kind: "learn", targets: [{ chapter: item.chapter.n, sectionIds: item.chapter.sections.map(section => section.id) }], minutes: item.chapter.minutes })}><span className={item.status}>{item.status === "start" ? "START" : item.status === "fast" ? "FAST-TRACK" : item.status === "priority" ? "PRIORITY" : item.status === "standard" ? "STANDARD" : "DIAGNOSE"}</span><b>Ch. {item.chapter.n} · {item.chapter.title[lang]}</b><small>{item.stat.total ? `${Math.round(item.rate * 100)}% · ${item.stat.total} items` : (lang === "en" ? "Ready from Chapter 1" : "可从第 1 章开始")}</small></button>)}</div></section>
+    <section className={cn("plan-capacity", overCapacity && "warning")}><Clock3 size={18} /><div><strong>{lang === "en" ? `${plannedMinutes} curriculum minutes across ${state.planLength} weeks` : `${state.planLength} 周共 ${plannedMinutes} 分钟课程量`}</strong><p>{overCapacity ? (lang === "en" ? `Your current ${state.weeklyHours}-hour weekly setting provides ${availableMinutes} minutes. Add about ${Math.ceil((plannedMinutes - availableMinutes) / state.planLength / 60)} hour(s) per week or select a longer plan; the course will not silently omit units.` : `当前每周 ${state.weeklyHours} 小时共可提供 ${availableMinutes} 分钟。建议每周增加约 ${Math.ceil((plannedMinutes - availableMinutes) / state.planLength / 60)} 小时，或选择更长周期；系统不会静默删减课程。`) : (lang === "en" ? `Your ${state.weeklyHours}-hour weekly setting provides ${availableMinutes} minutes, including room for the complete curriculum and review.` : `当前每周 ${state.weeklyHours} 小时共可提供 ${availableMinutes} 分钟，足够完成课程与复习。`)}</p></div></section>
     <div className="phase-strip"><span><i /> {t.build}</span><span><i /> {t.apply}</span><span><i /> {t.mock}</span></div>
     <div className="weeks-grid">{displayPlan.map((week, wi) => {
       const done = week.tasks.filter(t => state.completed.includes(t.id)).length;
       return <article className={cn("week-card", done === week.tasks.length && "complete")} key={week.key}>
         <div className="week-number"><span>{String(wi + 1).padStart(2, "0")}</span><small>WEEK</small></div>
-        <div className="week-body"><span className="domain-label">{week.domain} · {week.chapters}</span><h3>{week.title}</h3><p>{week.subtitle}</p><div className="week-tasks">{week.tasks.map(task => { const checked = state.completed.includes(task.id); return <button className={checked ? "checked" : ""} onClick={() => openLesson({ id: task.id, label: task.label, weekTitle: week.title, weekSubtitle: week.subtitle, chapters: week.chapters, chapterNumbers: week.chapterNumbers, focusChapter: week.chapterNumbers[0] || 1, domain: week.domain })} key={task.id}><span>{checked && <Check size={13} />}</span><b>{task.label}</b><small>{checked ? (lang === "en" ? "Review complete lesson" : "复习完整课程") : (lang === "en" ? "Open complete lesson" : "打开完整课程")}</small><ChevronRight size={14} /></button>; })}</div></div>
+        <div className="week-body"><span className="domain-label">{week.domain} · {week.chapters}</span><h3>{week.title}</h3><p>{week.subtitle}</p><div className="week-tasks">{week.tasks.map(task => { const checked = state.completed.includes(task.id); const taskChapters = chaptersForTargets(task.targets); const taskChapterLabel = taskChapters.length ? (lang === "en" ? `Ch. ${taskChapters.join(", ")}` : `第 ${taskChapters.join("、")} 章`) : week.chapters; return <button className={checked ? "checked" : ""} onClick={() => openLesson({ id: task.id, label: task.label, weekTitle: week.title, weekSubtitle: week.subtitle, chapters: taskChapterLabel, chapterNumbers: taskChapters, focusChapter: taskChapters[0] || 1, domain: task.domain, kind: task.kind, targets: task.targets, minutes: task.minutes })} key={task.id}><span>{checked && <Check size={13} />}</span><b>{task.label}</b><small>{task.minutes} {lang === "en" ? `min · ${task.kind === "learn" ? `${task.targets.reduce((sum, target) => sum + target.sectionIds.length, 0)} exact course units` : task.kind === "practice" ? "guided exam practice" : "guided retrieval review"}` : `分钟 · ${task.kind === "learn" ? `${task.targets.reduce((sum, target) => sum + target.sectionIds.length, 0)} 个对应课程单元` : task.kind === "practice" ? "考试练习任务" : "主动回忆任务"}`}</small><ChevronRight size={14} /></button>; })}</div></div>
         <div className="week-progress"><b>{done}/{week.tasks.length}</b><span>{t.complete}</span></div>
       </article>;
     })}</div>
@@ -778,18 +831,31 @@ function Mistakes({ lang, pack, wrong, setTab, clearWrong }: { lang: Lang; pack:
 
 function CourseChapterReader({ lang, chapter, course, task, chapterScope, completed, onClose, onOpenChapter, onComplete, onPractice }: { lang: Lang; chapter: CourseChapter; course: CourseChapter[]; task?: ActiveLesson; chapterScope?: number[]; completed: boolean; onClose: () => void; onOpenChapter: (n: number) => void; onComplete: () => void; onPractice: () => void }) {
   const [revealed, setRevealed] = useState<number[]>([]);
-  const [checkpointAnswers, setCheckpointAnswers] = useState<Record<number, number>>({});
+  const [checkpointAnswers, setCheckpointAnswers] = useState<Record<string, number>>({});
   const tx = (value: CourseText) => value[lang];
-  const sectionCount = chapter.sections.length;
-  const visibleCourse = task && chapterScope?.length ? course.filter(item => chapterScope.includes(item.n)) : course;
+  const taskTarget = task?.targets.find(target => target.chapter === chapter.n);
+  const visibleSections = taskTarget ? chapter.sections.filter(section => taskTarget.sectionIds.includes(section.id)) : chapter.sections;
+  const sectionCount = visibleSections.length;
+  const visibleCourse = task ? course.filter(item => task.targets.some(target => target.chapter === item.n)) : chapterScope?.length ? course.filter(item => chapterScope.includes(item.n)) : course;
   const visibleIndex = visibleCourse.findIndex(item => item.n === chapter.n);
   const previous = visibleIndex > 0 ? visibleCourse[visibleIndex - 1].n : null;
   const next = visibleIndex >= 0 && visibleIndex < visibleCourse.length - 1 ? visibleCourse[visibleIndex + 1].n : null;
-  const checkpointScore = chapter.sections.reduce((score, _section, index) => score + (checkpointAnswers[index] === index % 3 ? 1 : 0), 0);
+  const checkpointKey = (sectionId: string) => `${chapter.n}:${sectionId}`;
+  const checkpointScore = visibleSections.reduce((score, section, index) => score + (checkpointAnswers[checkpointKey(section.id)] === index % 3 ? 1 : 0), 0);
+  const totalTargetSections = task ? task.targets.reduce((sum, target) => sum + target.sectionIds.length, 0) : sectionCount;
+  const answeredTargetSections = task ? task.targets.reduce((sum, target) => sum + target.sectionIds.filter(sectionId => checkpointAnswers[`${target.chapter}:${sectionId}`] !== undefined).length, 0) : visibleSections.filter(section => checkpointAnswers[checkpointKey(section.id)] !== undefined).length;
+  const answeredCurrentSections = visibleSections.filter(section => checkpointAnswers[checkpointKey(section.id)] !== undefined).length;
+  const taskContent = task?.id.startsWith("w") ? getLessonContent(task.id) : null;
+  const taskRecallRevealed = revealed.includes(-1);
+  const recallReady = taskContent ? taskRecallRevealed : revealed.length >= chapter.recall.length;
+  const completionLocked = task
+    ? next !== null ? answeredCurrentSections < sectionCount : !recallReady || answeredTargetSections < totalTargetSections
+    : !recallReady || answeredTargetSections < sectionCount;
 
   function checkpointOptions(sectionIndex: number) {
-    const correct = chapter.sections[sectionIndex].decision.en;
-    const distractors = [1, 2].map(offset => chapter.sections[(sectionIndex + offset) % chapter.sections.length].decision.en);
+    const correct = visibleSections[sectionIndex].decision.en;
+    const distractorPool = chapter.sections.filter(candidate => candidate.id !== visibleSections[sectionIndex].id);
+    const distractors = [0, 1].map(offset => distractorPool[(sectionIndex + offset) % distractorPool.length]?.decision.en || chapter.sections[(sectionIndex + offset + 1) % chapter.sections.length].decision.en);
     const correctIndex = sectionIndex % 3;
     const options = [...distractors];
     options.splice(correctIndex, 0, correct);
@@ -814,60 +880,62 @@ function CourseChapterReader({ lang, chapter, course, task, chapterScope, comple
         </aside>
 
         <article className="course-article">
-          {task && <section className="task-course-banner"><div><span className="eyebrow">PLAN ITEM · FULL LEARNING EXPERIENCE</span><h2>{task.label}</h2><p>{task.weekTitle} — {task.weekSubtitle}</p></div><aside><span>{task.domain}</span><b>{task.chapters}</b><small>{lang === "en" ? "Learn every linked chapter, use the visual lab, complete checkpoints, then mark this plan item done." : "学习全部关联章节，完成互动实验和测试后，再将计划项标为完成。"}</small></aside></section>}
+          {task && <section className="task-course-banner"><div><span className="eyebrow">PLAN ITEM · EXACT CURRICULUM DESTINATION</span><h2>{task.label}</h2><p>{task.weekTitle} — {task.weekSubtitle}</p></div><aside><span>{task.domain}</span><b>{task.chapters} · {totalTargetSections} {lang === "en" ? "selected units" : "个指定单元"}</b><small>{lang === "en" ? "This task opens only its assigned units. Context branches remain visible in the chapter map, but only highlighted units are taught and tested here." : "本任务只打开与任务对应的课程单元。章节图谱会保留上下文，但只教学并测试高亮单元。"}</small></aside></section>}
           <section className="course-hero">
             <span className="domain-label">{tx(chapter.domain)}</span>
-            <p className="chapter-kicker">CHAPTER {String(chapter.n).padStart(2,"0")} · COMPLETE LESSON</p>
+            <p className="chapter-kicker">CHAPTER {String(chapter.n).padStart(2,"0")} · {task ? "TASK LESSON" : "COMPLETE LESSON"}</p>
             <h1>{tx(chapter.title)}</h1>
             {lang === "zh" && <p className="translation-line">{chapter.title.en}</p>}
-            <div className="lesson-meta"><span><Clock3 size={14} /> {chapter.minutes} min</span><span><BookOpen size={14} /> {sectionCount} {lang === "en" ? "deep-dive units" : "个深度单元"}</span><span><Brain size={14} /> {chapter.recall.length} {lang === "en" ? "recall checks" : "个主动回忆"}</span>{completed && <span className="lesson-complete"><Check size={14} /> {lang === "en" ? "Completed" : "已完成"}</span>}</div>
+            <div className="lesson-meta"><span><Clock3 size={14} /> {task ? task.minutes : chapter.minutes} min</span><span><BookOpen size={14} /> {sectionCount} {lang === "en" ? "deep-dive units" : "个深度单元"}</span><span><Brain size={14} /> {task ? 1 : chapter.recall.length} {lang === "en" ? "recall checks" : "个主动回忆"}</span>{completed && <span className="lesson-complete"><Check size={14} /> {lang === "en" ? "Completed" : "已完成"}</span>}</div>
           </section>
 
           <div className="course-content">
-            <section className="course-objectives">
+            <TextbookConceptMap chapter={chapter} focusedSectionIds={task ? visibleSections.map(section => section.id) : []} />
+
+            {task && taskContent ? <section className="task-learning-brief">
+              <span className="eyebrow">TASK LEARNING BRIEF</span>
+              <h2>{lang === "en" ? "The exact outcome for this plan item" : "本计划任务的准确学习目标"}</h2>
+              <p>{taskContent.summary[lang]}</p>
+              <ol>{taskContent.points.map((point, index) => <li key={index}><span>{index + 1}</span><p>{point[lang]}</p></li>)}</ol>
+              <aside><strong>{lang === "en" ? "Apply it" : "应用任务"}</strong><p>{taskContent.application[lang]}</p></aside>
+            </section> : <section className="course-objectives">
               <span className="eyebrow">LEARNING OBJECTIVES</span>
               <h2>{lang === "en" ? "What you will be able to do" : "完成本章后你能做到"}</h2>
               <ol>{chapter.objectives.map((objective, index) => <li key={index}><span>{index + 1}</span><div><b>{objective[lang]}</b>{lang === "zh" && <small>{objective.en}</small>}</div></li>)}</ol>
-            </section>
+            </section>}
 
-            <TextbookConceptMap chapter={chapter} />
+            {!task && chapter.n !== 1 && <ChapterVisualLab chapter={chapter} lang={lang} />}
 
-            {chapter.n !== 1 && <ChapterVisualLab chapter={chapter} lang={lang} />}
+            {!task && chapter.n !== 1 && <TextbookVisualAtlas chapter={chapter.n} lang={lang} />}
 
-            {chapter.n !== 1 && <TextbookVisualAtlas chapter={chapter.n} lang={lang} />}
+            <nav className="section-jump" aria-label={lang === "en" ? "Chapter sections" : "章节小节"}>{visibleSections.map((section, index) => <a key={section.id} href={`#chapter-${chapter.n}-${section.id}`}><span>{String(index + 1).padStart(2,"0")}</span>{tx(section.title)}</a>)}</nav>
 
-            <nav className="section-jump" aria-label={lang === "en" ? "Chapter sections" : "章节小节"}>{chapter.sections.map((section, index) => <a key={section.id} href={`#chapter-${chapter.n}-${section.id}`}><span>{String(index + 1).padStart(2,"0")}</span>{tx(section.title)}</a>)}</nav>
-
-            {chapter.sections.map((section, index) => <section className="deep-dive" id={`chapter-${chapter.n}-${section.id}`} key={section.id}>
+            {visibleSections.map((section, index) => <section className="deep-dive" id={`chapter-${chapter.n}-${section.id}`} key={section.id}>
               <div className="deep-dive-heading"><span>{String(index + 1).padStart(2,"0")}</span><div><span className="eyebrow">DEEP DIVE</span><h2>{tx(section.title)}</h2>{lang === "zh" && <small>{section.title.en}</small>}</div></div>
-              <div className="lecture-copy">{section.explanation.map((paragraph, pi) => <p key={pi}>{paragraph}</p>)}</div>
+              <SectionLearningFlow chapter={chapter.n} section={section} lang={lang} />
               <div className="knowledge-board"><span className="eyebrow">KNOWLEDGE YOU MUST OWN</span><ul>{section.details.map((detail, di) => <li key={di}><Check size={15} /><span>{detail}</span></li>)}</ul></div>
-              <SectionTextbookFigures chapter={chapter.n} sectionId={section.id} lang={lang} />
-              <SectionNoteFigures chapter={chapter.n} sectionId={section.id} lang={lang} />
               <div className="decision-grid">
                 <aside className="coach-decision"><span className="eyebrow">COACHING DECISION</span><strong>{section.decision[lang]}</strong>{lang === "zh" && <p>{section.decision.en}</p>}</aside>
                 <aside className="exam-cue"><span className="eyebrow">EXAM CUE</span><strong>{section.examCue[lang]}</strong>{lang === "zh" && <p>{section.examCue.en}</p>}</aside>
               </div>
             </section>)}
 
-            <ChapterSourceAppendix chapter={chapter.n} sectionIds={chapter.sections.map(section => section.id)} lang={lang} />
+            {!task && !!chapter.formulas.length && <section className="reference-block"><span className="eyebrow">FORMULAS & WORKED USE</span><h2>{lang === "en" ? "Calculate it, then interpret it" : "先计算，再解释"}</h2><div className="formula-grid">{chapter.formulas.map(formula => <article key={formula.name}><span>{formula.name}</span><code>{formula.expression}</code><p>{formula.use[lang]}</p>{lang === "zh" && <small>{formula.use.en}</small>}{formula.example && <em>Example · {formula.example}</em>}</article>)}</div></section>}
 
-            {!!chapter.formulas.length && <section className="reference-block"><span className="eyebrow">FORMULAS & WORKED USE</span><h2>{lang === "en" ? "Calculate it, then interpret it" : "先计算，再解释"}</h2><div className="formula-grid">{chapter.formulas.map(formula => <article key={formula.name}><span>{formula.name}</span><code>{formula.expression}</code><p>{formula.use[lang]}</p>{lang === "zh" && <small>{formula.use.en}</small>}{formula.example && <em>Example · {formula.example}</em>}</article>)}</div></section>}
+            {!task && <section className="reference-block"><span className="eyebrow">KEY TERMINOLOGY</span><h2>{lang === "en" ? "Language the exam expects" : "考试要求掌握的术语"}</h2><div className="term-grid">{chapter.terms.map(item => <article key={item.term}><strong>{item.term}</strong><p>{item.meaning[lang]}</p>{lang === "zh" && <small>{item.meaning.en}</small>}</article>)}</div></section>}
 
-            <section className="reference-block"><span className="eyebrow">KEY TERMINOLOGY</span><h2>{lang === "en" ? "Language the exam expects" : "考试要求掌握的术语"}</h2><div className="term-grid">{chapter.terms.map(item => <article key={item.term}><strong>{item.term}</strong><p>{item.meaning[lang]}</p>{lang === "zh" && <small>{item.meaning.en}</small>}</article>)}</div></section>
+            {!task && <section className="mastery-block"><div><span className="eyebrow">EXAM-READY CHECKLIST</span><h2>{lang === "en" ? "Can you do all of these without notes?" : "你能否不看笔记完成以下任务？"}</h2></div><ul>{chapter.examChecklist.map((item, index) => <li key={index}><span><Check size={15} /></span><div><b>{item[lang]}</b>{lang === "zh" && <small>{item.en}</small>}</div></li>)}</ul></section>}
 
-            <section className="mastery-block"><div><span className="eyebrow">EXAM-READY CHECKLIST</span><h2>{lang === "en" ? "Can you do all of these without notes?" : "你能否不看笔记完成以下任务？"}</h2></div><ul>{chapter.examChecklist.map((item, index) => <li key={index}><span><Check size={15} /></span><div><b>{item[lang]}</b>{lang === "zh" && <small>{item.en}</small>}</div></li>)}</ul></section>
+            <section className="checkpoint-lab"><div className="checkpoint-heading"><div><span className="eyebrow">{task ? "TASK CHECKPOINTS" : "CHAPTER CHECKPOINTS"}</span><h2>{lang === "en" ? "Apply every deep-dive decision" : "应用每个深度单元的决策"}</h2><p>{lang === "en" ? "These exam-style checks make every selected section testable. Choose the decision that best fits the named problem." : "这些考试式检查覆盖本任务选择的每个小节。请选择最符合指定问题的教练决策。"}</p></div><strong>{visibleSections.every(section => checkpointAnswers[checkpointKey(section.id)] !== undefined) ? `${checkpointScore}/${sectionCount}` : `${visibleSections.filter(section => checkpointAnswers[checkpointKey(section.id)] !== undefined).length}/${sectionCount}`}</strong></div><div className="checkpoint-list">{visibleSections.map((section, index) => { const { options, correctIndex } = checkpointOptions(index); const key = checkpointKey(section.id); const selected = checkpointAnswers[key]; const answered = selected !== undefined; return <article key={section.id}><span className="checkpoint-number">CHECK {String(index + 1).padStart(2,"0")}</span><h3>{lang === "en" ? `Which decision best applies to ${section.title.en}?` : `哪项决策最适用于「${section.title.zh}」？`}</h3>{lang === "zh" && <small>{section.title.en}</small>}<div>{options.map((option, optionIndex) => <button key={optionIndex} disabled={answered} className={cn(answered && optionIndex === correctIndex && "correct", answered && selected === optionIndex && optionIndex !== correctIndex && "wrong")} onClick={() => setCheckpointAnswers(values => ({ ...values, [key]: optionIndex }))}><span>{String.fromCharCode(65 + optionIndex)}</span><b>{option}</b>{answered && optionIndex === correctIndex && <Check size={17} />}{answered && selected === optionIndex && optionIndex !== correctIndex && <X size={17} />}</button>)}</div>{answered && <aside className={selected === correctIndex ? "good" : "bad"}><strong>{selected === correctIndex ? (lang === "en" ? "Correct" : "正确") : (lang === "en" ? `Best answer: ${String.fromCharCode(65 + correctIndex)}` : `最佳答案：${String.fromCharCode(65 + correctIndex)}`)}</strong><p>{section.examCue[lang]}</p>{lang === "zh" && <small>{section.examCue.en}</small>}</aside>}</article>})}</div></section>
 
-            <section className="checkpoint-lab"><div className="checkpoint-heading"><div><span className="eyebrow">CHAPTER CHECKPOINTS</span><h2>{lang === "en" ? "Apply every deep-dive decision" : "应用每个深度单元的决策"}</h2><p>{lang === "en" ? "These exam-style checks make every section testable. Choose the decision that best fits the named problem." : "这些考试式检查覆盖每个小节。选择最符合指定问题的教练决策。"}</p></div><strong>{Object.keys(checkpointAnswers).length === sectionCount ? `${checkpointScore}/${sectionCount}` : `${Object.keys(checkpointAnswers).length}/${sectionCount}`}</strong></div><div className="checkpoint-list">{chapter.sections.map((section, index) => { const { options, correctIndex } = checkpointOptions(index); const selected = checkpointAnswers[index]; const answered = selected !== undefined; return <article key={section.id}><span className="checkpoint-number">CHECK {String(index + 1).padStart(2,"0")}</span><h3>{lang === "en" ? `Which decision best applies to ${section.title.en}?` : `哪项决策最适用于「${section.title.zh}」？`}</h3>{lang === "zh" && <small>{section.title.en}</small>}<div>{options.map((option, optionIndex) => <button key={optionIndex} disabled={answered} className={cn(answered && optionIndex === correctIndex && "correct", answered && selected === optionIndex && optionIndex !== correctIndex && "wrong")} onClick={() => setCheckpointAnswers(values => ({ ...values, [index]: optionIndex }))}><span>{String.fromCharCode(65 + optionIndex)}</span><b>{option}</b>{answered && optionIndex === correctIndex && <Check size={17} />}{answered && selected === optionIndex && optionIndex !== correctIndex && <X size={17} />}</button>)}</div>{answered && <aside className={selected === correctIndex ? "good" : "bad"}><strong>{selected === correctIndex ? (lang === "en" ? "Correct" : "正确") : (lang === "en" ? `Best answer: ${String.fromCharCode(65 + correctIndex)}` : `最佳答案：${String.fromCharCode(65 + correctIndex)}`)}</strong><p>{section.examCue[lang]}</p>{lang === "zh" && <small>{section.examCue.en}</small>}</aside>}</article>})}</div></section>
-
-            <section className="recall-lab"><span className="eyebrow">ACTIVE RECALL LAB</span><h2>{lang === "en" ? "Answer aloud before revealing" : "先口述，再查看答案"}</h2><p>{lang === "en" ? "Retrieval is the study event. Close your notes, produce the answer, then compare and correct." : "主动提取本身就是学习。合上笔记，先说出答案，再对照纠正。"}</p><div>{chapter.recall.map((item, index) => { const isOpen = revealed.includes(index); return <article key={index}><span>Q{index + 1}</span><h3>{tx(item.prompt)}</h3>{lang === "zh" && <small>{item.prompt.en}</small>}{isOpen ? <div className="recall-answer"><strong>MODEL ANSWER</strong><p>{item.answer[lang]}</p>{lang === "zh" && <small>{item.answer.en}</small>}</div> : <button className="ghost" onClick={() => setRevealed(values => [...values, index])}>{lang === "en" ? "Reveal after answering" : "回答后查看"} <ChevronRight size={15} /></button>}</article>})}</div></section>
+            <section className="recall-lab"><span className="eyebrow">ACTIVE RECALL LAB</span><h2>{lang === "en" ? "Answer aloud before revealing" : "先口述，再查看答案"}</h2><p>{lang === "en" ? "Retrieval is the study event. Close your notes, produce the answer, then compare and correct." : "主动提取本身就是学习。合上笔记，先说出答案，再对照纠正。"}</p><div>{task && taskContent ? <article><span>Q1</span><h3>{taskContent.recall[lang]}</h3>{taskRecallRevealed ? <div className="recall-answer"><strong>MODEL ANSWER</strong><p>{taskContent.answer[lang]}</p></div> : <button className="ghost" onClick={() => setRevealed(values => [...values, -1])}>{lang === "en" ? "Reveal after answering" : "回答后查看"} <ChevronRight size={15} /></button>}</article> : chapter.recall.map((item, index) => { const isOpen = revealed.includes(index); return <article key={index}><span>Q{index + 1}</span><h3>{tx(item.prompt)}</h3>{lang === "zh" && <small>{item.prompt.en}</small>}{isOpen ? <div className="recall-answer"><strong>MODEL ANSWER</strong><p>{item.answer[lang]}</p>{lang === "zh" && <small>{item.answer.en}</small>}</div> : <button className="ghost" onClick={() => setRevealed(values => [...values, index])}>{lang === "en" ? "Reveal after answering" : "回答后查看"} <ChevronRight size={15} /></button>}</article>})}</div></section>
 
             <section className="course-source-note"><BookMarked size={19} /><div><strong>{lang === "en" ? "How this lesson was built" : "本课程如何编写"}</strong><p>{(mediaForChapter(chapter.n).textbookFigures?.length || 0) > 0 ? (lang === "en" ? "Instruction is aligned to Essentials of Strength Training and Conditioning, Fifth Edition, and the official NSCA CSCS® Detailed Content Outline. Protected Fifth Edition figure excerpts are included inside the authenticated course for close reading and are paired with original explanations and retrieval checks." : "课程依据《Essentials of Strength Training and Conditioning》第五版与 NSCA 官方 CSCS® 考试大纲编写。登录后的课程中包含受保护的第五版图示节选，并配有原创讲解与主动回忆检查。") : (lang === "en" ? "Original instruction aligned to Essentials of Strength Training and Conditioning, Fifth Edition, and the official NSCA CSCS® Detailed Content Outline. It teaches and synthesizes tested concepts while this chapter's protected source-figure set is being prepared." : "原创教学内容依据《Essentials of Strength Training and Conditioning》第五版与 NSCA 官方 CSCS® 考试大纲综合编写；本章受保护的教材图示集正在整理中。")}</p></div></section>
           </div>
 
           <footer className="course-footer">
             <button className="ghost" disabled={!previous} onClick={() => previous && onOpenChapter(previous)}><ArrowLeft size={16} /> {lang === "en" ? "Previous chapter" : "上一章"}</button>
-            <div><button className="ghost" onClick={onPractice}>{lang === "en" ? "Test this domain" : "测试本领域"}</button><button className="primary" disabled={completed || revealed.length < chapter.recall.length || Object.keys(checkpointAnswers).length < sectionCount} onClick={onComplete}>{completed ? (task ? (lang === "en" ? "Plan item complete" : "计划项已完成") : (lang === "en" ? "Chapter complete" : "章节已完成")) : (task ? (lang === "en" ? "Complete plan item" : "完成计划项") : (lang === "en" ? "Complete chapter" : "完成本章"))} <Check size={16} /></button></div>
+            <div><button className="ghost" onClick={onPractice}>{lang === "en" ? "Test this domain" : "测试本领域"}</button><button className="primary" disabled={completed || completionLocked} onClick={() => task && next !== null ? onOpenChapter(next) : onComplete()}>{completed ? (task ? (lang === "en" ? "Plan item complete" : "计划项已完成") : (lang === "en" ? "Chapter complete" : "章节已完成")) : task && next !== null ? (lang === "en" ? "Continue linked units" : "继续关联单元") : task ? (lang === "en" ? `Complete plan item · ${answeredTargetSections}/${totalTargetSections}` : `完成计划项 · ${answeredTargetSections}/${totalTargetSections}`) : (lang === "en" ? "Complete chapter" : "完成本章")} <Check size={16} /></button></div>
             <button className="ghost" disabled={!next} onClick={() => next && onOpenChapter(next)}>{lang === "en" ? "Next chapter" : "下一章"} <ChevronRight size={16} /></button>
           </footer>
         </article>

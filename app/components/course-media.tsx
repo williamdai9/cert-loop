@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BookImage, Check, Expand, ImageOff, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { mediaForChapter, type CourseMedia } from "@/lib/course-media";
-import type { CourseChapter } from "@/lib/course";
+import { editorialMediaForSection } from "@/lib/course-media-presentation";
+import type { CourseChapter, CourseSection } from "@/lib/course";
 
 type Lang = "en" | "zh";
 type Figure = NonNullable<CourseMedia["noteFigures"]>[number];
@@ -116,6 +117,65 @@ function TextbookFigureCard({ figure, lang }: { figure: TextbookFigure; lang: La
   </>;
 }
 
+function InlineTextbookVisual({ figure, lang }: { figure: TextbookFigure; lang: Lang }) {
+  const [open, setOpen] = useState(false);
+  const viewerFigure = {
+    path: figure.path,
+    title: { en: `${figure.figureRef} · ${figure.title.en}`, zh: `${figure.figureRef} · ${figure.title.zh}` },
+    alt: figure.alt,
+  };
+
+  return <>
+    <article className="inline-textbook-visual" data-media-id={figure.path}>
+      <button onClick={() => setOpen(true)} aria-label={lang === "en" ? `Open ${figure.figureRef} in the study viewer` : `在学习视图中打开 ${figure.figureRef}`}>
+        <ProtectedCourseImage path={figure.path} alt={figure.alt[lang]} />
+        <span><Expand size={14} /> {lang === "en" ? "Study full resolution" : "查看高清原图"}</span>
+      </button>
+      <div>
+        <span>{figure.figureRef} · {Array.isArray(figure.page) ? `PP. ${figure.page.join(", ")}` : `P. ${figure.page}`}</span>
+        <h4>{figure.title[lang]}</h4>
+        {lang === "zh" && <small>{figure.title.en}</small>}
+        <p>{figure.caption[lang]}</p>
+        <aside><strong>{lang === "en" ? "READ THE RELATIONSHIP" : "读图任务"}</strong><p>{figure.check[lang]}</p></aside>
+      </div>
+    </article>
+    {open && <ImageViewer figure={viewerFigure} lang={lang} onClose={() => setOpen(false)} />}
+  </>;
+}
+
+function sliceForSlot<T>(items: T[], slot: number, slots: number) {
+  const start = Math.floor(slot * items.length / slots);
+  const end = Math.floor((slot + 1) * items.length / slots);
+  return items.slice(start, end);
+}
+
+export function SectionLearningFlow({ chapter, section, lang }: { chapter: number; section: CourseSection; lang: Lang }) {
+  const { visuals, insights, retainedForAdmin } = editorialMediaForSection(chapter, section.id);
+  const notes = (mediaForChapter(chapter).noteFigures || []).filter(figure => figure.sectionId === section.id);
+  const paragraphs = section.explanation.length ? section.explanation : [section.examCue.en];
+
+  return <div className="section-learning-flow" data-block-id={`chapter-${chapter}-${section.id}-flow`}>
+    {paragraphs.map((paragraph, index) => {
+      const paragraphVisuals = sliceForSlot(visuals, index, paragraphs.length);
+      const paragraphNotes = sliceForSlot(notes, index, paragraphs.length);
+      const paragraphInsights = sliceForSlot(insights, index, paragraphs.length);
+      return <div className="learning-beat" key={`${section.id}-${index}`}>
+        <p className="lecture-paragraph">{paragraph}</p>
+        {paragraphInsights.map(insight => <aside className="source-insight" data-media-id={insight.path} key={insight.path}>
+          <span>{lang === "en" ? "TEXTBOOK SOURCE · INTEGRATED INTO THE LESSON" : "教材内容 · 已融入讲解"}</span>
+          <strong>{insight.title[lang]}</strong>
+          {lang === "zh" && <small>{insight.title.en}</small>}
+          <p>{insight.caption[lang]}</p>
+          <em>{insight.check[lang]}</em>
+        </aside>)}
+        {!!paragraphNotes.length && <div className="inline-note-cluster">{paragraphNotes.map(figure => <FigureCard key={figure.path} figure={figure} lang={lang} />)}</div>}
+        {!!paragraphVisuals.length && <div className="inline-visual-cluster" aria-label={lang === "en" ? "Visual explanation embedded in this lesson" : "嵌入本节的视觉讲解"}>{paragraphVisuals.map(figure => <InlineTextbookVisual key={figure.path} figure={figure} lang={lang} />)}</div>}
+      </div>;
+    })}
+    {retainedForAdmin > 0 && <p className="editorial-media-note">{lang === "en" ? `${retainedForAdmin} supporting source plates remain available in the administrator evidence library. Learner view prioritizes explanatory visuals and curated source takeaways instead of presenting an unreadable screenshot wall.` : `${retainedForAdmin} 张辅助资料仍保留在管理员证据库。学习界面优先展示解释性图像与经过整理的教材要点，不再堆放难以阅读的截图墙。`}</p>}
+  </div>;
+}
+
 export function SectionTextbookFigures({ chapter, sectionId, lang }: { chapter: number; sectionId: string; lang: Lang }) {
   const figures = (mediaForChapter(chapter).textbookFigures || []).filter(figure => figure.sectionId === sectionId);
   if (!figures.length) return null;
@@ -172,8 +232,9 @@ export function TextbookVisualAtlas({ chapter, lang }: { chapter: number; lang: 
   </section>;
 }
 
-export function TextbookConceptMap({ chapter }: { chapter: CourseChapter }) {
-  return <section className="textbook-concept-map" aria-label={`English concept map for Chapter ${chapter.n}: ${chapter.title.en}`}>
+export function TextbookConceptMap({ chapter, focusedSectionIds = [] }: { chapter: CourseChapter; focusedSectionIds?: string[] }) {
+  const focused = new Set(focusedSectionIds);
+  return <section id={`chapter-${chapter.n}-concept-map`} className="textbook-concept-map" aria-label={`English concept map for Chapter ${chapter.n}: ${chapter.title.en}`}>
     <header>
       <div><span className="eyebrow">ENGLISH FIFTH EDITION · CHAPTER CONCEPT MAP</span><h2>See the whole chapter before studying the parts</h2><p>Built from the English Fifth Edition curriculum, this map connects every unit to the relationships and exam decisions you must retrieve.</p></div>
       <span>CH. {String(chapter.n).padStart(2, "0")}</span>
@@ -185,10 +246,10 @@ export function TextbookConceptMap({ chapter }: { chapter: CourseChapter }) {
         <small>{chapter.sections.length} connected units</small>
       </article>
       <div className="textbook-concept-branches">
-        {chapter.sections.map((section, index) => <article key={section.id}>
+        {chapter.sections.map((section, index) => <article className={!focused.size || focused.has(section.id) ? "focus" : "context"} key={section.id}>
           <header><span>{String(index + 1).padStart(2, "0")}</span><strong>{section.title.en}</strong></header>
           <ul>{section.details.slice(0, 2).map(detail => <li key={detail}>{detail}</li>)}</ul>
-          <footer><b>EXAM CONNECTION</b><p>{section.examCue.en}</p></footer>
+          <footer><b>{focused.has(section.id) ? "THIS TASK" : "EXAM CONNECTION"}</b><p>{section.examCue.en}</p></footer>
         </article>)}
       </div>
     </div>
