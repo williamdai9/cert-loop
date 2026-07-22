@@ -100,7 +100,10 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(page, /OPTIONAL PLACEMENT · 30 QUESTIONS/);
   assert.doesNotMatch(page, /REQUIRED FIRST-LOGIN PLACEMENT|NO SKIP|English-first certification mastery/);
   assert.match(page, /function SiteTour/);
-  assert.match(page, /MindMapRecap/);
+  assert.doesNotMatch(page, /MindMapRecap/);
+  assert.match(page, /TextbookConceptMap/);
+  assert.match(courseMediaViewer, /ENGLISH FIFTH EDITION · CHAPTER CONCEPT MAP/);
+  assert.match(courseMediaViewer, /Personal Chinese notes are reference material only/);
   assert.match(page, /TextbookVisualAtlas/);
   assert.match(page, /from\("user_progress"\)/);
   assert.match(page, /href="\/admin"/);
@@ -135,10 +138,11 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(courseMedia, /textbookFigure\("figure-1-3\.png"/);
   assert.match(courseMedia, /textbookFigure\("figure-1-17\.png"/);
   assert.match(courseMedia, /textbookFigure\("table-1-1a\.png"/);
+  assert.match(courseMedia, /textbookFigureForChapter\(2, "figure-2-15\.png"/);
   assert.match(courseMedia, /5th-edition|fifth edition|textbookAtlas/);
   assert.match(adminPage, /Administrator content inspector/);
-  assert.match(adminPage, /Whole-book figure audit/);
-  assert.match(adminPage, /Chapters 2–26 remain an explicit backlog/);
+  assert.match(adminPage, /Textbook figure integration/);
+  assert.match(adminPage, /complete Fifth Edition figure\/table inventory is audited/);
   assert.match(adminPage, /Cloud database/);
   assert.match(adminPage, /Question bank/);
   assert.match(adminApi, /CERT_LOOP_ADMIN_EMAILS/);

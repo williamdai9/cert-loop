@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BookImage, Check, Expand, ImageOff, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { mediaForChapter, type CourseMedia } from "@/lib/course-media";
+import type { CourseChapter } from "@/lib/course";
 
 type Lang = "en" | "zh";
 type Figure = NonNullable<CourseMedia["noteFigures"]>[number];
@@ -142,12 +143,12 @@ export function TextbookVisualAtlas({ chapter, lang }: { chapter: number; lang: 
   const [active, setActive] = useState(0);
   const current = media.textbookAtlas[active] || media.textbookAtlas[0];
   const intro = useMemo(() => lang === "en"
-    ? "These original diagrams rebuild the relationships emphasized by the English fifth edition. They are teaching models—not scans of publisher figures."
-    : "这些原创图解重建英文第五版强调的关系结构，属于教学模型，并非出版社插图扫描。", [lang]);
+    ? "Use this compact relationship review after reading the source figures. It summarizes the causal sequence; it does not replace the textbook artwork."
+    : "请在学习教材原图后使用这组关系复习。它用于总结因果顺序，不能替代教材插图。", [lang]);
   if (!current) return null;
 
   return <section className="textbook-atlas">
-    <div className="visual-lab-heading"><div><span className="eyebrow">5TH-EDITION VISUAL ATLAS · ORIGINAL REDRAW</span><h2>{lang === "en" ? "Rebuild the textbook's visual logic" : "重建教材的视觉逻辑"}</h2><p>{intro}</p></div><span className="visual-badge"><BookImage size={16} /> {media.textbookAtlas.length} {lang === "en" ? "models" : "个模型"}</span></div>
+    <div className="visual-lab-heading"><div><span className="eyebrow">TEXTBOOK-DERIVED · RELATIONSHIP REVIEW</span><h2>{lang === "en" ? "Explain the relationship, not only the terms" : "解释关系，而不只是记名词"}</h2><p>{intro}</p></div><span className="visual-badge"><BookImage size={16} /> {media.textbookAtlas.length} {lang === "en" ? "reviews" : "组复习"}</span></div>
     <div className="atlas-tabs">{media.textbookAtlas.map((item, index) => <button className={index === active ? "active" : ""} key={item.title.en} onClick={() => setActive(index)}><span>{String(index + 1).padStart(2, "0")}</span><b>{item.title[lang]}</b></button>)}</div>
     <article className="atlas-model">
       <header><span>{current.relationship[lang]}</span>{lang === "zh" && <small>{current.relationship.en}</small>}</header>
@@ -157,17 +158,26 @@ export function TextbookVisualAtlas({ chapter, lang }: { chapter: number; lang: 
   </section>;
 }
 
-export function MindMapRecap({ chapter, lang }: { chapter: number; lang: Lang }) {
-  const mindMap = mediaForChapter(chapter).mindMap;
-  const [open, setOpen] = useState(false);
-  if (!mindMap) return <section className="mind-map-recap mind-map-original"><div><span className="eyebrow">MIND MAP RECAP · ORIGINAL COURSE MAP</span><h2>{lang === "en" ? "Build this chapter map from memory" : "凭记忆建立本章地图"}</h2><p>{lang === "en" ? "No verified personal map exists for this chapter, so the original visual atlas above is the review source. Write its nodes and arrows from memory before the checkpoints." : "本章没有已核验的个人导图，因此请使用上方原创视觉图谱复习。进入测试前，凭记忆写出节点和箭头。"}</p></div></section>;
-
-  const viewerFigure = { path: mindMap.path, title: mindMap.title, alt: mindMap.title };
-  return <>
-    <section className="mind-map-recap">
-      <button className="mind-map-preview" onClick={() => setOpen(true)}><ProtectedCourseImage path={mindMap.path} alt={mindMap.title[lang]} /><span><Expand size={18} /> {lang === "en" ? "Open full map" : "打开完整导图"}</span></button>
-      <div><span className="eyebrow">MIND MAP RECAP · PERSONAL STUDY LAYER</span><h2>{mindMap.title[lang]}</h2>{lang === "zh" && <h3>{mindMap.title.en}</h3>}<p>{mindMap.caption[lang]}</p><ol>{mindMap.outline.map((item, index) => <li key={item.en}><span>{index + 1}</span><div><b>{item[lang]}</b>{lang === "zh" && <small>{item.en}</small>}</div></li>)}</ol><button className="ghost" onClick={() => setOpen(true)}><ZoomIn size={15} /> {lang === "en" ? "Zoom, pan, and study" : "缩放、拖动并学习"}</button></div>
-    </section>
-    {open && <ImageViewer figure={viewerFigure} lang={lang} onClose={() => setOpen(false)} />}
-  </>;
+export function TextbookConceptMap({ chapter }: { chapter: CourseChapter }) {
+  return <section className="textbook-concept-map" aria-label={`English concept map for Chapter ${chapter.n}: ${chapter.title.en}`}>
+    <header>
+      <div><span className="eyebrow">ENGLISH FIFTH EDITION · CHAPTER CONCEPT MAP</span><h2>See the whole chapter before studying the parts</h2><p>This map is generated from the English textbook curriculum. Personal Chinese notes are reference material only and are not displayed as the learning map.</p></div>
+      <span>CH. {String(chapter.n).padStart(2, "0")}</span>
+    </header>
+    <div className="textbook-concept-map-stage">
+      <article className="textbook-concept-root">
+        <span>{chapter.domain.en}</span>
+        <strong>{chapter.title.en}</strong>
+        <small>{chapter.sections.length} connected units</small>
+      </article>
+      <div className="textbook-concept-branches">
+        {chapter.sections.map((section, index) => <article key={section.id}>
+          <header><span>{String(index + 1).padStart(2, "0")}</span><strong>{section.title.en}</strong></header>
+          <ul>{section.details.slice(0, 2).map(detail => <li key={detail}>{detail}</li>)}</ul>
+          <footer><b>EXAM CONNECTION</b><p>{section.examCue.en}</p></footer>
+        </article>)}
+      </div>
+    </div>
+    <footer><Check size={16} /><span>Retrieval prompt: cover the branch cards and reconstruct every unit, its two key relationships, and its exam connection.</span></footer>
+  </section>;
 }

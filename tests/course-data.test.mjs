@@ -32,6 +32,8 @@ test("maps every chapter to an original textbook visual model", () => {
   assert.ok(courseMedia[1].noteFigures?.length >= 6, "chapter 1 needs the supplied anatomy and contraction figures");
   assert.equal(courseMedia[1].textbookFigures?.length, 21, "chapter 1 needs all 17 figures and both two-page tables from the English Fifth Edition");
   assert.ok(courseMedia[1].textbookFigures?.every((figure) => figure.path.startsWith("textbook/chapter-01/")), "chapter 1 textbook figures must use the protected media namespace");
+  assert.equal(courseMedia[2].textbookFigures?.length, 18, "chapter 2 needs all 15 figures plus its multipage figure and table plates");
+  assert.ok(courseMedia[2].textbookFigures?.every((figure) => figure.path.startsWith("textbook/chapter-02/")), "chapter 2 textbook figures must use the protected media namespace");
   assert.ok(Object.values(courseMedia).filter((media) => media.mindMap).length >= 20, "personal mind-map coverage is incomplete");
 });
 

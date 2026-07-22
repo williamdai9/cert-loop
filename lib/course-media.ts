@@ -55,6 +55,29 @@ const textbookFigure = (
   alt: t(`${figureRef}: ${titleEn}`, `${figureRef}：${titleZh}`),
 });
 
+const textbookFigureForChapter = (
+  chapter: number,
+  file: string,
+  sectionId: string,
+  figureRef: string,
+  page: number,
+  titleEn: string,
+  titleZh: string,
+  captionEn: string,
+  captionZh: string,
+  checkEn: string,
+  checkZh: string,
+) => ({
+  path: `textbook/chapter-${String(chapter).padStart(2, "0")}/${file}`,
+  sectionId,
+  figureRef,
+  page,
+  title: t(titleEn, titleZh),
+  caption: t(captionEn, captionZh),
+  check: t(checkEn, checkZh),
+  alt: t(`${figureRef}: ${titleEn}`, `${figureRef}：${titleZh}`),
+});
+
 const map = (path: string, en: string, zh: string, outline: CourseText[]) => ({
   path,
   title: t(en, zh),
@@ -110,10 +133,33 @@ export const courseMedia: Record<number, CourseMedia> = {
       { title: t("Cardiopulmonary oxygen pathway", "心肺氧运输路径"), relationship: t("Ventilation + circulation + extraction", "通气 + 循环 + 提取"), steps: [t("Alveoli", "肺泡"), t("Left heart", "左心"), t("Arterial blood", "动脉血"), t("Working muscle", "工作肌肉"), t("Venous return", "静脉回流")] },
     ],
   },
-  2: { mindMap: map("mind-maps/ch02-biomechanics.jpg", "Resistance-exercise biomechanics — personal mind map", "抗阻运动生物力学——个人思维导图", [t("Planes, axes, and joint actions", "平面、轴与关节动作"), t("Force, torque, and lever arms", "力、力矩与力臂"), t("Work, power, impulse, and resistance profiles", "功、功率、冲量与阻力曲线")]), textbookAtlas: [
-    { title:t("Plane–axis pairing","平面—轴配对"),relationship:t("Movement occurs in a plane around its perpendicular axis","动作发生在平面内并绕垂直轴旋转"),steps:[t("Sagittal / mediolateral","矢状面 / 左右轴"),t("Frontal / anteroposterior","额状面 / 前后轴"),t("Transverse / longitudinal","水平面 / 垂直轴")] },
-    { title:t("External torque","外部力矩"),relationship:t("Torque changes with force and perpendicular distance","力矩随力和垂直距离变化"),steps:[t("Joint axis","关节轴"),t("Moment arm","力臂"),t("External force","外力"),t("Muscular response","肌肉应对")] },
-  ]},
+  2: {
+    mindMap: map("mind-maps/ch02-biomechanics.jpg", "Resistance-exercise biomechanics — personal mind map", "抗阻运动生物力学——个人思维导图", [t("Planes, axes, and joint actions", "平面、轴与关节动作"), t("Force, torque, and lever arms", "力、力矩与力臂"), t("Work, power, impulse, and resistance profiles", "功、功率、冲量与阻力曲线")]),
+    textbookFigures: [
+      textbookFigureForChapter(2, "figure-2-1.png", "force-torque", "Figure 2.1", 108, "First-class lever: elbow extension", "第一类杠杆：伸肘", "Locate the fulcrum, muscle force, resistance force, and both perpendicular moment arms. The small muscle moment arm means the triceps must create much more force than the external resistance.", "定位支点、肌肉力、阻力及两条垂直力臂。较短的肌肉力臂意味着肱三头肌必须产生远大于外部阻力的力量。", "Using the displayed dimensions, can you explain why the mechanical advantage is less than 1.0?", "利用图中尺寸，你能解释为什么机械优势小于 1.0 吗？"),
+      textbookFigureForChapter(2, "figure-2-2.png", "force-torque", "Figure 2.2", 109, "Force, moment arm, and torque", "力、力臂与力矩", "A force produces the greatest rotary effect when its line of action is perpendicular to the lever. Resolve the force into useful tangential and nonrotary components before calculating torque.", "当力的作用线与杠杆垂直时，旋转效应最大。计算力矩前，应把力分解为有效切向分量与非旋转分量。", "Which distance in the diagram is the true moment arm, and why is lever length alone insufficient?", "图中哪一段才是真正的力臂？为什么仅知道杠杆长度还不够？"),
+      textbookFigureForChapter(2, "figure-2-3.png", "force-torque", "Figure 2.3", 111, "Second-class lever: standing heel raise", "第二类杠杆：站姿提踵", "The ball of the foot is the fulcrum, body resistance lies between the fulcrum and the plantar-flexor force, and the muscle moment arm exceeds the resistance moment arm. This arrangement favors force.", "前脚掌是支点，身体阻力位于支点与跖屈肌力之间，肌肉力臂大于阻力力臂，因此这一结构有利于力量。", "Why can muscle force be smaller than the resistance force in this configuration?", "为什么在这一结构中肌肉力可以小于阻力？"),
+      textbookFigureForChapter(2, "figure-2-4.png", "force-torque", "Figure 2.4", 112, "Third-class lever: biceps curl", "第三类杠杆：肱二头肌弯举", "The elbow is the fulcrum and biceps force is applied between it and the dumbbell. The short internal moment arm creates a mechanical disadvantage for force but supports large distal displacement and speed.", "肘关节为支点，肱二头肌力作用在支点与哑铃之间。较短的内部力臂造成力量上的机械劣势，却有利于远端更大的位移与速度。", "If the dumbbell moves farther from the elbow, what happens to external torque when its mass is unchanged?", "若哑铃离肘关节更远而质量不变，外部力矩会怎样变化？"),
+      textbookFigureForChapter(2, "figure-2-5.png", "force-torque", "Figure 2.5", 114, "Patella and knee-extensor mechanical advantage", "髌骨与膝伸肌机械优势", "Compare the intact patella with patellectomy. By holding the quadriceps tendon farther from the knee axis, the patella increases the knee-extensor moment arm and torque for a given muscle force.", "比较保留髌骨与髌骨切除后的结构。髌骨使股四头肌腱远离膝关节轴，因此在相同肌肉力下增加膝伸力臂和力矩。", "What must the quadriceps do after the moment arm becomes shorter if the same external knee torque is required?", "如果力臂缩短但仍需产生相同的外部膝关节力矩，股四头肌必须怎样变化？"),
+      textbookFigureForChapter(2, "figure-2-6.png", "force-torque", "Figure 2.6", 116, "Elbow moment arm across joint range", "肘关节全幅度中的力臂变化", "The biceps line of pull and its perpendicular distance from the elbow axis change throughout flexion. Mechanical advantage is therefore angle dependent rather than a fixed property of the exercise.", "肱二头肌的拉力线及其到肘关节轴的垂直距离会随屈曲角度变化。因此机械优势取决于关节角度，并非动作的固定属性。", "At which illustrated position is the perpendicular moment arm largest, and what does that imply for muscle force demand?", "图示哪个位置的垂直力臂最大？这对肌肉力量需求意味着什么？"),
+      textbookFigureForChapter(2, "figure-2-7.png", "force-torque", "Figure 2.7", 117, "External moment arm during a curl", "弯举过程中的外部力臂", "Gravity acts vertically through the weight, so the resistance moment arm is the horizontal distance from that line of action to the elbow. It peaks near a horizontal forearm and shrinks toward either vertical position.", "重力沿重量的竖直作用线向下，因此阻力力臂是该作用线到肘关节的水平距离。前臂接近水平时力臂最大，靠近任一竖直位置时减小。", "Why does the same dumbbell feel hardest near the middle of the curl?", "为什么同一只哑铃在弯举中段通常最难？"),
+      textbookFigureForChapter(2, "figure-2-8.png", "force-torque", "Figure 2.8", 120, "Tendon insertion, torque, and movement speed", "肌腱止点、力矩与动作速度", "Moving the tendon insertion farther from the joint increases the moment arm and torque for a given muscle force, but produces less joint rotation per unit of muscle shortening. A force advantage therefore trades against movement speed and range.", "肌腱止点离关节更远时，相同肌肉力可产生更大的力臂与力矩，但每单位肌肉缩短造成的关节转动更少。因此力量优势会与动作速度和幅度形成权衡。", "Compare configurations a and b: which favors torque, and which favors angular displacement per unit shortening?", "比较 a 与 b：哪一个有利于力矩？哪一个有利于每单位缩短产生更大的角位移？"),
+      textbookFigureForChapter(2, "figure-2-9.png", "movement-language", "Figure 2.9", 122, "Anatomical planes and exercise examples", "解剖平面与训练动作示例", "Pair each plane with its perpendicular axis and a dominant exercise example: sagittal with the biceps curl, frontal with lateral raise, and transverse with dumbbell fly. Real exercises may still contain motion or stabilization in other planes.", "将每个平面与其垂直轴及主要训练动作配对：矢状面对应弯举，额状面对应侧平举，水平面对应哑铃飞鸟。真实动作仍可能包含其他平面的运动或稳定。", "Without looking, name the axis perpendicular to each of the three planes.", "不看图时，说出与三个平面分别垂直的旋转轴。"),
+      textbookFigureForChapter(2, "figure-2-10a.png", "movement-language", "Figure 2.10 · Part 1", 124, "Joint movements and exercise examples: upper body", "关节动作与训练示例：上肢", "Use this first plate as movement vocabulary, not decoration. Link the pictured wrist, elbow, forearm, shoulder, scapular, and cervical actions to a plane, axis, and familiar exercise phase.", "把这张上半部分图版作为动作词汇表使用，而不是装饰。将腕、肘、前臂、肩、肩胛与颈部动作连接到对应平面、轴和熟悉的训练阶段。", "Can you distinguish forearm pronation-supination from shoulder internal-external rotation without relying on the exercise name?", "不依赖动作名称，你能区分前臂旋前旋后与肩内旋外旋吗？"),
+      textbookFigureForChapter(2, "figure-2-10b.png", "movement-language", "Figure 2.10 · Part 2", 126, "Joint movements and exercise examples: trunk and lower body", "关节动作与训练示例：躯干与下肢", "Continue the movement vocabulary through trunk, hip, knee, and ankle actions. For every example, name the moving joint and phase before assigning concentric or eccentric muscle action.", "继续学习躯干、髋、膝与踝的动作词汇。对每个示例，先指出运动关节和阶段，再判断向心或离心肌肉动作。", "During a squat descent and ascent, which hip, knee, and ankle joint actions occur in each phase?", "深蹲下降与上升阶段，髋、膝和踝分别发生哪些关节动作？"),
+      textbookFigureForChapter(2, "table-2-1a.png", "work-power-impulse", "Table 2.1 · Part 1", 131, "Units of measure and conversions", "计量单位与换算", "Use the table to keep distance, angle, velocity, force, work, and power units consistent before solving. Unit checking often exposes a wrong setup before arithmetic does.", "解题前使用该表确保距离、角度、速度、力量、功和功率的单位一致。单位检查往往能在计算前暴露错误设定。", "Which SI units correspond to force, work, and power, and how are they related dimensionally?", "力量、功和功率分别对应哪些 SI 单位？它们在量纲上如何关联？"),
+      textbookFigureForChapter(2, "table-2-1b.png", "work-power-impulse", "Table 2.1 · Part 2", 132, "Torque conversion row", "力矩换算行", "The continuation isolates torque conversion between newton-meters and foot-pounds. Keep torque units distinct from work even though both can contain force multiplied by distance.", "续表给出牛顿米与英尺磅之间的力矩换算。尽管力矩和功的单位都可能包含力乘距离，也要保持概念区分。", "Why are torque and work not interchangeable physical quantities even when their base units look similar?", "即使基本单位形式相似，为什么力矩与功仍不是可互换的物理量？"),
+      textbookFigureForChapter(2, "figure-2-11.png", "muscle-mechanics", "Figure 2.11", 141, "Muscle fiber arrangements", "肌纤维排列形式", "Compare longitudinal, fusiform, radiate, unipennate, bipennate, and multipennate arrangements. More fibers in parallel generally favor force; longer series arrangements favor shortening distance and velocity.", "比较纵行、梭形、放射形、单羽状、双羽状与多羽状排列。更多并联肌纤维通常有利于产力，较长的串联排列有利于缩短距离与速度。", "Which pictured architectures prioritize physiological cross-sectional area, and which prioritize excursion?", "图中哪些结构更偏向生理横截面积，哪些更偏向收缩位移？"),
+      textbookFigureForChapter(2, "figure-2-12.png", "muscle-mechanics", "Figure 2.12", 143, "Actin, myosin, and titin across muscle lengths", "不同肌长下的肌动蛋白、肌球蛋白与肌联蛋白", "Compare resting, shortened, and stretched configurations. Active force depends on useful actin-myosin overlap, while titin contributes passive force and alignment as the sarcomere is lengthened beyond resting length.", "比较静息、缩短和拉长状态。主动张力取决于有效的肌动蛋白—肌球蛋白重叠；肌节超过静息长度时，肌联蛋白参与被动张力与排列稳定。", "Why can active force fall at both very short and very long muscle lengths?", "为什么肌肉在过短和过长时主动张力都可能下降？"),
+      textbookFigureForChapter(2, "figure-2-13.png", "muscle-mechanics", "Figure 2.13", 145, "Force-velocity curves for muscle actions", "不同肌肉动作的力—速度曲线", "Concentric force capability declines as shortening velocity rises. Eccentric capability is greater than isometric and generally rises with lengthening velocity before approaching a plateau.", "向心缩短速度越快，力量能力越低。离心力量能力高于等长，并通常随拉长速度增加而上升，随后趋于平台。", "At the same absolute angular speed, how do eccentric, isometric, and concentric force capabilities compare?", "在相同绝对角速度下，离心、等长和向心力量能力如何比较？"),
+      textbookFigureForChapter(2, "figure-2-14.png", "force-torque", "Figure 2.14", 153, "Cam-based variable resistance", "凸轮式可变阻力", "A cam changes the horizontal distance from the weight-stack line of action to its pivot. As that moment arm changes through the repetition, external resistance torque changes even though stack mass is constant.", "凸轮会改变配重作用线到旋转轴的水平距离。随着力臂在重复动作中改变，即使配重质量不变，外部阻力矩也会变化。", "From position 1 to 2, what happens to the weight-stack moment arm and resistive torque?", "从位置 1 到 2，配重力臂和阻力矩如何变化？"),
+      textbookFigureForChapter(2, "figure-2-15.png", "joint-risk", "Figure 2.15", 164, "Intra-abdominal pressure and trunk support", "腹内压与躯干支撑", "Contraction of the diaphragm and deep abdominal musculature creates a pressurized fluid compartment that contributes to trunk stiffness under load. The following text distinguishes this mechanism from assuming that a Valsalva maneuver is always required.", "膈肌和深层腹肌收缩会形成加压的液体区室，为负荷下的躯干刚度提供支持。后续正文进一步说明，这一机制并不等于始终必须使用瓦尔萨尔瓦动作。", "How can intra-abdominal pressure support the spine, and why must breathing strategy still be individualized?", "腹内压如何帮助支撑脊柱？为什么呼吸策略仍需个体化？"),
+    ],
+    textbookAtlas: [
+      { title:t("Plane–axis pairing","平面—轴配对"),relationship:t("Movement occurs in a plane around its perpendicular axis","动作发生在平面内并绕垂直轴旋转"),steps:[t("Sagittal / mediolateral","矢状面 / 左右轴"),t("Frontal / anteroposterior","额状面 / 前后轴"),t("Transverse / longitudinal","水平面 / 垂直轴")] },
+      { title:t("External torque","外部力矩"),relationship:t("Torque changes with force and perpendicular distance","力矩随力和垂直距离变化"),steps:[t("Joint axis","关节轴"),t("Moment arm","力臂"),t("External force","外力"),t("Muscular response","肌肉应对")] },
+    ],
+  },
   3: { mindMap: map("mind-maps/ch03-bioenergetics.jpg", "Exercise bioenergetics — personal mind map", "运动生物能量——个人思维导图", [t("ATP resynthesis systems", "ATP 再合成系统"), t("Intensity–duration continuum", "强度—持续时间连续谱"), t("Recovery and substrate restoration", "恢复与底物补充")]), textbookAtlas: [
     {title:t("Energy-system continuum","供能系统连续谱"),relationship:t("All systems contribute; dominance shifts","所有系统均参与，主导比例会变化"),steps:[t("Phosphagen","磷酸原"),t("Fast glycolysis","快速糖酵解"),t("Oxidative metabolism","氧化代谢")]},
     {title:t("Lactate shuttle","乳酸穿梭"),relationship:t("Lactate is a transportable fuel and signal","乳酸是可运输燃料与信号"),steps:[t("Production","生成"),t("Transport","转运"),t("Oxidation or gluconeogenesis","氧化或糖异生")]},
