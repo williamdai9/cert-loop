@@ -55,6 +55,7 @@ test("maps every chapter to an original textbook visual model", () => {
     [20, 96],
     [21, 37],
     [22, 47],
+    [23, 60],
     [24, 39],
   ]);
   for (const [chapter, count] of completedFigureSets) {
