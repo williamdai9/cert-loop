@@ -1,8 +1,9 @@
 # Cert Loop
 
-Reusable, bilingual certification study platform. CSCS is the first content
-pack, with English as the canonical language and Chinese as an optional study
-aid.
+Reusable, bilingual, end-to-end certification learning platform. The root
+catalog is certification-neutral; the first available program is the National
+Strength and Conditioning Association (NSCA) Certified Strength and
+Conditioning Specialist® (CSCS®).
 
 Live site: https://cert-loop-study.vercel.app
 
@@ -10,31 +11,33 @@ Live site: https://cert-loop-study.vercel.app
 
 - adaptive 8, 12, or 16 week study plans
 - every Plan item opens its linked complete chapter course, not a separate summary
-- 26 original interactive concept maps plus chapter-specific calculators and simulations
-- English-first deep dives, coaching decisions, exam cues, checkpoints, and active recall
+- 26 original fifth-edition visual atlases plus chapter-specific calculators and simulations
+- Chapter 1 visual curriculum audited against all 17 figures and 2 tables: muscle structure, excitation-contraction coupling, motor-unit behavior, proprioception, circulation, ECG, ventilation, and gas exchange
+- protected personal-note figures and 20 supplied mind maps with zoom/pan study views
+- complete English deep dives, coaching decisions, exam cues, checkpoints, and active recall
 - official CSCS domain weights and exam structure
 - practice and exam test modes
 - wrong-answer review loop
-- 42 original bilingual practice questions across all seven domains
+- 84 original bilingual practice questions across all seven domains
 - 26-chapter textbook map and bilingual flashcards
-- passwordless Supabase authentication and private cloud progress sync
-- 30-item adaptive diagnostic with priority and fast-track recommendations
+- Supabase email/password authentication with one-time email verification; signed-out visitors receive preview only
+- optional 30-item placement with priority and fast-track recommendations; learners can start from Chapter 1 without it
+- first-run five-step site tour with an always-available replay control
 - whole-site AI Tutor grounded in the course, question bank, learner mastery, and research feed
 - daily multi-source watch across NSCA official articles, Europe PMC research, and selected community leads; AI-drafted content/questions are held for review
-- local, certificate-scoped progress fallback for signed-out learners
 - responsive desktop and mobile interface
 
 ## Content policy
 
-The English fifth-edition textbook and official English NSCA materials are the
-source of truth. Chinese text is supplementary and must not override the
-English meaning. Practice questions are original and are not recalled or copied
-exam items.
+The fifth-edition textbook and official NSCA materials govern exam-aligned
+claims. English mode contains only professional English interface and course
+copy; Chinese mode may retain important official English terminology. Practice
+questions are original and are not recalled or copied exam items.
 
 Official references:
 
 - https://www.nsca.com/certification/cscs
-- https://www.nsca.com/cscs-exam-description/
+- https://www.nsca.com/certification/cscs/certified-strength-and-conditioning-specialist-exam-description/
 
 ## Local development
 
@@ -45,23 +48,27 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000 for the general catalog. The first certification
+workspace is available at `/certifications/nsca-cscs`.
 
 Copy `.env.example` to `.env.local` and add the project's public Supabase
-credentials to enable authentication and cloud sync. The app remains usable
-with local progress when those values are absent.
+credentials to enable authentication and cloud sync. Full learning content is
+intentionally unavailable to signed-out visitors.
 
-The AI Tutor uses Vercel AI Gateway with the deployment's short-lived
-`VERCEL_OIDC_TOKEN` in production. For local use, set `AI_GATEWAY_API_KEY` or
-`OPENAI_API_KEY`. Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser.
+The AI Tutor prefers the server-only `OPENAI_API_KEY` and can fall back to
+Vercel AI Gateway. For local use, set `OPENAI_API_KEY` or
+`AI_GATEWAY_API_KEY`. Never expose either key—or
+`SUPABASE_SERVICE_ROLE_KEY`—to the browser.
 
 ## Supabase
 
 The schema is versioned in `supabase/migrations`. It includes reusable tables
 for certifications, sources, lessons, questions, per-user progress, and a
-content-review queue. Published lessons are read from Supabase at runtime, with
-the versioned code content retained as an offline fallback. Row Level Security
-keeps each learner's progress private.
+content-review queue. Published lessons and questions are read from Supabase at
+runtime after authentication, with versioned code content retained as a build
+fallback. Course images are stored in the private `course-media` bucket. Row
+Level Security blocks anonymous learning-content reads and keeps each learner's
+progress private.
 
 ```bash
 supabase login
@@ -70,8 +77,26 @@ supabase db push
 ```
 
 `npm run db:content` generates the published lesson seed SQL from the canonical
-English-first lesson source. Content changes should be reviewed before the
+course content. Content changes should be reviewed before the
 resulting migration is pushed.
+
+`npm run questions:publish` publishes the reviewed 84-item bilingual bank to
+Supabase. It requires the server-only `SUPABASE_SERVICE_ROLE_KEY`; never place
+that key in a browser-visible environment variable.
+
+## Administrator content inspector
+
+Open `/admin` to audit the complete curriculum, bilingual question bank,
+private course media, research feed, human-review queue, and the actual rows
+published to Supabase. The inspector is read-only and requires a valid Supabase
+session plus server-side authorization. Add one or more comma-separated owner
+emails to `CERT_LOOP_ADMIN_EMAILS`, or set
+`app_metadata.cert_loop_admin=true` on an administrator account. The Supabase
+service-role key stays on the server and is never returned to the browser.
+
+The dashboard deliberately distinguishes content depth from visual completion:
+Chapter 1 is the completed figure-by-figure audit, while Chapters 2–26 remain
+visible as an explicit visual-review backlog until each chapter is verified.
 
 `research-update` is a deployed Supabase Edge Function. Vercel Cron invokes it
 daily at 08:17 UTC. It monitors NSCA's official RSS feed, Europe PMC, and the
@@ -81,9 +106,11 @@ Source metadata is safe to show as a labeled research watch;
 AI summaries and candidate questions are written to the review workflow and do
 not silently override fifth-edition or official exam truth.
 
-For passwordless email login, set the Supabase Auth Site URL to the production
-domain and allow both the production domain and `http://localhost:3000` as
-redirect URLs.
+For signup verification and password recovery, set the Supabase Auth Site URL
+to the production domain and allow both the production domain and
+`http://localhost:3000` as redirect URLs. Hosted Supabase projects should keep
+email confirmation enabled so registration verifies the address once; later
+sign-ins use email and password directly.
 
 ## Verification
 

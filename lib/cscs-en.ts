@@ -1,5 +1,5 @@
 export const planEnglish: Record<string, { title: string; subtitle: string; tasks: string[] }> = {
-  w1:{title:"Build the map",subtitle:"Diagnostic + anatomy and physiology",tasks:["Complete a 30-question diagnostic","Review sarcomeres, motor units, and fiber types","Master planes, torque, power, and levers","Create 20 anatomy recall cards"]},
+  w1:{title:"Build the map",subtitle:"Diagnostic + anatomy and physiology",tasks:["Complete a 30-question diagnostic","Review sarcomeres, motor units, and fiber types","Master planes, torque, power, and levers","Master cardiovascular flow and respiratory gas exchange"]},
   w2:{title:"Energy and adaptation",subtitle:"Connect training variables to outcomes",tasks:["Draw the three-energy-system timeline","Memorize common work-to-rest ratios","Compare anaerobic and aerobic adaptations","Complete 40 exercise science questions"]},
   w3:{title:"Individual differences and psychology",subtitle:"Age, sex, mental skills, and referral",tasks:["Compare youth, older-adult, and female considerations","Master arousal, anxiety, motivation, and attention","Build the ABC distress-recognition flow","Take a Scientific Foundations quiz"]},
   w4:{title:"Nutrition decisions",subtitle:"Intake, timing, supplements, and scope",tasks:["Organize macronutrient and hydration formulas","Compare pre-, during-, and post-event strategies","Review RED-S and referral red flags","Complete 30 nutrition questions"]},
@@ -7,25 +7,25 @@ export const planEnglish: Record<string, { title: string; subtitle: string; task
   w6:{title:"Coaching technique",subtitle:"Preparation, free weights, and spotting",tasks:["Review dynamic warm-up and PNF","Teach squat, bench press, and deadlift aloud","Practice spotting positions and safety","Write three cues for a movement fault"]},
   w7:{title:"Resistance programming",subtitle:"Needs analysis through load progression",tasks:["Complete one sport needs analysis","Memorize goal-specific sets, loads, and rest","Master the 2-for-2 rule","Design one strength microcycle"]},
   w8:{title:"Power, speed, and agility",subtitle:"Technique, dosage, and specificity",tasks:["Compare landing and depth-jump progressions","Break down acceleration, max velocity, and deceleration","Design one plyometric session","Complete 40 Applied questions"]},
-  w9:{title:"Metabolic training and periodization",subtitle:"Aerobic prescription, season, and load",tasks:["Practice Karvonen calculations","Compare linear and nonlinear periodization","Draw an annual plan","Complete a program-design quiz"]},
+  w9:{title:"Metabolic training and periodization",subtitle:"Aerobic prescription, season, and load",tasks:["Design a complete aerobic prescription and seasonal progression","Compare linear and nonlinear periodization","Draw an annual plan","Complete a program-design quiz"]},
   w10:{title:"Recovery, reconditioning, and risk",subtitle:"Collaboration and safe operations",tasks:["Differentiate overreaching and overtraining","Map return-to-play team roles","Review facility layout and emergency flow","Complete an administration quiz"]},
   w11:{title:"First integration",subtitle:"Weighted mocks and targeted repair",tasks:["Take a timed Scientific Foundations mock","Take a timed Applied mock","Calculate accuracy by domain","Redo every miss and write one rule"]},
   w12:{title:"Exam taper",subtitle:"Lower load, high accuracy, calm pacing",tasks:["Complete one full-pace simulation","Review only misses and low-confidence items","Review formulas and safety red flags","Stop high-volume cramming the day before"]},
 };
 
-export const cardEnglish: Record<string, { front: string; back: string }> = {
-  "功率 Power":{front:"Power",back:"Power = work ÷ time; it can also be expressed as force × velocity."},
-  "10 秒以内的最大爆发":{front:"Maximal efforts under 10 seconds",back:"The phosphagen system dominates; programming typically allows longer recovery to preserve power."},
-  "非疲劳测试优先":{front:"Non-fatiguing tests first",back:"Static measures → agility → max strength/power → sprint → local endurance → anaerobic capacity → aerobic capacity."},
-  "2-for-2 法则":{front:"2-for-2 rule",back:"If the athlete exceeds the repetition goal by two in the last set for two consecutive sessions, increase the load next time."},
-  "液体损失换算":{front:"Fluid-loss estimate",back:"About 1 kg of body-mass loss across a session represents roughly 1 L of fluid loss."},
-  "识别心理困扰第一步":{front:"First step in recognizing distress",back:"Observe and classify Affect, Behavior, and Cognition; refer when the issue exceeds scope."},
-  "早期力量快速上升":{front:"Rapid early strength gains",back:"In novices, the first weeks are driven mainly by neural adaptations, not an increase in fiber number."},
-  "拉伸—缩短周期":{front:"Stretch-shortening cycle",back:"Eccentric preload → amortization → concentric action. A short transition better preserves elastic energy."},
-  "标准照护义务":{front:"Standard of care",back:"Act as a reasonable, prudent professional would under similar circumstances."},
-  "30–15 IFT":{front:"30–15 IFT",back:"Thirty seconds running and 15 seconds walking; useful for intermittent team sports and VIFT-based prescription."},
-  "信度 vs 效度":{front:"Reliability vs validity",back:"Reliability is consistency; validity is whether the test measures the intended quality."},
-  "功能性过度伸展":{front:"Functional overreaching",back:"Short performance decrement followed by supercompensation after adequate recovery; distinct from overtraining syndrome."},
+export const cardEnglish: Record<string, { tag: string; front: string; back: string }> = {
+  "功率 Power":{tag:"Biomechanics",front:"Power",back:"Power = work ÷ time; it can also be expressed as force × velocity."},
+  "10 秒以内的最大爆发":{tag:"Energy systems",front:"Maximal efforts under 10 seconds",back:"The phosphagen system dominates; programming typically allows longer recovery to preserve power."},
+  "非疲劳测试优先":{tag:"Test order",front:"Non-fatiguing tests first",back:"Static measures → agility → max strength/power → sprint → local endurance → anaerobic capacity → aerobic capacity."},
+  "2-for-2 法则":{tag:"Program design",front:"2-for-2 rule",back:"If the athlete exceeds the repetition goal by two in the last set for two consecutive sessions, increase the load next time."},
+  "液体损失换算":{tag:"Nutrition",front:"Fluid-loss estimate",back:"About 1 kg of body-mass loss across a session represents roughly 1 L of fluid loss."},
+  "识别心理困扰第一步":{tag:"Psychology",front:"First step in recognizing distress",back:"Observe and classify Affect, Behavior, and Cognition; refer when the issue exceeds scope."},
+  "早期力量快速上升":{tag:"Exercise science",front:"Rapid early strength gains",back:"In novices, the first weeks are driven mainly by neural adaptations, not an increase in fiber number."},
+  "拉伸—缩短周期":{tag:"Plyometrics",front:"Stretch-shortening cycle",back:"Eccentric preload → amortization → concentric action. A short transition better preserves elastic energy."},
+  "标准照护义务":{tag:"Administration",front:"Standard of care",back:"Act as a reasonable, prudent professional would under similar circumstances."},
+  "30–15 IFT":{tag:"New testing",front:"30–15 IFT",back:"Thirty seconds running and 15 seconds walking; useful for intermittent team sports and VIFT-based prescription."},
+  "信度 vs 效度":{tag:"Testing",front:"Reliability vs validity",back:"Reliability is consistency; validity is whether the test measures the intended quality."},
+  "功能性过度伸展":{tag:"Recovery",front:"Functional overreaching",back:"Short performance decrement followed by supercompensation after adequate recovery; distinct from overtraining syndrome."},
 };
 
 type QEn = { prompt: string; options: [string,string,string]; explanation: string };

@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { BookOpen, ExternalLink, Globe2, LoaderCircle, MessageCircle, Send, Sparkles, X } from "lucide-react";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 type Lang = "en" | "zh";
 type TutorContext = { chapterNumber?: number; chapterTitle?: string; taskId?: string; taskTitle?: string };
@@ -29,7 +30,11 @@ export function AITutor({ lang, context, mastery }: { lang: Lang; context?: Tuto
     const nextMessages: ChatMessage[] = [...messages, { role: "user", text: cleaned }];
     setMessages(nextMessages); setQuestion(""); setBusy(true); setError("");
     try {
-      const response = await fetch("/api/tutor", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: cleaned, lang, context, research, mastery, history: nextMessages.slice(-8).map(item => ({ role: item.role, text: item.text })) }) });
+      const supabase = getSupabaseBrowser();
+      const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
+      const token = data.session?.access_token;
+      if (!token) throw new Error(lang === "en" ? "Sign in again to use the AI Tutor." : "请重新登录后使用 AI 导师。");
+      const response = await fetch("/api/tutor", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ question: cleaned, lang, context, research, mastery, history: nextMessages.slice(-8).map(item => ({ role: item.role, text: item.text })) }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Tutor request failed");
       setMessages(values => [...values, { role: "assistant", text: payload.answer, sources: payload.sources }]);
@@ -42,7 +47,7 @@ export function AITutor({ lang, context, mastery }: { lang: Lang; context?: Tuto
     <button className="tutor-launch" onClick={() => setOpen(true)} aria-label={lang === "en" ? "Open AI Tutor" : "打开 AI 导师"}><span><Sparkles size={18} /></span><b>AI Tutor</b><small>{lang === "en" ? "Whole-site context" : "全站上下文"}</small></button>
     {open && <div className="tutor-layer" role="dialog" aria-modal="true" aria-label="AI Tutor">
       <aside className="tutor-panel">
-        <header><div><span><MessageCircle size={18} /></span><div><strong>Cert Loop AI Tutor</strong><small>{lang === "en" ? "English source of truth · Chinese support" : "英文事实基准 · 中文辅助"}</small></div></div><button onClick={() => setOpen(false)} aria-label="Close tutor"><X size={18} /></button></header>
+        <header><div><span><MessageCircle size={18} /></span><div><strong>Cert Loop AI Tutor</strong><small>{lang === "en" ? "Full curriculum · cited sources" : "完整课程 · 引用来源"}</small></div></div><button onClick={() => setOpen(false)} aria-label="Close tutor"><X size={18} /></button></header>
         <div className="tutor-context"><BookOpen size={15} /><div><small>{lang === "en" ? "PRIORITY CONTEXT" : "优先上下文"}</small><b>{contextLabel}</b></div><span>{lang === "en" ? "Searches all 26 chapters" : "检索全部 26 章"}</span></div>
         <label className={research ? "research-toggle active" : "research-toggle"}><input type="checkbox" checked={research} onChange={e => setResearch(e.target.checked)} /><Globe2 size={15} /><span><b>{lang === "en" ? "Live research mode" : "实时研究模式"}</b><small>{lang === "en" ? "Search current official/open sources and cite them" : "搜索最新官方/开放来源并引用"}</small></span></label>
         <div className="tutor-thread">

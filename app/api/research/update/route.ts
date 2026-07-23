@@ -42,8 +42,11 @@ async function curateWithGateway(request: Request) {
 
 export async function GET(request: Request) {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!base) return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
-  const response = await fetch(`${base}/functions/v1/research-update`, { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store" });
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || request.headers.get("authorization") !== `Bearer ${cronSecret}`) return NextResponse.json({ error: "Unauthorized scheduled job." }, { status: 401 });
+  if (!base || !serviceKey) return NextResponse.json({ error: "Supabase research credentials are not configured." }, { status: 503 });
+  const response = await fetch(`${base}/functions/v1/research-update`, { method: "POST", headers: { "Content-Type": "application/json", apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, cache: "no-store" });
   const payload = await response.json().catch(() => ({ error: "Research service returned an invalid response." }));
   const curation = response.ok ? await curateWithGateway(request) : { curated: 0, reason: "Source sync failed" };
   return NextResponse.json({ ...payload, curation }, { status: response.status });
