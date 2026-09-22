@@ -3,6 +3,6 @@
   "framework": "nextjs",
   "buildCommand": "npx next build",
   "crons": [
-    { "path": "/api/research/update", "schedule": "17 8 * * *" }
+    { "path": "/api/maintenance/supabase-keep-alive", "schedule": "17 8 * * 1,4" }
   ]
 }

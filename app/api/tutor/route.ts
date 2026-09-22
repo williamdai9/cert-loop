@@ -40,8 +40,8 @@ function retrievalFallback(
   const practice = grounded.questions.split("\n\n").filter(Boolean).slice(0, 1).join("\n\n");
   const researchNote = requestedWeb
     ? research.length
-      ? `\n\nDAILY SOURCE WATCH\n${research.slice(0, 3).map(item => `• [${item.provider}] ${item.title}: ${item.summary_en || "Source metadata is available in the Research Pulse."}`).join("\n")}`
-      : "\n\nLive web synthesis is unavailable in retrieval mode; no matching reviewed item was found in the daily feed."
+      ? `\n\nCURATED RESEARCH ARCHIVE\n${research.slice(0, 3).map(item => `• [${item.provider}] ${item.title}: ${item.summary_en || "Source metadata is available in the Research Pulse."}`).join("\n")}`
+      : "\n\nLive web synthesis is unavailable in retrieval mode; no matching reviewed item was found in the curated archive."
     : "";
 
   if (lang === "zh") return `课程检索模式（生成式 AI 暂未启用）\n\n我已经检索全部 26 章，并优先返回与问题最相关的英文考试依据。以下英文术语与表述是答题基准：\n\n${evidence}${practice ? `\n\nRELATED CHECKPOINT\n${practice}` : ""}${researchNote}\n\n建议：先用自己的话解释“机制 → 教练决策 → 常见考试陷阱”，再让我用同一主题继续出题。启用 Vercel AI Gateway 或 OPENAI_API_KEY 后，这里会自动升级为生成式讲解和实时 web research。`;
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   const researchText = research.length ? research.map(item => {
     const label = item.provider === "NSCA official" ? "Official NSCA watch" : item.provider.includes("community lead") ? "Unverified community lead" : "Research watch";
     return `[${label} · ${item.published_at || "recent"}] ${item.title}\n${item.summary_en || "Metadata only; inspect the linked source."}\nURL: ${item.source_url}`;
-  }).join("\n\n") : "No matching reviewed item in the daily feed.";
+  }).join("\n\n") : "No matching reviewed item in the curated archive.";
   const languageRule = body.lang === "zh" ? "Answer in clear Chinese, but keep all tested English terms and formulas in English beside the translation." : "Answer only in professional English. Do not add Chinese text in English mode.";
   const history = (body.history || []).slice(-8).map(item => `${item.role.toUpperCase()}: ${item.text}`).join("\n");
   const useWeb = Boolean(body.research);
@@ -140,7 +140,7 @@ ${grounded.questions || "No direct match."}
 LEARNER MASTERY
 ${grounded.masterySummary}
 
-DAILY RESEARCH FEED
+CURATED RESEARCH ARCHIVE
 ${researchText}`;
 
   const payload = {

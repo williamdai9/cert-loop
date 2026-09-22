@@ -98,13 +98,15 @@ The dashboard deliberately distinguishes content depth from visual completion:
 Chapter 1 is the completed figure-by-figure audit, while Chapters 2–26 remain
 visible as an explicit visual-review backlog until each chapter is verified.
 
-`research-update` is a deployed Supabase Edge Function. Vercel Cron invokes it
-daily at 08:17 UTC. It monitors NSCA's official RSS feed, Europe PMC, and the
-open Physical Fitness Stack Exchange community feed. Community items remain explicitly
-unverified and cannot generate publishable questions without corroboration.
-Source metadata is safe to show as a labeled research watch;
-AI summaries and candidate questions are written to the review workflow and do
-not silently override fifth-edition or official exam truth.
+`research-update` remains available as a manually invoked Supabase Edge
+Function for deliberate content-refresh sessions. It is not called by a
+scheduled job. The automatic task is a low-cost Supabase keep-alive request on
+Monday and Thursday at 08:17 UTC; it performs one read-only query and does not
+fetch external sources, write content, or invoke AI. Community research items
+remain explicitly unverified and cannot generate publishable questions without
+corroboration. Any manually generated AI summaries and candidate questions go
+to the review workflow and never silently override fifth-edition or official
+exam truth.
 
 For signup verification and password recovery, set the Supabase Auth Site URL
 to the production domain and allow both the production domain and

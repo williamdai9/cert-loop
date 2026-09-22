@@ -47,6 +47,27 @@ test("rejects anonymous administrator API inspection", async () => {
   assert.deepEqual(await response.json(), { error: "Sign in with an administrator account." });
 });
 
+test("rejects unauthorized Supabase maintenance requests", async () => {
+  const response = await requestWorker("/api/maintenance/supabase-keep-alive");
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "Unauthorized maintenance request." });
+});
+
+test("uses a lightweight twice-weekly Supabase keep-alive instead of scheduled research", async () => {
+  const [vercelConfig, keepAlive] = await Promise.all([
+    readFile(new URL("../vercel.json", import.meta.url), "utf8").then(JSON.parse),
+    readFile(new URL("../app/api/maintenance/supabase-keep-alive/route.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.deepEqual(vercelConfig.crons, [
+    { path: "/api/maintenance/supabase-keep-alive", schedule: "17 8 * * 1,4" },
+  ]);
+  assert.match(keepAlive, /rest\/v1\/certifications\?select=id/);
+  assert.match(keepAlive, /NEXT_PUBLIC_SUPABASE_ANON_KEY/);
+  assert.match(keepAlive, /CRON_SECRET/);
+  assert.doesNotMatch(keepAlive, /research-update|AI_GATEWAY|OPENAI|method:\s*["']POST|method:\s*["']PATCH/);
+});
+
 test("ships plan-linked complete lessons, optional placement, research, and private progress sync", async () => {
   const [catalogPage, page, lessons, supabase, migration, tutor, visuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, adminPage, adminApi, registry, planCurriculum, mediaPresentation] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
