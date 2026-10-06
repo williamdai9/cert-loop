@@ -64,7 +64,7 @@ test("citedTutorSources returns only known source IDs actually cited in the answ
     { id: "C1", title: "Course synthesis", kind: "course" },
   ];
 
-  const cited = citedTutorSources("Use [C1] and [S1]. [S1] is repeated; [S9] and [W1] are unknown.", sources);
+  const cited = citedTutorSources("Use [C1] and [S1, PDF p. 55]. [S1, C1] is repeated; [S9] and [W1] are unknown.", sources);
   assert.deepEqual(cited.map((source) => source.id), ["S1", "C1"]);
 });
 

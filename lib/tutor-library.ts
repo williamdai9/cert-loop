@@ -62,7 +62,9 @@ export async function retrieveTutorLibrary(db: SupabaseClient, question: string,
 }
 
 export function citedTutorSources(answer: string, sources: TutorSource[]) {
-  const ids = new Set(Array.from(answer.matchAll(/\[((?:S|C|M)\d+)\]/g), match => match[1]));
+  // Models may write [S1, PDF p. 55] or group citations as [S1, S2].
+  const ids = new Set(Array.from(answer.matchAll(/\[([^\]]+)\]/g))
+    .flatMap(match => match[1].match(/\b[SCM]\d+\b/g) || []));
   return sources.filter(source => ids.has(source.id));
 }
 

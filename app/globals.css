@@ -2897,7 +2897,8 @@ dialog.tutor-layer::backdrop { background: rgb(13 22 18 / .5); }
 .tutor-context { grid-template-columns: 22px minmax(0,1fr); padding: 12px 20px; }
 .tutor-context b { font-size: 14px; }
 .tutor-context small { font-size: 12px; letter-spacing: normal; color: #52665a; }
-.tutor-panel .research-toggle { margin: 8px 16px; }
+.tutor-panel .research-toggle { margin: 8px 16px; grid-template-columns: 20px 20px minmax(0,1fr); }
+.tutor-panel .research-toggle input { opacity: 1; width: 18px; height: 18px; margin: 0; accent-color: #285d43; }
 .tutor-panel .research-toggle b { font-size: 14px; }
 .tutor-panel .research-toggle small { font-size: 12px; color: #52665a; }
 .tutor-thread { min-height: 0; padding: 18px 20px; }
