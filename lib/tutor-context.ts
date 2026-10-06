@@ -1,5 +1,7 @@
 import { certificationRegistry } from "./certifications";
 import { cscsCourse } from "./course";
+import { courseMedia } from "./course-media";
+import { tutorSearchTerms } from "./tutor-library";
 
 type TutorRequestContext = { chapterNumber?: number; chapterTitle?: string; taskId?: string; taskTitle?: string };
 
@@ -7,7 +9,7 @@ const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9\u4e00
 const tokens = (value: string) => Array.from(new Set(normalize(value).split(/\s+/).filter(token => token.length > 2))).slice(0, 24);
 
 export function buildTutorContext(question: string, context?: TutorRequestContext, mastery: Record<string, { correct: number; total: number }> = {}) {
-  const query = normalize(`${question} ${context?.taskTitle || ""} ${context?.chapterTitle || ""}`);
+  const query = normalize(`${question} ${tutorSearchTerms(question).join(" ")}`);
   const queryTokens = tokens(query);
   const conceptSignals: Array<{ pattern: RegExp; chapters: number[]; boost: number }> = [
     { pattern: /\b(muscle|sarcomere|actin|myosin|neuromuscular|excitation contraction)\b/, chapters: [1], boost: 18 },
@@ -39,7 +41,7 @@ export function buildTutorContext(question: string, context?: TutorRequestContex
     const body = [chapter.title.en, chapter.title.zh, chapter.domain.en, chapter.domain.zh, section.title.en, section.title.zh, ...section.explanation, ...section.details, section.decision.en, section.examCue.en, ...chapter.terms.map(term => `${term.term} ${term.meaning.en}`)].join(" ");
     const haystack = normalize(body);
     const lexical = queryTokens.reduce((score, token) => score + (haystack.includes(token) ? 2 : 0), 0);
-    const priority = chapter.n === context?.chapterNumber ? 30 : 0;
+    const priority = chapter.n === context?.chapterNumber ? 3 : 0;
     const concept = conceptSignals.reduce((score, signal) => score + (signal.pattern.test(query) && signal.chapters.includes(chapter.n) ? signal.boost : 0), 0);
     return { chapter, section, score: lexical + priority + concept };
   })).sort((a, b) => b.score - a.score);
@@ -55,21 +57,33 @@ export function buildTutorContext(question: string, context?: TutorRequestContex
   }).filter(item => item.score > 0).sort((a, b) => b.score - a.score).slice(0, 5);
 
   const courseIndex = cscsCourse.map(chapter => `Ch. ${chapter.n}: ${chapter.title.en} [${chapter.domain.en}] — terms: ${chapter.terms.map(term => term.term).join(", ")}`).join("\n");
-  const excerpts = picked.map(({ chapter, section }) => [
-    `[Course Ch. ${chapter.n} › ${section.title.en}]`,
+  const excerpts = picked.map(({ chapter, section }, index) => [
+    `[C${index + 1}] Course Ch. ${chapter.n} › ${section.title.en}`,
     ...section.explanation,
     ...section.details.map(detail => `• ${detail}`),
     `Coaching decision: ${section.decision.en}`,
     `Exam cue: ${section.examCue.en}`,
   ].join("\n")).join("\n\n");
   const questions = relevantQuestions.map(({ item }) => `[Question ${item.id} · ${item.source}] ${item.en?.prompt || item.prompt}\nCorrect reasoning: ${item.en?.explanation || item.explanation}`).join("\n\n");
-  const masterySummary = Object.entries(mastery).map(([domain, stat]) => `${domain}: ${stat.correct}/${stat.total} (${stat.total ? Math.round(stat.correct / stat.total * 100) : 0}%)`).join("; ") || "No diagnostic evidence yet.";
+  const masterySummary = Object.entries(mastery).filter(([, stat]) => stat && Number.isFinite(stat.correct) && Number.isFinite(stat.total)).slice(0, 10).map(([domain, stat]) => `${domain.slice(0, 100)}: ${stat.correct}/${stat.total} (${stat.total ? Math.round(stat.correct / stat.total * 100) : 0}%)`).join("; ") || "No diagnostic evidence yet.";
+  const selectedChapters = Array.from(new Set(picked.map(item => item.chapter.n))).slice(0, 3);
+  const conceptMap = selectedChapters.map(n => {
+    const chapter = cscsCourse.find(item => item.n === n)!;
+    return [
+      `Chapter ${n}: ${chapter.title.en}`,
+      ...chapter.sections.map(section => `contains unit: ${section.title.en} -> coaching application: ${section.decision.en}`),
+      ...chapter.terms.map(term => `defines: ${term.term} -> ${term.meaning.en}`),
+      ...chapter.formulas.map(formula => `formula: ${formula.name}: ${formula.expression}; use: ${formula.use.en}; example: ${formula.example || "not supplied"}`),
+      ...(courseMedia[n]?.mindMap?.outline || []).map(item => `curriculum-map topic (course synthesis): ${item.en}`),
+    ].join("\n");
+  }).join("\n\n");
 
   return {
     courseIndex,
     excerpts,
     questions,
     masterySummary,
-    internalSources: Array.from(new Map(picked.map(({ chapter, section }) => [`${chapter.n}-${section.id}`, { title: `Course Ch. ${chapter.n} · ${section.title.en}`, kind: "course" as const }])).values()),
+    conceptMap,
+    internalSources: picked.map(({ chapter, section }, index) => ({ id: `C${index + 1}`, title: `Course Ch. ${chapter.n} · ${section.title.en}`, chapter: chapter.n, excerpt: section.explanation.join("\n"), language: "en", kind: "course" as const })),
   };
 }

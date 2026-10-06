@@ -23,7 +23,7 @@ Live site: https://cert-loop-study.vercel.app
 - Supabase email/password authentication with one-time email verification; signed-out visitors receive preview only
 - optional 30-item placement with priority and fast-track recommendations; learners can start from Chapter 1 without it
 - first-run five-step site tour with an always-available replay control
-- whole-site AI Tutor grounded in the course, question bank, and learner mastery, with optional on-demand web search
+- GPT-5.4 AI Tutor grounded in original English textbook pages, personal notes, course concept maps, practice explanations and server-saved mastery, with optional on-demand web search
 - responsive desktop and mobile interface
 
 ## Content policy
@@ -54,10 +54,50 @@ Copy `.env.example` to `.env.local` and add the project's public Supabase
 credentials to enable authentication and cloud sync. Full learning content is
 intentionally unavailable to signed-out visitors.
 
-The AI Tutor prefers the server-only `OPENAI_API_KEY` and can fall back to
-Vercel AI Gateway. For local use, set `OPENAI_API_KEY` or
-`AI_GATEWAY_API_KEY`. Never expose either key—or
-`SUPABASE_SERVICE_ROLE_KEY`—to the browser.
+The AI Tutor uses the server-only `OPENAI_API_KEY` directly. Its default model
+is `gpt-5.4` with medium reasoning; `OPENAI_TUTOR_MODEL` may select a GPT-5 or
+newer general-purpose model. It does not silently fall back to an older model,
+Vercel AI Gateway, or a course-excerpt answer. Each answer reports the model
+returned by OpenAI. Never expose the key or `SUPABASE_SERVICE_ROLE_KEY` to the browser.
+
+### Tutor source library
+
+`tutor_documents` and `tutor_chunks` contain a private, manually imported search
+index. Anonymous and direct authenticated table reads are blocked; a bounded
+RPC returns relevant excerpts after sign-in and onboarding. Published lessons,
+question banks and progress are not changed by importing reference documents.
+Queries combine English full-text search, Chinese keyword aliases and the
+existing course structure. This is retrieval, not model training or a complete
+automatically verified knowledge graph.
+
+The current import covers the English fifth edition (1,876 PDF file pages,
+1,846 with extractable text), 21 Evernote HTML notes, 20 personal mind-map
+references, two readable practice PDFs and one supplied outline PDF. Two scanned
+2000-question PDFs have no text layer and are not counted as answer evidence.
+Embedded images in HTML notes are not OCR-indexed. PDF citations use file page
+numbers, not printed page numbers. Supplied outlines are versioned reference
+material; current policy must be checked against NSCA online.
+
+The 26-chapter concept structure includes units, definitions, formulas and
+coaching applications. Raw map OCR can be noisy and is excluded from answer
+evidence. When a learner asks about a mind map, the tutor may inspect the matching
+private original image via a five-minute signed URL and must acknowledge unreadable
+labels. Structured English maps remain course synthesis, not claimed transcriptions.
+
+Manual import (Python with pypdf; macOS Swift/Vision for map OCR):
+
+```bash
+python3 scripts/extract-tutor-library.py /absolute/path/to/study-materials work/tutor-library.json
+node scripts/import-tutor-library.mjs work/tutor-library.json
+```
+
+The importer needs server-only Supabase credentials in the environment. It
+upserts deterministic records; it does not delete old revisions automatically.
+`work/` is ignored: do not commit raw textbooks, notes, keys or extracted corpora.
+There is no scheduled indexing, agent, approval queue, vector-store subscription
+or daily AI charge. OpenAI runs only when a learner asks; web search is opt-in.
+Requests are limited to six per minute per learner. Chat stays in page memory,
+and the Responses API uses `store: false`; OpenAI's account data policies still apply.
 
 ## Supabase
 
