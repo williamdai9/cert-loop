@@ -26,7 +26,6 @@ function webSources(payload: { output?: ResponseOutput[] }) {
 function retrievalFallback(
   lang: "en" | "zh" | undefined,
   grounded: ReturnType<typeof buildTutorContext>,
-  research: Awaited<ReturnType<typeof recentResearch>>,
   requestedWeb: boolean,
 ) {
   const evidenceBlocks = grounded.excerpts.split(/\n\n(?=\[Course Ch\.)/);
@@ -39,9 +38,7 @@ function retrievalFallback(
   }).slice(0, 3).join("\n\n");
   const practice = grounded.questions.split("\n\n").filter(Boolean).slice(0, 1).join("\n\n");
   const researchNote = requestedWeb
-    ? research.length
-      ? `\n\nCURATED RESEARCH ARCHIVE\n${research.slice(0, 3).map(item => `• [${item.provider}] ${item.title}: ${item.summary_en || "Source metadata is available in the Research Pulse."}`).join("\n")}`
-      : "\n\nLive web synthesis is unavailable in retrieval mode; no matching reviewed item was found in the curated archive."
+    ? (lang === "zh" ? "\n\n课程检索模式暂不支持实时联网查询。" : "\n\nLive web search is unavailable in course retrieval mode.")
     : "";
 
   if (lang === "zh") return `课程检索模式（生成式 AI 暂未启用）\n\n我已经检索全部 26 章，并优先返回与问题最相关的英文考试依据。以下英文术语与表述是答题基准：\n\n${evidence}${practice ? `\n\nRELATED CHECKPOINT\n${practice}` : ""}${researchNote}\n\n建议：先用自己的话解释“机制 → 教练决策 → 常见考试陷阱”，再让我用同一主题继续出题。启用 Vercel AI Gateway 或 OPENAI_API_KEY 后，这里会自动升级为生成式讲解和实时 web research。`;
@@ -63,21 +60,6 @@ async function requireOnboardedLearner(request: Request) {
   return { token, userId: userData.user.id };
 }
 
-async function recentResearch(question: string, token: string) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return [];
-  const response = await fetch(`${url}/rest/v1/research_items?select=provider,title,summary_en,summary_zh,source_url,published_at,chapter_numbers&order=published_at.desc&limit=30`, { headers: { apikey: key, Authorization: `Bearer ${token}` }, cache: "no-store" }).catch(() => null);
-  if (!response?.ok) return [];
-  const items = await response.json() as Array<{ provider: string; title: string; summary_en?: string; summary_zh?: string; source_url: string; published_at?: string; chapter_numbers?: number[] }>;
-  const terms = question.toLowerCase().split(/\W+/).filter(term => term.length > 3);
-  return items.map(item => {
-    const trustBoost = item.provider === "NSCA official" ? 3 : item.provider.includes("community lead") ? 0 : 2;
-    const lexical = terms.reduce((score, term) => score + (`${item.title} ${item.summary_en || ""}`.toLowerCase().includes(term) ? 2 : 0), 0);
-    return { ...item, score: lexical + trustBoost };
-  }).sort((a, b) => b.score - a.score).slice(0, 5);
-}
-
 export async function POST(request: Request) {
   const learner = await requireOnboardedLearner(request);
   if (learner.error) return learner.error;
@@ -91,22 +73,16 @@ export async function POST(request: Request) {
   if (!question || question.length > 2000) return NextResponse.json({ error: "Ask a question between 1 and 2,000 characters." }, { status: 400 });
 
   const grounded = buildTutorContext(question, body.context, body.mastery);
-  const research = await recentResearch(question, learner.token!);
-  const researchText = research.length ? research.map(item => {
-    const label = item.provider === "NSCA official" ? "Official NSCA watch" : item.provider.includes("community lead") ? "Unverified community lead" : "Research watch";
-    return `[${label} · ${item.published_at || "recent"}] ${item.title}\n${item.summary_en || "Metadata only; inspect the linked source."}\nURL: ${item.source_url}`;
-  }).join("\n\n") : "No matching reviewed item in the curated archive.";
   const languageRule = body.lang === "zh" ? "Answer in clear Chinese, but keep all tested English terms and formulas in English beside the translation." : "Answer only in professional English. Do not add Chinese text in English mode.";
   const history = (body.history || []).slice(-8).map(item => `${item.role.toUpperCase()}: ${item.text}`).join("\n");
   const useWeb = Boolean(body.research);
   const baseSources: Array<{ title: string; url?: string; kind: "course" | "official" | "research" | "community" | "web" }> = [
     ...grounded.internalSources.slice(0, 5),
-    ...research.map(item => ({ title: item.title, url: item.source_url, kind: item.provider === "NSCA official" ? "official" as const : item.provider.includes("community lead") ? "community" as const : "research" as const })),
   ];
   const uniqueBaseSources = Array.from(new Map(baseSources.map(item => [item.url || item.title, item])).values()).slice(0, 12);
 
   if (!apiKey) return NextResponse.json({
-    answer: retrievalFallback(body.lang, grounded, research, useWeb),
+    answer: retrievalFallback(body.lang, grounded, useWeb),
     sources: uniqueBaseSources,
     researched: false,
     retrievalOnly: true,
@@ -138,10 +114,7 @@ RELEVANT QUESTION-BANK REASONING
 ${grounded.questions || "No direct match."}
 
 LEARNER MASTERY
-${grounded.masterySummary}
-
-CURATED RESEARCH ARCHIVE
-${researchText}`;
+${grounded.masterySummary}`;
 
   const payload = {
     model: directOpenAI ? (process.env.OPENAI_TUTOR_MODEL || "gpt-5.6-terra") : (process.env.AI_GATEWAY_TUTOR_MODEL || "openai/gpt-5.6-terra"),
@@ -156,7 +129,7 @@ ${researchText}`;
   const response = await fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   const result = await response.json();
   if (!response.ok) return NextResponse.json({
-    answer: retrievalFallback(body.lang, grounded, research, useWeb),
+    answer: retrievalFallback(body.lang, grounded, useWeb),
     sources: uniqueBaseSources,
     researched: false,
     retrievalOnly: true,
@@ -165,7 +138,6 @@ ${researchText}`;
   const answer = outputText(result);
   const sources: Array<{ title: string; url?: string; kind: "course" | "official" | "research" | "community" | "web" }> = [
     ...grounded.internalSources.slice(0, 5),
-    ...research.map(item => ({ title: item.title, url: item.source_url, kind: "research" as const })),
     ...webSources(result),
   ];
   return NextResponse.json({ answer, sources: Array.from(new Map(sources.map(item => [item.url || item.title, item])).values()).slice(0, 12), researched: useWeb });

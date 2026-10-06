@@ -23,8 +23,7 @@ Live site: https://cert-loop-study.vercel.app
 - Supabase email/password authentication with one-time email verification; signed-out visitors receive preview only
 - optional 30-item placement with priority and fast-track recommendations; learners can start from Chapter 1 without it
 - first-run five-step site tour with an always-available replay control
-- whole-site AI Tutor grounded in the course, question bank, learner mastery, and research feed
-- daily multi-source watch across NSCA official articles, Europe PMC research, and selected community leads; AI-drafted content/questions are held for review
+- whole-site AI Tutor grounded in the course, question bank, and learner mastery, with optional on-demand web search
 - responsive desktop and mobile interface
 
 ## Content policy
@@ -63,8 +62,9 @@ Vercel AI Gateway. For local use, set `OPENAI_API_KEY` or
 ## Supabase
 
 The schema is versioned in `supabase/migrations`. It includes reusable tables
-for certifications, sources, lessons, questions, per-user progress, and a
-content-review queue. Published lessons and questions are read from Supabase at
+for certifications, sources, lessons, questions, and per-user progress.
+Historical research/review tables remain empty for migration compatibility.
+Published lessons and questions are read from Supabase at
 runtime after authentication, with versioned code content retained as a build
 fallback. Course images are stored in the private `course-media` bucket. Row
 Level Security blocks anonymous learning-content reads and keeps each learner's
@@ -87,7 +87,7 @@ that key in a browser-visible environment variable.
 ## Administrator content inspector
 
 Open `/admin` to audit the complete curriculum, bilingual question bank,
-private course media, research feed, human-review queue, and the actual rows
+private course media, source references, and the actual rows
 published to Supabase. The inspector is read-only and requires a valid Supabase
 session plus server-side authorization. Add one or more comma-separated owner
 emails to `CERT_LOOP_ADMIN_EMAILS`, or set
@@ -98,15 +98,13 @@ The dashboard deliberately distinguishes content depth from visual completion:
 Chapter 1 is the completed figure-by-figure audit, while Chapters 2–26 remain
 visible as an explicit visual-review backlog until each chapter is verified.
 
-`research-update` remains available as a manually invoked Supabase Edge
-Function for deliberate content-refresh sessions. It is not called by a
-scheduled job. The automatic task is a low-cost Supabase keep-alive request on
-Monday and Thursday at 08:17 UTC; it performs one read-only query and does not
-fetch external sources, write content, or invoke AI. Community research items
-remain explicitly unverified and cannot generate publishable questions without
-corroboration. Any manually generated AI summaries and candidate questions go
-to the review workflow and never silently override fifth-edition or official
-exam truth.
+The automated research pipeline, AI draft queue, research feed, and
+`research-update` API/Edge Function have been retired. The administrator view
+focuses on the curriculum, questions, media, and published database records.
+The only scheduled task is a lightweight Supabase keep-alive request on Monday
+and Thursday at 08:17 UTC. It performs one read-only query and never fetches
+external sources, writes content, or invokes AI. Tutor web search runs only
+when the learner explicitly enables it for a question.
 
 For signup verification and password recovery, set the Supabase Auth Site URL
 to the production domain and allow both the production domain and

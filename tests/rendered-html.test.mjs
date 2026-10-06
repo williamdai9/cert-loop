@@ -68,7 +68,7 @@ test("uses a lightweight twice-weekly Supabase keep-alive instead of scheduled r
   assert.doesNotMatch(keepAlive, /research-update|AI_GATEWAY|OPENAI|method:\s*["']POST|method:\s*["']PATCH/);
 });
 
-test("ships plan-linked complete lessons, optional placement, research, and private progress sync", async () => {
+test("ships plan-linked complete lessons, optional placement, on-demand tutor, and private progress sync", async () => {
   const [catalogPage, page, lessons, supabase, migration, tutor, visuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, adminPage, adminApi, registry, planCurriculum, mediaPresentation] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/certifications/nsca-cscs/page.tsx", import.meta.url), "utf8"),
@@ -176,7 +176,7 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(courseMedia, /textbookFigure\("table-1-1a\.png"/);
   assert.match(courseMedia, /textbookFigureForChapter\(2, "figure-2-15\.png"/);
   assert.match(courseMedia, /5th-edition|fifth edition|textbookAtlas/);
-  assert.match(adminPage, /Administrator content inspector/);
+  assert.match(adminPage, /Read-only course inspector/);
   assert.match(adminPage, /Textbook figure integration/);
   assert.match(adminPage, /complete Fifth Edition figure\/table inventory is audited/);
   assert.match(adminPage, /Cloud database/);
@@ -187,8 +187,10 @@ test("ships plan-linked complete lessons, optional placement, research, and priv
   assert.match(adminApi, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(adminApi, /from\("lessons"\)/);
   assert.match(adminApi, /from\("questions"\)/);
-  assert.match(adminApi, /from\("research_items"\)/);
-  assert.match(adminApi, /from\("content_review_queue"\)/);
+  assert.doesNotMatch(adminApi, /from\("(?:research_items|content_review_queue|research_sync_runs)"\)/);
+  assert.doesNotMatch(tutor, /research_items|CURATED RESEARCH ARCHIVE/);
+  assert.doesNotMatch(page, /ResearchPulse/);
+  assert.doesNotMatch(adminPage, /Review queue|AI draft|ResearchRow/);
   assert.match(adminApi, /createSignedUrls/);
   assert.match(catalogPage, /End-to-end curriculum/);
   assert.match(catalogPage, /\/certifications\/nsca-cscs/);

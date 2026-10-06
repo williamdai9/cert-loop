@@ -106,21 +106,18 @@ export async function GET(request: Request) {
     ...base,
     actor: { email: user.email },
     generatedAt: new Date().toISOString(),
-    cloud: { status: "unavailable", errors: ["Server-side Supabase administration is not configured in this environment."], lessons: [], questions: [], sources: [], research: [], reviewQueue: [], syncRuns: [], signedMedia: {} },
+    cloud: { status: "unavailable", errors: ["Server-side Supabase administration is not configured in this environment."], lessons: [], questions: [], sources: [], signedMedia: {} },
   }, { headers: { "Cache-Control": "no-store" } });
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const [lessons, questions, sources, research, reviewQueue, syncRuns, signedMedia] = await Promise.all([
+  const [lessons, questions, sources, signedMedia] = await Promise.all([
     admin.from("lessons").select("id,task_id,language,title,summary,content,source_refs,version,status,updated_at").eq("certification_id", base.pack.id).order("task_id").order("language").limit(1000),
     admin.from("questions").select("id,external_id,language,domain_id,cognition,prompt,options,answer_index,explanation,source_refs,version,status,updated_at").eq("certification_id", base.pack.id).order("external_id").order("language").limit(1000),
     admin.from("sources").select("id,title,url,source_type,trust_level,published_at,checked_at,metadata").eq("certification_id", base.pack.id).order("trust_level", { ascending: false }).limit(500),
-    admin.from("research_items").select("id,provider,title,authors,journal,published_at,source_url,summary_en,summary_zh,chapter_numbers,relevance,curation_status,updated_at").eq("certification_id", base.pack.id).order("published_at", { ascending: false }).limit(300),
-    admin.from("content_review_queue").select("id,item_type,payload,confidence,status,reviewed_at,created_at").eq("certification_id", base.pack.id).order("created_at", { ascending: false }).limit(300),
-    admin.from("research_sync_runs").select("id,provider,status,found_count,inserted_count,message,started_at,finished_at").order("started_at", { ascending: false }).limit(100),
     admin.storage.from("course-media").createSignedUrls(base.mediaPaths, 60 * 60),
   ]);
 
-  const queryResults = { lessons, questions, sources, research, reviewQueue, syncRuns };
+  const queryResults = { lessons, questions, sources };
   const errors = Object.entries(queryResults).flatMap(([name, result]) => result.error ? [`${name}: ${result.error.message}`] : []);
   if (signedMedia.error) errors.push(`media: ${signedMedia.error.message}`);
   const signedMap = Object.fromEntries((signedMedia.data || []).flatMap(item => item.signedUrl ? [[item.path, item.signedUrl]] : []));
@@ -135,9 +132,6 @@ export async function GET(request: Request) {
       lessons: lessons.data || [],
       questions: questions.data || [],
       sources: sources.data || [],
-      research: research.data || [],
-      reviewQueue: reviewQueue.data || [],
-      syncRuns: syncRuns.data || [],
       signedMedia: signedMap,
     },
   }, { headers: { "Cache-Control": "no-store" } });

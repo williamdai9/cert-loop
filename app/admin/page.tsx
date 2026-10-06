@@ -7,7 +7,7 @@ import type { Session } from "@supabase/supabase-js";
 import {
   ArrowLeft, BookOpen, CheckCircle2, CircleAlert, Cloud, Database,
   FileQuestion, Image as ImageIcon, LogOut, RefreshCw, Search, ShieldCheck,
-  Sparkles, TestTube2, XCircle,
+  TestTube2, XCircle,
 } from "lucide-react";
 import type { CourseChapter } from "@/lib/course";
 import type { Question } from "@/lib/certifications";
@@ -23,9 +23,6 @@ type AuditChapter = {
 type CloudLesson = { id: string; task_id: string; language: string; title: string; summary: string; content: unknown; source_refs: unknown; version: number; status: string; updated_at: string };
 type CloudQuestion = { id: string; external_id: string; language: string; domain_id: string; cognition: string; prompt: string; options: unknown; answer_index: number; explanation: string; source_refs: unknown; version: number; status: string; updated_at: string };
 type SourceRow = { id: string; title: string; url?: string; source_type: string; trust_level: number; published_at?: string; checked_at?: string; metadata: unknown };
-type ResearchRow = { id: string; provider: string; title: string; authors?: string; journal?: string; published_at?: string; source_url: string; summary_en?: string; summary_zh?: string; chapter_numbers?: number[]; relevance?: number; curation_status: string; updated_at: string };
-type ReviewRow = { id: string; item_type: string; payload: unknown; confidence?: number; status: string; reviewed_at?: string; created_at: string };
-type SyncRow = { id: string; provider: string; status: string; found_count: number; inserted_count: number; message?: string; started_at: string; finished_at?: string };
 type MediaRow = CourseMedia & { chapter: number };
 type CoverageRow = { id: string; pdfPage: number | string; concept: string; sectionId: string; implementation: string; module: string };
 
@@ -53,16 +50,15 @@ type AdminPayload = {
   };
   cloud: {
     status: "healthy" | "attention" | "unavailable"; errors: string[];
-    lessons: CloudLesson[]; questions: CloudQuestion[]; sources: SourceRow[]; research: ResearchRow[];
-    reviewQueue: ReviewRow[]; syncRuns: SyncRow[]; signedMedia: Record<string, string>;
+    lessons: CloudLesson[]; questions: CloudQuestion[]; sources: SourceRow[];
+    signedMedia: Record<string, string>;
   };
 };
 
-type Tab = "overview" | "curriculum" | "questions" | "media" | "research" | "review" | "cloud";
+type Tab = "overview" | "curriculum" | "questions" | "media" | "cloud";
 const tabs: Array<{ id: Tab; label: string; icon: typeof BookOpen }> = [
   { id:"overview", label:"Overview", icon:TestTube2 }, { id:"curriculum", label:"Curriculum", icon:BookOpen },
   { id:"questions", label:"Question bank", icon:FileQuestion }, { id:"media", label:"Media", icon:ImageIcon },
-  { id:"research", label:"Research", icon:Sparkles }, { id:"review", label:"Review queue", icon:CircleAlert },
   { id:"cloud", label:"Cloud database", icon:Database },
 ];
 
@@ -127,8 +123,8 @@ export default function AdminPage() {
     await getSupabaseBrowser()?.auth.signOut();
   }
 
-  if (status === "checking" || status === "loading") return <AccessFrame><div className={styles.loading}><RefreshCw className={styles.spin} /><strong>{status === "checking" ? "Checking administrator access…" : "Auditing the complete content system…"}</strong></div></AccessFrame>;
-  if (status === "signed-out") return <AccessFrame><section className={styles.accessCard}><span className={styles.accessIcon}><ShieldCheck /></span><p className={styles.kicker}>CERT LOOP · CONTENT CONTROL</p><h1>Administrator content inspector</h1><p>Sign in with the authorized owner email and password. Course content, answer keys, private media, research drafts, and database records never load before server-side authorization.</p><form onSubmit={signIn}><label>Email address<input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="owner@example.com" autoComplete="email" required /></label><label>Password<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required /></label><button type="submit">Sign in</button><button type="button" className={styles.secondaryAction} onClick={sendPasswordSetup}>Forgot password or need to set one?</button></form>{message && <aside>{message}</aside>}<Link href="/"><ArrowLeft size={15}/> Back to learner site</Link></section></AccessFrame>;
+  if (status === "checking" || status === "loading") return <AccessFrame><div className={styles.loading}><RefreshCw className={styles.spin} /><strong>{status === "checking" ? "Checking administrator access…" : "Loading the course inspector…"}</strong></div></AccessFrame>;
+  if (status === "signed-out") return <AccessFrame><section className={styles.accessCard}><span className={styles.accessIcon}><ShieldCheck /></span><p className={styles.kicker}>CERT LOOP · COURSE INSPECTOR</p><h1>Read-only course inspector</h1><p>Sign in with the authorized owner email and password. Course lessons, answer keys, private media, and deployed records never load before server-side authorization.</p><form onSubmit={signIn}><label>Email address<input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="owner@example.com" autoComplete="email" required /></label><label>Password<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required /></label><button type="submit">Sign in</button><button type="button" className={styles.secondaryAction} onClick={sendPasswordSetup}>Forgot password or need to set one?</button></form>{message && <aside>{message}</aside>}<Link href="/"><ArrowLeft size={15}/> Back to learner site</Link></section></AccessFrame>;
   if (status === "denied" || status === "error" || !data) return <AccessFrame><section className={styles.accessCard}><span className={`${styles.accessIcon} ${styles.danger}`}><XCircle /></span><p className={styles.kicker}>{status === "denied" ? "ACCESS DENIED" : "INSPECTOR ERROR"}</p><h1>{status === "denied" ? "This account is not an administrator" : "The inspector needs attention"}</h1><p>{message}</p><button onClick={signOut}>Sign out and use another account</button><Link href="/"><ArrowLeft size={15}/> Back to learner site</Link></section></AccessFrame>;
 
   const activeChapter = data.chapters.find(chapter => chapter.n === chapterNumber) || data.chapters[0];
@@ -137,13 +133,11 @@ export default function AdminPage() {
     return (domain === "all" || question.domain === domain) && text.includes(query.toLowerCase());
   });
   const activeQuestion = data.questions.find(question => question.id === questionId) || filteredQuestions[0] || data.questions[0];
-  const pending = data.cloud.reviewQueue.filter(item => item.status === "pending").length;
-
   return <div className={styles.shell}>
     <aside className={styles.sidebar}>
       <Link className={styles.brand} href="/"><span>CL</span><div><strong>CERT LOOP</strong><small>Content control</small></div></Link>
-      <nav>{tabs.map(item => { const Icon = item.icon; return <button key={item.id} className={tab === item.id ? styles.active : ""} onClick={() => { setTab(item.id); setQuery(""); }}><Icon size={17}/><span>{item.label}</span>{item.id === "review" && pending > 0 && <em>{pending}</em>}</button>; })}</nav>
-      <div className={styles.sidebarFoot}><span>READ-ONLY INSPECTOR</span><small>Publishing and approval actions remain intentionally disabled until a review workflow is defined.</small></div>
+      <nav>{tabs.map(item => { const Icon = item.icon; return <button key={item.id} className={tab === item.id ? styles.active : ""} onClick={() => { setTab(item.id); setQuery(""); }}><Icon size={17}/><span>{item.label}</span></button>; })}</nav>
+      <div className={styles.sidebarFoot}><span>READ-ONLY INSPECTOR</span><small>Course lessons, questions, sources, and media are available for inspection only.</small></div>
     </aside>
 
     <main className={styles.main}>
@@ -153,8 +147,6 @@ export default function AdminPage() {
         {tab === "curriculum" && <Curriculum data={data} active={activeChapter} selected={chapterNumber} onSelect={setChapterNumber} query={query} setQuery={setQuery} />}
         {tab === "questions" && <Questions data={data} questions={filteredQuestions} active={activeQuestion} selected={questionId} onSelect={setQuestionId} query={query} setQuery={setQuery} domain={domain} setDomain={setDomain} />}
         {tab === "media" && <Media data={data} query={query} setQuery={setQuery} />}
-        {tab === "research" && <Research data={data} query={query} setQuery={setQuery} />}
-        {tab === "review" && <ReviewQueue data={data} />}
         {tab === "cloud" && <CloudDatabase data={data} />}
       </div>
     </main>
@@ -166,7 +158,6 @@ function AccessFrame({ children }: { children: React.ReactNode }) { return <main
 function Overview({ data }: { data: AdminPayload }) {
   const totals = data.audit.totals;
   const signedCount = Object.keys(data.cloud.signedMedia).length;
-  const latestRun = data.cloud.syncRuns[0];
   const checks = [
     { ok:totals.chapters === 26, label:"26 canonical chapters", note:`${totals.sections} deep-dive units · ${totals.explanationParagraphs} teaching paragraphs` },
     { ok:totals.questions >= 84, label:"Bilingual question bank", note:`${totals.questions} original three-option items` },
@@ -176,15 +167,12 @@ function Overview({ data }: { data: AdminPayload }) {
     { ok:data.cloud.status === "healthy", label:"Supabase content connection", note:data.cloud.errors.length ? data.cloud.errors.join(" · ") : `${data.cloud.lessons.length} lesson rows · ${data.cloud.questions.length} question rows` },
   ];
   return <>
-    <section className={styles.hero}><div><p className={styles.kicker}>SYSTEM OF RECORD</p><h2>Inspect what learners actually receive.</h2><p>Canonical course data, deployed Supabase records, protected visual assets, research updates, and review candidates are shown together. Nothing in this dashboard implies that an unaudited chapter is complete.</p></div><aside><span>Generated</span><strong>{new Date(data.generatedAt).toLocaleString()}</strong><small>{data.actor.email}</small></aside></section>
+    <section className={styles.hero}><div><p className={styles.kicker}>READ-ONLY COURSE INSPECTOR</p><h2>Inspect what learners actually receive.</h2><p>Canonical course data, deployed Supabase records, and protected visual assets are shown together for inspection. Nothing in this dashboard changes course content or publishing state.</p></div><aside><span>Generated</span><strong>{new Date(data.generatedAt).toLocaleString()}</strong><small>{data.actor.email}</small></aside></section>
     <section className={styles.metrics}>{[
-      [totals.chapters,"chapters"],[totals.sections,"deep dives"],[totals.knowledgePoints,"knowledge points"],[totals.questions,"questions"],[totals.textbookFigures,"textbook figures"],[totals.noteFigures,"note figures"],[totals.mindMaps,"reference maps"],[data.cloud.research.length,"research items"],
+      [totals.chapters,"chapters"],[totals.sections,"deep dives"],[totals.knowledgePoints,"knowledge points"],[totals.questions,"questions"],[totals.textbookFigures,"textbook figures"],[totals.noteFigures,"note figures"],[data.cloud.sources.length,"source rows"],
     ].map(([value,label]) => <article key={label}><strong>{value}</strong><span>{label}</span></article>)}</section>
     <section className={styles.panel}><PanelHead eyebrow="QUALITY GATES" title="Coverage and deployment checks"/><div className={styles.checkGrid}>{checks.map(check => <article className={check.ok ? styles.pass : check.warn ? styles.warn : styles.fail} key={check.label}>{check.ok ? <CheckCircle2/> : <CircleAlert/>}<div><strong>{check.label}</strong><p>{check.note}</p></div></article>)}</div></section>
-    <section className={styles.twoCol}>
-      <div className={styles.panel}><PanelHead eyebrow="DOMAIN BALANCE" title="Question distribution"/><div className={styles.domainBars}>{data.audit.questionDomains.map(item => <div key={item.id}><span><b>{item.label}</b><em>{item.count}</em></span><i><b style={{width:`${item.count / Math.max(...data.audit.questionDomains.map(row => row.count)) * 100}%`}}/></i></div>)}</div></div>
-      <div className={styles.panel}><PanelHead eyebrow="RESEARCH ARCHIVE" title="Latest manual synchronization"/>{latestRun ? <div className={styles.runCard}><span className={latestRun.status === "success" ? styles.statusGood : styles.statusBad}>{latestRun.status}</span><h3>{latestRun.provider}</h3><p>{latestRun.message || "Synchronization completed without a message."}</p><div><b>{latestRun.found_count} found</b><b>{latestRun.inserted_count} inserted</b></div><small>{new Date(latestRun.started_at).toLocaleString()}</small></div> : <p className={styles.empty}>No synchronization runs are recorded.</p>}</div>
-    </section>
+    <section className={styles.panel}><PanelHead eyebrow="DOMAIN BALANCE" title="Question distribution"/><div className={styles.domainBars}>{data.audit.questionDomains.map(item => <div key={item.id}><span><b>{item.label}</b><em>{item.count}</em></span><i><b style={{width:`${item.count / Math.max(...data.audit.questionDomains.map(row => row.count)) * 100}%`}}/></i></div>)}</div></section>
     <section className={styles.panel}><PanelHead eyebrow="CHAPTER AUDIT MATRIX" title="Depth, visuals, and remaining figure work"/><div className={styles.auditTable}><div className={styles.tableHead}><span>Chapter</span><span>Depth</span><span>Text</span><span>Visuals</span><span>Figure audit</span></div>{data.audit.chapters.map(row => <div key={row.chapter}><span><b>{String(row.chapter).padStart(2,"0")}</b><em>{row.title.en}</em></span><span className={row.depthReady ? styles.goodText : styles.badText}>{row.depthReady ? "Ready" : "Shallow"}</span><span>{row.explanationParagraphs} ¶ · {row.knowledgePoints} points</span><span>{row.textbookFigures} textbook · {row.noteFigures} notes · {row.mindMap ? "ref map" : "no ref map"}</span><span className={row.figureAudit === "complete" ? styles.goodText : styles.pendingText}>{row.figureAudit}</span></div>)}</div></section>
   </>;
 }
@@ -212,11 +200,7 @@ function Media({ data, query, setQuery }: { data:AdminPayload; query:string; set
 
 function MediaAsset({ title, caption, path, url }: { title:{en:string;zh:string}; caption:{en:string;zh:string}; path:string; url?:string }) { return <figure className={styles.mediaAsset}>{url ? <a href={url} target="_blank" rel="noreferrer"><Image src={url} alt={title.en} width={640} height={420} unoptimized /></a> : <div className={styles.mediaMissing}><ImageIcon/> unavailable</div>}<figcaption><strong>{title.en}</strong><small>{title.zh}</small><p>{caption.en}</p><code>{path}</code></figcaption></figure>; }
 
-function Research({ data, query, setQuery }: { data:AdminPayload; query:string; setQuery:(s:string)=>void }) { const rows=data.cloud.research.filter(item=>`${item.provider} ${item.title} ${item.summary_en || ""}`.toLowerCase().includes(query.toLowerCase())); return <><div className={styles.pageTools}><SearchBox value={query} onChange={setQuery} placeholder="Search research…"/><span>{rows.length} items</span></div><section className={styles.researchGrid}>{rows.map(item=><article key={item.id}><header><span>{item.provider}</span><em>{item.curation_status}</em></header><h3>{item.title}</h3><p>{item.summary_en || "No AI summary yet; source metadata only."}</p>{item.summary_zh && <small>{item.summary_zh}</small>}<footer><span>Ch. {item.chapter_numbers?.join(", ") || "unmapped"}</span><span>{item.relevance == null ? "unscored" : `${Math.round(item.relevance*100)}% relevance`}</span><a href={item.source_url} target="_blank" rel="noreferrer">Open source ↗</a></footer></article>)}</section></>; }
-
-function ReviewQueue({ data }: { data:AdminPayload }) { return <><section className={styles.hero}><div><p className={styles.kicker}>HUMAN REVIEW REQUIRED</p><h2>{data.cloud.reviewQueue.filter(item=>item.status==="pending").length} pending content candidates</h2><p>AI drafts and research-derived questions are visible here but cannot silently replace textbook or official exam truth.</p></div></section><section className={styles.queue}>{data.cloud.reviewQueue.map(item=><details key={item.id} className={styles.rawDetail}><summary><span>{item.item_type}</span><strong>{item.status}</strong><em>{item.confidence == null ? "no confidence" : `${Math.round(item.confidence*100)}%`}</em><small>{new Date(item.created_at).toLocaleString()}</small></summary><pre>{JSON.stringify(item.payload,null,2)}</pre></details>)}{!data.cloud.reviewQueue.length && <p className={styles.empty}>The review queue is empty.</p>}</section></>; }
-
-function CloudDatabase({ data }: { data:AdminPayload }) { return <><section className={styles.metrics}>{[[data.cloud.lessons.length,"lesson rows"],[data.cloud.questions.length,"question rows"],[data.cloud.sources.length,"source rows"],[data.cloud.syncRuns.length,"sync runs"]].map(([value,label])=><article key={label}><strong>{value}</strong><span>{label}</span></article>)}</section>{data.cloud.errors.length>0 && <section className={styles.errorPanel}>{data.cloud.errors.map(error=><p key={error}>{error}</p>)}</section>}<section className={styles.panel}><PanelHead eyebrow="SUPABASE LESSONS" title="Actual deployed lesson records"/><div className={styles.rawList}>{data.cloud.lessons.map(item=><details className={styles.rawDetail} key={item.id}><summary><span>{item.task_id}</span><strong>{item.language.toUpperCase()} · {item.title}</strong><em>{item.status} · v{item.version}</em></summary><p>{item.summary}</p><pre>{JSON.stringify(item.content,null,2)}</pre></details>)}</div></section><section className={styles.panel}><PanelHead eyebrow="SUPABASE QUESTIONS" title="Actual deployed question records"/><div className={styles.rawList}>{data.cloud.questions.map(item=><details className={styles.rawDetail} key={item.id}><summary><span>{item.external_id}</span><strong>{item.language.toUpperCase()} · {item.prompt}</strong><em>{item.status} · v{item.version}</em></summary><pre>{JSON.stringify(item,null,2)}</pre></details>)}</div></section><section className={styles.panel}><PanelHead eyebrow="SOURCE REGISTRY" title="Trust and recency"/><div className={styles.sourceList}>{data.cloud.sources.map(item=><article key={item.id}><span>{item.source_type} · trust {item.trust_level}/4</span><strong>{item.title}</strong><small>Checked {item.checked_at ? new Date(item.checked_at).toLocaleString() : "not recorded"}</small>{item.url && <a href={item.url} target="_blank" rel="noreferrer">Open source ↗</a>}</article>)}</div></section></>; }
+function CloudDatabase({ data }: { data:AdminPayload }) { return <><section className={styles.metrics}>{[[data.cloud.lessons.length,"lesson rows"],[data.cloud.questions.length,"question rows"],[data.cloud.sources.length,"source rows"]].map(([value,label])=><article key={label}><strong>{value}</strong><span>{label}</span></article>)}</section>{data.cloud.errors.length>0 && <section className={styles.errorPanel}>{data.cloud.errors.map(error=><p key={error}>{error}</p>)}</section>}<section className={styles.panel}><PanelHead eyebrow="SUPABASE LESSONS" title="Actual deployed lesson records"/><div className={styles.rawList}>{data.cloud.lessons.map(item=><details className={styles.rawDetail} key={item.id}><summary><span>{item.task_id}</span><strong>{item.language.toUpperCase()} · {item.title}</strong><em>{item.status} · v{item.version}</em></summary><p>{item.summary}</p><pre>{JSON.stringify(item.content,null,2)}</pre></details>)}</div></section><section className={styles.panel}><PanelHead eyebrow="SUPABASE QUESTIONS" title="Actual deployed question records"/><div className={styles.rawList}>{data.cloud.questions.map(item=><details className={styles.rawDetail} key={item.id}><summary><span>{item.external_id}</span><strong>{item.language.toUpperCase()} · {item.prompt}</strong><em>{item.status} · v{item.version}</em></summary><pre>{JSON.stringify(item,null,2)}</pre></details>)}</div></section><section className={styles.panel}><PanelHead eyebrow="SOURCE REGISTRY" title="Trust and recency"/><div className={styles.sourceList}>{data.cloud.sources.map(item=><article key={item.id}><span>{item.source_type} · trust {item.trust_level}/4</span><strong>{item.title}</strong><small>Checked {item.checked_at ? new Date(item.checked_at).toLocaleString() : "not recorded"}</small>{item.url && <a href={item.url} target="_blank" rel="noreferrer">Open source ↗</a>}</article>)}</div></section></>; }
 
 function SearchBox({ value, onChange, placeholder }: { value:string; onChange:(value:string)=>void; placeholder:string }) { return <label className={styles.search}><Search size={16}/><input value={value} onChange={event=>onChange(event.target.value)} placeholder={placeholder}/>{value && <button onClick={()=>onChange("")} aria-label="Clear search"><XCircle size={15}/></button>}</label>; }
 function PanelHead({ eyebrow, title }: { eyebrow:string; title:string }) { return <header className={styles.panelHead}><p className={styles.kicker}>{eyebrow}</p><h2>{title}</h2></header>; }
