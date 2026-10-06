@@ -1,30 +1,162 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { access, readFile } from "node:fs/promises";
+import { createServer } from "node:net";
+import { after, before } from "node:test";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-async function requestWorker(path = "/") {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${Math.random()}`);
-  const { default: worker } = await import(workerUrl.href);
+const projectRoot = fileURLToPath(new URL("..", import.meta.url));
+const nextCli = fileURLToPath(new URL("../node_modules/next/dist/bin/next", import.meta.url));
+const readinessDeadlineMs = 30_000;
 
-  return worker.fetch(
-    new Request(`http://localhost${path}`, {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
+let nextProcess;
+let nextProcessError;
+let nextOutput = "";
+let serverUrl;
+
+async function reservePort() {
+  const probe = createServer();
+  await new Promise((resolve, reject) => {
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", resolve);
+  });
+
+  const address = probe.address();
+  const port = typeof address === "object" && address ? address.port : undefined;
+  await new Promise((resolve, reject) => {
+    probe.close(error => (error ? reject(error) : resolve()));
+  });
+
+  if (!port) throw new Error("Could not reserve an ephemeral localhost port for Next.js");
+  return port;
 }
 
+function startupError(message) {
+  const details = nextOutput.trim() || "(Next.js produced no startup output)";
+  return new Error(`${message}\n\nNext.js output:\n${details}`);
+}
+
+async function waitForNextServer(baseUrl) {
+  const deadline = Date.now() + readinessDeadlineMs;
+  let delayMs = 10;
+  let lastError;
+
+  while (Date.now() < deadline) {
+    if (nextProcessError) {
+      throw startupError(`Could not start Next.js: ${nextProcessError.message}`);
+    }
+    if (nextProcess.exitCode !== null || nextProcess.signalCode !== null) {
+      throw startupError(
+        `Next.js exited before becoming ready (code ${nextProcess.exitCode}, signal ${nextProcess.signalCode})`,
+      );
+    }
+
+    try {
+      const response = await fetch(`${baseUrl}/`, {
+        signal: AbortSignal.timeout(Math.min(1000, Math.max(1, deadline - Date.now()))),
+      });
+      await response.body?.cancel();
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) break;
+    await new Promise(resolve => setTimeout(resolve, Math.min(delayMs, remainingMs)));
+    delayMs = Math.min(delayMs * 2, 250);
+  }
+
+  const reason = lastError instanceof Error ? lastError.message : String(lastError);
+  throw startupError(`Next.js did not become ready within ${readinessDeadlineMs}ms (${reason})`);
+}
+
+async function stopNextServer() {
+  const child = nextProcess;
+  nextProcess = undefined;
+  serverUrl = undefined;
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+
+  child.kill("SIGTERM");
+  await new Promise(resolve => {
+    const timeout = setTimeout(() => {
+      child.removeListener("exit", onExit);
+      resolve();
+    }, 5000);
+    const onExit = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    child.once("exit", onExit);
+  });
+
+  if (child.exitCode === null && child.signalCode === null) {
+    child.kill("SIGKILL");
+    await new Promise(resolve => child.once("exit", resolve));
+  }
+}
+
+async function startNextServer() {
+  const port = await reservePort();
+  serverUrl = `http://127.0.0.1:${port}`;
+  nextProcessError = undefined;
+  nextOutput = "";
+  nextProcess = spawn(process.execPath, [nextCli, "start", "--hostname", "127.0.0.1"], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      NODE_ENV: "production",
+      PORT: String(port),
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  nextProcess.stdout.setEncoding("utf8");
+  nextProcess.stderr.setEncoding("utf8");
+  nextProcess.stdout.on("data", chunk => {
+    nextOutput += chunk;
+  });
+  nextProcess.stderr.on("data", chunk => {
+    nextOutput += chunk;
+  });
+  nextProcess.once("error", error => {
+    nextProcessError = error;
+  });
+
+  try {
+    await waitForNextServer(serverUrl);
+  } catch (error) {
+    await stopNextServer();
+    throw error;
+  }
+}
+
+before(startNextServer);
+after(stopNextServer);
+
+async function requestServer(path = "/") {
+  if (!serverUrl) throw new Error("Next.js production server is not ready");
+
+  return fetch(new URL(path, serverUrl), {
+    headers: { accept: "text/html" },
+    signal: AbortSignal.timeout(10_000),
+  });
+}
+
+test("uses only the Vercel Next.js deployment target", async () => {
+  const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  assert.equal(pkg.scripts.build, "next build");
+  assert.equal(pkg.scripts.dev, "next dev");
+  assert.equal(pkg.scripts.start, "next start");
+  for (const dependency of Object.keys({ ...pkg.dependencies, ...pkg.devDependencies })) {
+    assert.doesNotMatch(dependency, /vinext|vite|wrangler|cloudflare|drizzle/);
+  }
+  await assert.rejects(access(new URL("../.openai/hosting.json", import.meta.url)), { code: "ENOENT" });
+});
+
 async function render() {
-  return requestWorker("/");
+  return requestServer("/");
 }
 
 test("server-renders a general certification catalog", async () => {
@@ -43,13 +175,13 @@ test("server-renders a general certification catalog", async () => {
 
 test("retired administrator routes are unavailable", async () => {
   for (const path of ["/admin", "/api/admin/content"]) {
-    const response = await requestWorker(path);
+    const response = await requestServer(path);
     assert.equal(response.status, 404, path);
   }
 });
 
 test("rejects unauthorized Supabase maintenance requests", async () => {
-  const response = await requestWorker("/api/maintenance/supabase-keep-alive");
+  const response = await requestServer("/api/maintenance/supabase-keep-alive");
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { error: "Unauthorized maintenance request." });
 });

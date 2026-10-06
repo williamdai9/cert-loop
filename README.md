@@ -151,11 +151,13 @@ sign-ins use email and password directly.
 
 ```bash
 npm run build
-npx next build
+npm test
+npx tsc --noEmit
 ```
 
-The first command validates the bundled Sites/vinext target. The second validates
-the production Next.js target used by Vercel.
+Local development, production builds, and rendered-page tests all use Next.js,
+the same runtime deployed on Vercel. `npm test` builds the app and runs the test
+suite against it.
 
 ## Add another certification
 
@@ -166,6 +168,10 @@ pack so progress and content remain isolated.
 
 ## Deployment
 
-The repository includes `vercel.json` for Vercel and `.openai/hosting.json` for
-the bundled Sites target. Vercel production deploys are connected to the GitHub
-repository.
+Vercel is the only deployment target: https://cert-loop-study.vercel.app.
+The repository includes `vercel.json` and is connected to GitHub. Supabase owns
+authentication, learning progress, and the private content library. The tutor
+uses the OpenAI API directly; it does not need a second hosted website.
+
+Do not create or synchronize a ChatGPT Sites copy of this project. Its duplicate
+hosting integration, build tooling, and unused D1 starter have been removed.
