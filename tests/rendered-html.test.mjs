@@ -191,8 +191,8 @@ test("ships plan-linked complete lessons, optional placement, on-demand tutor, a
   assert.doesNotMatch(tutor, /research_items|CURATED RESEARCH ARCHIVE/);
   assert.doesNotMatch(page, /ResearchPulse/);
   assert.doesNotMatch(adminPage, /Review queue|AI draft|ResearchRow/);
-  assert.match(adminApi, /createSignedUrls/);
-  assert.match(adminApi, /base\.mediaPaths\.slice\(index \* 500, \(index \+ 1\) \* 500\)/);
+  assert.doesNotMatch(adminApi, /createSignedUrls|signedMedia|mediaPaths/);
+  assert.doesNotMatch(adminPage, /function Media\(|function MediaAsset\(|label:\s*"Media"/);
   assert.match(catalogPage, /End-to-end curriculum/);
   assert.match(catalogPage, /\/certifications\/nsca-cscs/);
   assert.match(registry, /NSCA Certified Strength and Conditioning Specialist® \(CSCS®\)/);

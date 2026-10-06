@@ -87,7 +87,7 @@ that key in a browser-visible environment variable.
 ## Administrator content inspector
 
 Open `/admin` to audit the complete curriculum, bilingual question bank,
-private course media, source references, and the actual rows
+source references, and the actual rows
 published to Supabase. The inspector is read-only and requires a valid Supabase
 session plus server-side authorization. Add one or more comma-separated owner
 emails to `CERT_LOOP_ADMIN_EMAILS`, or set
@@ -100,7 +100,9 @@ visible as an explicit visual-review backlog until each chapter is verified.
 
 The automated research pipeline, AI draft queue, research feed, and
 `research-update` API/Edge Function have been retired. The administrator view
-focuses on the curriculum, questions, media, and published database records.
+focuses on the curriculum, questions, and published database records. Course
+images remain in their lessons; the administrator view does not preload or
+request access links for the full image collection.
 The only scheduled task is a lightweight Supabase keep-alive request on Monday
 and Thursday at 08:17 UTC. It performs one read-only query and never fetches
 external sources, writes content, or invokes AI. Tutor web search runs only

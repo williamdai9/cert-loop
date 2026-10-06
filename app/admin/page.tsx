@@ -1,17 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
 import {
   ArrowLeft, BookOpen, CheckCircle2, CircleAlert, Cloud, Database,
-  FileQuestion, Image as ImageIcon, LogOut, RefreshCw, Search, ShieldCheck,
+  FileQuestion, LogOut, RefreshCw, Search, ShieldCheck,
   TestTube2, XCircle,
 } from "lucide-react";
 import type { CourseChapter } from "@/lib/course";
 import type { Question } from "@/lib/certifications";
-import type { CourseMedia } from "@/lib/course-media";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import styles from "./admin.module.css";
 
@@ -23,7 +21,6 @@ type AuditChapter = {
 type CloudLesson = { id: string; task_id: string; language: string; title: string; summary: string; content: unknown; source_refs: unknown; version: number; status: string; updated_at: string };
 type CloudQuestion = { id: string; external_id: string; language: string; domain_id: string; cognition: string; prompt: string; options: unknown; answer_index: number; explanation: string; source_refs: unknown; version: number; status: string; updated_at: string };
 type SourceRow = { id: string; title: string; url?: string; source_type: string; trust_level: number; published_at?: string; checked_at?: string; metadata: unknown };
-type MediaRow = CourseMedia & { chapter: number };
 type CoverageRow = { id: string; pdfPage: number | string; concept: string; sectionId: string; implementation: string; module: string };
 
 type AdminPayload = {
@@ -40,8 +37,6 @@ type AdminPayload = {
   };
   chapters: CourseChapter[];
   questions: Question[];
-  media: MediaRow[];
-  mediaPaths: string[];
   chapterOneVisualCoverage: CoverageRow[];
   audit: {
     chapters: AuditChapter[];
@@ -51,14 +46,13 @@ type AdminPayload = {
   cloud: {
     status: "healthy" | "attention" | "unavailable"; errors: string[];
     lessons: CloudLesson[]; questions: CloudQuestion[]; sources: SourceRow[];
-    signedMedia: Record<string, string>;
   };
 };
 
-type Tab = "overview" | "curriculum" | "questions" | "media" | "cloud";
+type Tab = "overview" | "curriculum" | "questions" | "cloud";
 const tabs: Array<{ id: Tab; label: string; icon: typeof BookOpen }> = [
   { id:"overview", label:"Overview", icon:TestTube2 }, { id:"curriculum", label:"Curriculum", icon:BookOpen },
-  { id:"questions", label:"Question bank", icon:FileQuestion }, { id:"media", label:"Media", icon:ImageIcon },
+  { id:"questions", label:"Question bank", icon:FileQuestion },
   { id:"cloud", label:"Cloud database", icon:Database },
 ];
 
@@ -124,7 +118,7 @@ export default function AdminPage() {
   }
 
   if (status === "checking" || status === "loading") return <AccessFrame><div className={styles.loading}><RefreshCw className={styles.spin} /><strong>{status === "checking" ? "Checking administrator access…" : "Loading the course inspector…"}</strong></div></AccessFrame>;
-  if (status === "signed-out") return <AccessFrame><section className={styles.accessCard}><span className={styles.accessIcon}><ShieldCheck /></span><p className={styles.kicker}>CERT LOOP · COURSE INSPECTOR</p><h1>Read-only course inspector</h1><p>Sign in with the authorized owner email and password. Course lessons, answer keys, private media, and deployed records never load before server-side authorization.</p><form onSubmit={signIn}><label>Email address<input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="owner@example.com" autoComplete="email" required /></label><label>Password<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required /></label><button type="submit">Sign in</button><button type="button" className={styles.secondaryAction} onClick={sendPasswordSetup}>Forgot password or need to set one?</button></form>{message && <aside>{message}</aside>}<Link href="/"><ArrowLeft size={15}/> Back to learner site</Link></section></AccessFrame>;
+  if (status === "signed-out") return <AccessFrame><section className={styles.accessCard}><span className={styles.accessIcon}><ShieldCheck /></span><p className={styles.kicker}>CERT LOOP · COURSE INSPECTOR</p><h1>Read-only course inspector</h1><p>Sign in with the authorized owner email and password. Course lessons, answer keys, and deployed records never load before server-side authorization.</p><form onSubmit={signIn}><label>Email address<input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="owner@example.com" autoComplete="email" required /></label><label>Password<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required /></label><button type="submit">Sign in</button><button type="button" className={styles.secondaryAction} onClick={sendPasswordSetup}>Forgot password or need to set one?</button></form>{message && <aside>{message}</aside>}<Link href="/"><ArrowLeft size={15}/> Back to learner site</Link></section></AccessFrame>;
   if (status === "denied" || status === "error" || !data) return <AccessFrame><section className={styles.accessCard}><span className={`${styles.accessIcon} ${styles.danger}`}><XCircle /></span><p className={styles.kicker}>{status === "denied" ? "ACCESS DENIED" : "INSPECTOR ERROR"}</p><h1>{status === "denied" ? "This account is not an administrator" : "The inspector needs attention"}</h1><p>{message}</p><button onClick={signOut}>Sign out and use another account</button><Link href="/"><ArrowLeft size={15}/> Back to learner site</Link></section></AccessFrame>;
 
   const activeChapter = data.chapters.find(chapter => chapter.n === chapterNumber) || data.chapters[0];
@@ -137,7 +131,7 @@ export default function AdminPage() {
     <aside className={styles.sidebar}>
       <Link className={styles.brand} href="/"><span>CL</span><div><strong>CERT LOOP</strong><small>Content control</small></div></Link>
       <nav>{tabs.map(item => { const Icon = item.icon; return <button key={item.id} className={tab === item.id ? styles.active : ""} onClick={() => { setTab(item.id); setQuery(""); }}><Icon size={17}/><span>{item.label}</span></button>; })}</nav>
-      <div className={styles.sidebarFoot}><span>READ-ONLY INSPECTOR</span><small>Course lessons, questions, sources, and media are available for inspection only.</small></div>
+      <div className={styles.sidebarFoot}><span>READ-ONLY INSPECTOR</span><small>Course lessons, questions, and sources are available for inspection only.</small></div>
     </aside>
 
     <main className={styles.main}>
@@ -146,7 +140,6 @@ export default function AdminPage() {
         {tab === "overview" && <Overview data={data} />}
         {tab === "curriculum" && <Curriculum data={data} active={activeChapter} selected={chapterNumber} onSelect={setChapterNumber} query={query} setQuery={setQuery} />}
         {tab === "questions" && <Questions data={data} questions={filteredQuestions} active={activeQuestion} selected={questionId} onSelect={setQuestionId} query={query} setQuery={setQuery} domain={domain} setDomain={setDomain} />}
-        {tab === "media" && <Media data={data} query={query} setQuery={setQuery} />}
         {tab === "cloud" && <CloudDatabase data={data} />}
       </div>
     </main>
@@ -157,17 +150,15 @@ function AccessFrame({ children }: { children: React.ReactNode }) { return <main
 
 function Overview({ data }: { data: AdminPayload }) {
   const totals = data.audit.totals;
-  const signedCount = Object.keys(data.cloud.signedMedia).length;
   const checks = [
     { ok:totals.chapters === 26, label:"26 canonical chapters", note:`${totals.sections} deep-dive units · ${totals.explanationParagraphs} teaching paragraphs` },
     { ok:totals.questions >= 84, label:"Bilingual question bank", note:`${totals.questions} original three-option items` },
-    { ok:signedCount === data.mediaPaths.length, label:"Private course media", note:`${signedCount}/${data.mediaPaths.length} signed assets available now` },
     { ok:data.chapterOneVisualCoverage.length === 19, label:"Chapter 1 figure-level audit", note:"17 figures + 2 tables mapped to learning modules" },
     { ok:data.audit.totals.figureAuditsComplete === 26, warn:true, label:"Textbook figure integration", note:`${data.audit.totals.figureAuditsComplete}/26 chapters integrated; the complete Fifth Edition figure/table inventory is audited for the remaining chapters` },
     { ok:data.cloud.status === "healthy", label:"Supabase content connection", note:data.cloud.errors.length ? data.cloud.errors.join(" · ") : `${data.cloud.lessons.length} lesson rows · ${data.cloud.questions.length} question rows` },
   ];
   return <>
-    <section className={styles.hero}><div><p className={styles.kicker}>READ-ONLY COURSE INSPECTOR</p><h2>Inspect what learners actually receive.</h2><p>Canonical course data, deployed Supabase records, and protected visual assets are shown together for inspection. Nothing in this dashboard changes course content or publishing state.</p></div><aside><span>Generated</span><strong>{new Date(data.generatedAt).toLocaleString()}</strong><small>{data.actor.email}</small></aside></section>
+    <section className={styles.hero}><div><p className={styles.kicker}>READ-ONLY COURSE INSPECTOR</p><h2>Inspect what learners actually receive.</h2><p>Canonical course data and deployed Supabase records are shown together for inspection. Nothing in this dashboard changes course content or publishing state.</p></div><aside><span>Generated</span><strong>{new Date(data.generatedAt).toLocaleString()}</strong><small>{data.actor.email}</small></aside></section>
     <section className={styles.metrics}>{[
       [totals.chapters,"chapters"],[totals.sections,"deep dives"],[totals.knowledgePoints,"knowledge points"],[totals.questions,"questions"],[totals.textbookFigures,"textbook figures"],[totals.noteFigures,"note figures"],[data.cloud.sources.length,"source rows"],
     ].map(([value,label]) => <article key={label}><strong>{value}</strong><span>{label}</span></article>)}</section>
@@ -192,13 +183,6 @@ function Questions({ data, questions, active, selected, onSelect, query, setQuer
   const english = active.en || { prompt: active.prompt, options: active.options, explanation: active.explanation };
   return <div className={styles.inspectorLayout}><aside className={styles.recordList}><SearchBox value={query} onChange={setQuery} placeholder="Search prompts or IDs…"/><select value={domain} onChange={event=>setDomain(event.target.value)}><option value="all">All domains · {data.questions.length}</option>{data.pack.domains.map(item=><option key={item.id} value={item.id}>{item.en}</option>)}</select><div>{questions.map(question=><button className={(selected || active.id) === question.id ? styles.selected : ""} key={question.id} onClick={()=>onSelect(question.id)}><span>{question.id.toUpperCase()}</span><div><strong>{question.en?.prompt || question.prompt}</strong><small>{question.domain} · {question.cognition}</small></div></button>)}</div></aside><article className={styles.inspector}><header className={styles.questionHero}><p className={styles.kicker}>{active.id.toUpperCase()} · {active.domain} · {active.cognition}</p><h2>{english.prompt}</h2><h3>{active.prompt}</h3></header><section className={styles.answerOptions}>{english.options.map((option,index)=><article className={index === active.answer ? styles.correct : ""} key={option}><span>{String.fromCharCode(65+index)}</span><div><strong>{option}</strong><small>{active.options[index]}</small></div>{index === active.answer && <CheckCircle2/>}</article>)}</section><section className={styles.rationale}><span>ANSWER RATIONALE</span><p>{english.explanation}</p><small>{active.explanation}</small></section><section className={styles.metadata}><span><b>Source</b>{active.source}</span><span><b>Answer index</b>{active.answer}</span><span><b>Format</b>3 options</span></section></article></div>;
 }
-
-function Media({ data, query, setQuery }: { data:AdminPayload; query:string; setQuery:(s:string)=>void }) {
-  const rows = data.media.filter(row => `${row.chapter} ${row.mindMap?.title.en || ""} ${(row.textbookFigures || []).map(item=>item.title.en).join(" ")} ${(row.noteFigures || []).map(item=>item.title.en).join(" ")}`.toLowerCase().includes(query.toLowerCase()));
-  return <><div className={styles.pageTools}><SearchBox value={query} onChange={setQuery} placeholder="Search media…"/><span>{data.mediaPaths.length} protected files</span></div><section className={styles.mediaGrid}>{rows.map(row=><article className={styles.mediaChapter} key={row.chapter}><header><span>CH. {String(row.chapter).padStart(2,"0")}</span><strong>{row.textbookFigures?.length || 0} textbook · {row.noteFigures?.length || 0} note · {row.mindMap ? "1 internal reference map" : "no reference map"}</strong></header>{row.mindMap && <><div className={styles.mediaNotice}>Internal reference only · not shown in the learner course</div><MediaAsset title={row.mindMap.title} caption={row.mindMap.caption} path={row.mindMap.path} url={data.cloud.signedMedia[row.mindMap.path]}/></>}<div className={styles.figureGrid}>{(row.textbookFigures || []).map(figure=><MediaAsset key={figure.path} title={figure.title} caption={figure.caption} path={figure.path} url={data.cloud.signedMedia[figure.path]}/>)}</div><div className={styles.figureGrid}>{(row.noteFigures || []).map(figure=><MediaAsset key={figure.path} title={figure.title} caption={figure.caption} path={figure.path} url={data.cloud.signedMedia[figure.path]}/>)}</div><div className={styles.atlasList}>{row.textbookAtlas.map((atlas,index)=><details key={atlas.title.en}><summary>{index+1}. {atlas.title.en}</summary><p>{atlas.relationship.en}</p><ol>{atlas.steps.map(step=><li key={step.en}>{step.en} <small>{step.zh}</small></li>)}</ol></details>)}</div></article>)}</section><section className={styles.panel}><PanelHead eyebrow="CHAPTER 1 · SOURCE COVERAGE" title="17 figures and 2 tables"/><div className={styles.coverageGrid}>{data.chapterOneVisualCoverage.map(item=><article key={item.id}><span>{item.id} · p. {item.pdfPage}</span><strong>{item.concept}</strong><small>{item.module}</small><em>{item.implementation}</em></article>)}</div></section></>;
-}
-
-function MediaAsset({ title, caption, path, url }: { title:{en:string;zh:string}; caption:{en:string;zh:string}; path:string; url?:string }) { return <figure className={styles.mediaAsset}>{url ? <a href={url} target="_blank" rel="noreferrer"><Image src={url} alt={title.en} width={640} height={420} unoptimized /></a> : <div className={styles.mediaMissing}><ImageIcon/> unavailable</div>}<figcaption><strong>{title.en}</strong><small>{title.zh}</small><p>{caption.en}</p><code>{path}</code></figcaption></figure>; }
 
 function CloudDatabase({ data }: { data:AdminPayload }) { return <><section className={styles.metrics}>{[[data.cloud.lessons.length,"lesson rows"],[data.cloud.questions.length,"question rows"],[data.cloud.sources.length,"source rows"]].map(([value,label])=><article key={label}><strong>{value}</strong><span>{label}</span></article>)}</section>{data.cloud.errors.length>0 && <section className={styles.errorPanel}>{data.cloud.errors.map(error=><p key={error}>{error}</p>)}</section>}<section className={styles.panel}><PanelHead eyebrow="SUPABASE LESSONS" title="Actual deployed lesson records"/><div className={styles.rawList}>{data.cloud.lessons.map(item=><details className={styles.rawDetail} key={item.id}><summary><span>{item.task_id}</span><strong>{item.language.toUpperCase()} · {item.title}</strong><em>{item.status} · v{item.version}</em></summary><p>{item.summary}</p><pre>{JSON.stringify(item.content,null,2)}</pre></details>)}</div></section><section className={styles.panel}><PanelHead eyebrow="SUPABASE QUESTIONS" title="Actual deployed question records"/><div className={styles.rawList}>{data.cloud.questions.map(item=><details className={styles.rawDetail} key={item.id}><summary><span>{item.external_id}</span><strong>{item.language.toUpperCase()} · {item.prompt}</strong><em>{item.status} · v{item.version}</em></summary><pre>{JSON.stringify(item,null,2)}</pre></details>)}</div></section><section className={styles.panel}><PanelHead eyebrow="SOURCE REGISTRY" title="Trust and recency"/><div className={styles.sourceList}>{data.cloud.sources.map(item=><article key={item.id}><span>{item.source_type} · trust {item.trust_level}/4</span><strong>{item.title}</strong><small>Checked {item.checked_at ? new Date(item.checked_at).toLocaleString() : "not recorded"}</small>{item.url && <a href={item.url} target="_blank" rel="noreferrer">Open source ↗</a>}</article>)}</div></section></>; }
 

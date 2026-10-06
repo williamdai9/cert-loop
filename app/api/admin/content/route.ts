@@ -40,11 +40,6 @@ function staticAudit() {
     label: domain.en,
     count: pack.questions.filter(question => question.domain === domain.id).length,
   }));
-  const mediaPaths = Array.from(new Set(Object.values(courseMedia).flatMap(media => [
-    ...(media.mindMap ? [media.mindMap.path] : []),
-    ...(media.textbookFigures || []).map(figure => figure.path),
-    ...(media.noteFigures || []).map(figure => figure.path),
-  ])));
 
   return {
     pack: {
@@ -64,8 +59,6 @@ function staticAudit() {
     },
     chapters: cscsCourse,
     questions: pack.questions,
-    media: Object.entries(courseMedia).map(([chapter, media]) => ({ chapter: Number(chapter), ...media })),
-    mediaPaths,
     chapterOneVisualCoverage,
     audit: {
       chapters,
@@ -106,26 +99,18 @@ export async function GET(request: Request) {
     ...base,
     actor: { email: user.email },
     generatedAt: new Date().toISOString(),
-    cloud: { status: "unavailable", errors: ["Server-side Supabase administration is not configured in this environment."], lessons: [], questions: [], sources: [], signedMedia: {} },
+    cloud: { status: "unavailable", errors: ["Server-side Supabase administration is not configured in this environment."], lessons: [], questions: [], sources: [] },
   }, { headers: { "Cache-Control": "no-store" } });
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const [lessons, questions, sources, signedMedia] = await Promise.all([
+  const [lessons, questions, sources] = await Promise.all([
     admin.from("lessons").select("id,task_id,language,title,summary,content,source_refs,version,status,updated_at").eq("certification_id", base.pack.id).order("task_id").order("language").limit(1000),
     admin.from("questions").select("id,external_id,language,domain_id,cognition,prompt,options,answer_index,explanation,source_refs,version,status,updated_at").eq("certification_id", base.pack.id).order("external_id").order("language").limit(1000),
     admin.from("sources").select("id,title,url,source_type,trust_level,published_at,checked_at,metadata").eq("certification_id", base.pack.id).order("trust_level", { ascending: false }).limit(500),
-    Promise.all(Array.from({ length: Math.ceil(base.mediaPaths.length / 500) }, (_, index) =>
-      admin.storage.from("course-media").createSignedUrls(base.mediaPaths.slice(index * 500, (index + 1) * 500), 60 * 60),
-    )),
   ]);
 
   const queryResults = { lessons, questions, sources };
   const errors = Object.entries(queryResults).flatMap(([name, result]) => result.error ? [`${name}: ${result.error.message}`] : []);
-  for (const batch of signedMedia) {
-    if (batch.error) errors.push(`media: ${batch.error.message}`);
-  }
-  const signedMap = Object.fromEntries(signedMedia.flatMap(batch => (batch.data || [])
-    .flatMap(item => item.signedUrl ? [[item.path, item.signedUrl]] : [])));
 
   return NextResponse.json({
     ...base,
@@ -137,7 +122,6 @@ export async function GET(request: Request) {
       lessons: lessons.data || [],
       questions: questions.data || [],
       sources: sources.data || [],
-      signedMedia: signedMap,
     },
   }, { headers: { "Cache-Control": "no-store" } });
 }
