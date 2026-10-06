@@ -27,7 +27,7 @@ export function ChapterVisualLab({ chapter, lang }: { chapter: CourseChapter; la
 }
 
 function SpecializedLab({ chapter, lang }: { chapter: CourseChapter; lang: Lang }) {
-  if (chapter.n === 1) return <ContractionLab lang={lang} />;
+  if (chapter.n === 1) return null;
   if (chapter.n === 2) return <TorqueLab lang={lang} />;
   if (chapter.n === 3) return <EnergyLab lang={lang} />;
   if (chapter.n === 9) return <ArousalLab lang={lang} />;
@@ -42,15 +42,6 @@ function SpecializedLab({ chapter, lang }: { chapter: CourseChapter; lang: Lang 
 
 function LabShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return <div className="special-lab"><div className="special-lab-title"><span><Gauge size={17} /></span><div><strong>{title}</strong><small>{subtitle}</small></div></div>{children}</div>;
-}
-
-function ContractionLab({ lang }: { lang: Lang }) {
-  const [step, setStep] = useState(0);
-  const phases = lang === "en" ? ["Motor neuron signal", "Ca²⁺ released", "Binding sites exposed", "Cross-bridge power stroke", "ATP detaches & resets"] : ["运动神经信号", "释放 Ca²⁺", "暴露结合位点", "横桥动力冲程", "ATP 解离并复位"];
-  return <LabShell title={lang === "en" ? "Excitation–contraction stepper" : "兴奋—收缩耦联步进器"} subtitle={lang === "en" ? "Move through the causal chain; do not memorize isolated labels." : "沿因果链推进，不要孤立死记标签。"}>
-    <div className="sarcomere" style={{ "--shorten": `${step * 5}%` } as React.CSSProperties}><i /><b /><span className="z-line left" /><span className="z-line right" /><em>ACTIN</em><strong>MYOSIN</strong></div>
-    <div className="lab-stepper"><button onClick={() => setStep(value => Math.max(0, value - 1))} disabled={step === 0}>←</button><div><span>STEP {step + 1}/5</span><strong>{phases[step]}</strong></div><button onClick={() => setStep(value => Math.min(4, value + 1))} disabled={step === 4}>→</button></div>
-  </LabShell>;
 }
 
 function TorqueLab({ lang }: { lang: Lang }) {

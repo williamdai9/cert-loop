@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npx next build",
+  "buildCommand": "npm run build",
   "crons": [
-    { "path": "/api/research/update", "schedule": "17 8 * * *" }
+    { "path": "/api/maintenance/supabase-keep-alive", "schedule": "17 8 * * 1,4" }
   ]
 }
