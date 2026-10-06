@@ -122,7 +122,6 @@ export function editorialMediaForSection(chapter: number, sectionId: string) {
   return {
     visuals,
     insights,
-    retainedForAdmin: Math.max(0, figures.length - visuals.length - insights.length),
     totalAudited: figures.length,
   };
 }

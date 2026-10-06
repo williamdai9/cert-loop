@@ -150,7 +150,7 @@ function sliceForSlot<T>(items: T[], slot: number, slots: number) {
 }
 
 export function SectionLearningFlow({ chapter, section, lang }: { chapter: number; section: CourseSection; lang: Lang }) {
-  const { visuals, insights, retainedForAdmin } = editorialMediaForSection(chapter, section.id);
+  const { visuals, insights } = editorialMediaForSection(chapter, section.id);
   const notes = (mediaForChapter(chapter).noteFigures || []).filter(figure => figure.sectionId === section.id);
   const paragraphs = section.explanation.length ? section.explanation : [section.examCue.en];
 
@@ -172,7 +172,6 @@ export function SectionLearningFlow({ chapter, section, lang }: { chapter: numbe
         {!!paragraphVisuals.length && <div className="inline-visual-cluster" aria-label={lang === "en" ? "Visual explanation embedded in this lesson" : "嵌入本节的视觉讲解"}>{paragraphVisuals.map(figure => <InlineTextbookVisual key={figure.path} figure={figure} lang={lang} />)}</div>}
       </div>;
     })}
-    {retainedForAdmin > 0 && <p className="editorial-media-note">{lang === "en" ? `${retainedForAdmin} supporting source plates remain available in the administrator evidence library. Learner view prioritizes explanatory visuals and curated source takeaways instead of presenting an unreadable screenshot wall.` : `${retainedForAdmin} 张辅助资料仍保留在管理员证据库。学习界面优先展示解释性图像与经过整理的教材要点，不再堆放难以阅读的截图墙。`}</p>}
   </div>;
 }
 

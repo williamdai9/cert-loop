@@ -41,10 +41,11 @@ test("server-renders a general certification catalog", async () => {
   assert.doesNotMatch(html, /English-first/);
 });
 
-test("rejects anonymous administrator API inspection", async () => {
-  const response = await requestWorker("/api/admin/content");
-  assert.equal(response.status, 401);
-  assert.deepEqual(await response.json(), { error: "Sign in with an administrator account." });
+test("retired administrator routes are unavailable", async () => {
+  for (const path of ["/admin", "/api/admin/content"]) {
+    const response = await requestWorker(path);
+    assert.equal(response.status, 404, path);
+  }
 });
 
 test("rejects unauthorized Supabase maintenance requests", async () => {
@@ -69,7 +70,7 @@ test("uses a lightweight twice-weekly Supabase keep-alive instead of scheduled r
 });
 
 test("ships plan-linked complete lessons, optional placement, on-demand tutor, and private progress sync", async () => {
-  const [catalogPage, page, lessons, supabase, migration, tutor, visuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, adminPage, adminApi, registry, planCurriculum, mediaPresentation] = await Promise.all([
+  const [catalogPage, page, lessons, supabase, migration, tutor, visuals, visualCoverage, courseMediaViewer, researchMigration, protectionMigration, courseMedia, tutorClient, registry, planCurriculum, mediaPresentation] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/certifications/nsca-cscs/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/lesson-data.ts", import.meta.url), "utf8"),
@@ -89,8 +90,6 @@ test("ships plan-linked complete lessons, optional placement, on-demand tutor, a
     readFile(new URL("../supabase/migrations/20260721153000_protect_learning_content.sql", import.meta.url), "utf8"),
     readFile(new URL("../lib/course-media.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ai-tutor.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/api/admin/content/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/certifications.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/plan-curriculum.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/course-media-presentation.ts", import.meta.url), "utf8"),
@@ -136,9 +135,7 @@ test("ships plan-linked complete lessons, optional placement, on-demand tutor, a
   assert.match(courseMediaViewer, /TEXTBOOK SOURCE · INTEGRATED INTO THE LESSON/);
   assert.match(page, /TextbookVisualAtlas/);
   assert.match(page, /from\("user_progress"\)/);
-  assert.match(page, /href="\/admin"/);
-  assert.match(page, /className="admin-top-link"/);
-  assert.match(page, /className="placement-admin-link"/);
+  assert.doesNotMatch(page, /href="\/admin"|admin-top-link|placement-admin-link|admin-entry-link/);
   assert.match(supabase, /persistSession:\s*true/);
   assert.match(migration, /enable row level security/);
   assert.match(migration, /auth\.uid\(\) = user_id/);
@@ -157,7 +154,9 @@ test("ships plan-linked complete lessons, optional placement, on-demand tutor, a
   assert.match(courseMediaViewer, /data-block-id/);
   assert.match(courseMediaViewer, /data-media-id/);
   assert.match(mediaPresentation, /textOnlyMovementBasenames/);
-  assert.match(mediaPresentation, /retainedForAdmin/);
+  assert.doesNotMatch(mediaPresentation, /retainedForAdmin/);
+  assert.doesNotMatch(courseMediaViewer, /administrator evidence library|管理员证据库/);
+  assert.doesNotMatch(tutorClient, /reviewed research feed|审核后的研究动态/);
   assert.match(planCurriculum, /"w1-1"/);
   assert.match(planCurriculum, /"w12-3"/);
   assert.match(page, /focusedSectionIds/);
@@ -176,23 +175,8 @@ test("ships plan-linked complete lessons, optional placement, on-demand tutor, a
   assert.match(courseMedia, /textbookFigure\("table-1-1a\.png"/);
   assert.match(courseMedia, /textbookFigureForChapter\(2, "figure-2-15\.png"/);
   assert.match(courseMedia, /5th-edition|fifth edition|textbookAtlas/);
-  assert.match(adminPage, /Read-only course inspector/);
-  assert.match(adminPage, /Textbook figure integration/);
-  assert.match(adminPage, /complete Fifth Edition figure\/table inventory is audited/);
-  assert.match(adminPage, /Cloud database/);
-  assert.match(adminPage, /Question bank/);
-  assert.match(adminApi, /CERT_LOOP_ADMIN_EMAILS/);
-  assert.match(adminApi, /cert_loop_admin/);
-  assert.match(adminApi, /auth\.getUser\(token\)/);
-  assert.match(adminApi, /SUPABASE_SERVICE_ROLE_KEY/);
-  assert.match(adminApi, /from\("lessons"\)/);
-  assert.match(adminApi, /from\("questions"\)/);
-  assert.doesNotMatch(adminApi, /from\("(?:research_items|content_review_queue|research_sync_runs)"\)/);
   assert.doesNotMatch(tutor, /research_items|CURATED RESEARCH ARCHIVE/);
   assert.doesNotMatch(page, /ResearchPulse/);
-  assert.doesNotMatch(adminPage, /Review queue|AI draft|ResearchRow/);
-  assert.doesNotMatch(adminApi, /createSignedUrls|signedMedia|mediaPaths/);
-  assert.doesNotMatch(adminPage, /function Media\(|function MediaAsset\(|label:\s*"Media"/);
   assert.match(catalogPage, /End-to-end curriculum/);
   assert.match(catalogPage, /\/certifications\/nsca-cscs/);
   assert.match(registry, /NSCA Certified Strength and Conditioning Specialist® \(CSCS®\)/);
