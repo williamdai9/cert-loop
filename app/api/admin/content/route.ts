@@ -114,13 +114,18 @@ export async function GET(request: Request) {
     admin.from("lessons").select("id,task_id,language,title,summary,content,source_refs,version,status,updated_at").eq("certification_id", base.pack.id).order("task_id").order("language").limit(1000),
     admin.from("questions").select("id,external_id,language,domain_id,cognition,prompt,options,answer_index,explanation,source_refs,version,status,updated_at").eq("certification_id", base.pack.id).order("external_id").order("language").limit(1000),
     admin.from("sources").select("id,title,url,source_type,trust_level,published_at,checked_at,metadata").eq("certification_id", base.pack.id).order("trust_level", { ascending: false }).limit(500),
-    admin.storage.from("course-media").createSignedUrls(base.mediaPaths, 60 * 60),
+    Promise.all(Array.from({ length: Math.ceil(base.mediaPaths.length / 500) }, (_, index) =>
+      admin.storage.from("course-media").createSignedUrls(base.mediaPaths.slice(index * 500, (index + 1) * 500), 60 * 60),
+    )),
   ]);
 
   const queryResults = { lessons, questions, sources };
   const errors = Object.entries(queryResults).flatMap(([name, result]) => result.error ? [`${name}: ${result.error.message}`] : []);
-  if (signedMedia.error) errors.push(`media: ${signedMedia.error.message}`);
-  const signedMap = Object.fromEntries((signedMedia.data || []).flatMap(item => item.signedUrl ? [[item.path, item.signedUrl]] : []));
+  for (const batch of signedMedia) {
+    if (batch.error) errors.push(`media: ${batch.error.message}`);
+  }
+  const signedMap = Object.fromEntries(signedMedia.flatMap(batch => (batch.data || [])
+    .flatMap(item => item.signedUrl ? [[item.path, item.signedUrl]] : [])));
 
   return NextResponse.json({
     ...base,

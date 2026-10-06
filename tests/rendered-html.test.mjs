@@ -192,6 +192,7 @@ test("ships plan-linked complete lessons, optional placement, on-demand tutor, a
   assert.doesNotMatch(page, /ResearchPulse/);
   assert.doesNotMatch(adminPage, /Review queue|AI draft|ResearchRow/);
   assert.match(adminApi, /createSignedUrls/);
+  assert.match(adminApi, /base\.mediaPaths\.slice\(index \* 500, \(index \+ 1\) \* 500\)/);
   assert.match(catalogPage, /End-to-end curriculum/);
   assert.match(catalogPage, /\/certifications\/nsca-cscs/);
   assert.match(registry, /NSCA Certified Strength and Conditioning Specialist® \(CSCS®\)/);
